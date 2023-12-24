@@ -10,6 +10,8 @@
     "test": "plasmo test"
   },
   "dependencies": {
+    "@mantine/core": "^7.3.2",
+    "@mantine/hooks": "^7.3.2",
     "plasmo": "0.84.0",
     "react": "18.2.0",
     "react-dom": "18.2.0"
@@ -20,6 +22,9 @@
     "@types/node": "20.9.0",
     "@types/react": "18.2.37",
     "@types/react-dom": "18.2.15",
+    "postcss": "^8.4.32",
+    "postcss-preset-mantine": "^1.12.1",
+    "postcss-simple-vars": "^7.0.1",
     "typescript": "5.2.2"
   },
   "manifest": {
