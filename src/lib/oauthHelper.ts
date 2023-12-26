@@ -1,4 +1,11 @@
-import type { AuthorizationHeader } from "~lib/oauth";
+export type Endpoint = {
+  method: string;
+  url: string;
+};
+
+export type AuthorizationHeader = {
+  Authorization: string;
+};
 
 export const parseOAuthTokenFromResponse = (response: string) => {
   const params = new URLSearchParams(response);
@@ -34,7 +41,7 @@ export const generateTimestamp = (): string => {
 export const createSignatureBaseString = (
   httpMethod: string,
   requestUri: string,
-  params: Record<string, string>,
+  params: Record<string, string>
 ) => {
   const sortedKeys = Object.keys(params).sort();
   const paramString = sortedKeys
@@ -54,7 +61,7 @@ export const createSignatureBaseString = (
 
 export const createSignatureKey = (
   consumerSecret: string,
-  tokenSecret: string | undefined,
+  tokenSecret: string | undefined
 ) => {
   const encodedConsumerSecret = encodeURIComponent(consumerSecret);
   const encodedTokenSecret = encodeURIComponent(tokenSecret ?? "");
@@ -72,26 +79,81 @@ export const createSignature = async (baseString: string, key: string) => {
     keyData,
     { name: "HMAC", hash: "SHA-1" },
     false,
-    ["sign"],
+    ["sign"]
   );
   const signature = await crypto.subtle.sign("HMAC", cryptoKey, message);
   return btoa(String.fromCharCode(...new Uint8Array(signature)));
 };
 
 // OAuthヘッダの作成
-export const createOAuthHeader = (
-  params: Record<string, string>,
+export const constructOAuthHeader = (
+  params: Record<string, string>
 ): AuthorizationHeader => {
-  const value =
-    "OAuth " +
-    Object.keys(params)
-      .map(
-        (key) =>
-          `${encodeURIComponent(key)}="${encodeURIComponent(params[key])}"`,
-      )
-      .join(", ");
+  const value = `OAuth ${Object.keys(params)
+    .map(
+      (key) => `${encodeURIComponent(key)}="${encodeURIComponent(params[key])}"`
+    )
+    .join(", ")}`;
 
   return {
     Authorization: value,
   };
+};
+
+export const authorizeRequest = async ({
+  request,
+  consumerKey,
+  consumerSecret,
+  tokenSecret,
+}: {
+  request: {
+    url: string;
+    method: string;
+    params: Record<string, string>;
+  };
+  consumerKey: string;
+  consumerSecret: string;
+  tokenSecret: string | undefined;
+}) => {
+  const nonce = generateNonce();
+  const timestamp = generateTimestamp();
+
+  const paramsWithoutSignature = {
+    oauth_consumer_key: consumerKey,
+    oauth_signature_method: "HMAC-SHA1",
+    oauth_timestamp: timestamp,
+    oauth_nonce: nonce,
+    oauth_version: "1.0",
+    ...request.params,
+  };
+
+  const signatureBaseString = createSignatureBaseString(
+    request.method,
+    request.url,
+    paramsWithoutSignature
+  );
+
+  const signatureKey = createSignatureKey(consumerSecret, tokenSecret);
+
+  const oauthSignature = await createSignature(
+    signatureBaseString,
+    signatureKey
+  );
+
+  const paramsWithSignature = {
+    ...paramsWithoutSignature,
+    oauth_signature: oauthSignature,
+  };
+
+  return constructOAuthHeader(paramsWithSignature);
+};
+
+export const constructUrlWithParams = (
+  url: string,
+  params: Record<string, string>
+) => {
+  const urlObject = new URL(url);
+  const searchParams = new URLSearchParams(params);
+  urlObject.search = searchParams.toString();
+  return urlObject.toString();
 };
