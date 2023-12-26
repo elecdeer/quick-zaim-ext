@@ -145,7 +145,16 @@ export const authorizeRequest = async ({
     oauth_signature: oauthSignature,
   };
 
-  return constructOAuthHeader(paramsWithSignature);
+  return {
+    headers: constructOAuthHeader(paramsWithSignature),
+    request: {
+      ...request,
+      params: {
+        ...request.params,
+        ...paramsWithSignature,
+      },
+    },
+  };
 };
 
 export const constructUrlWithParams = (

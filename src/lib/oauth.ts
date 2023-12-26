@@ -16,7 +16,9 @@ export type AccessTokenPair = {
   accessTokenSecret: string;
 };
 
-export type OAuthApplicant = () => Promise<AccessTokenPair>;
+export type OAuthApplicant = {
+  obtainAccessToken: () => Promise<AccessTokenPair>;
+};
 
 // TODO headerの計算に使ったparamsって実際に渡さなくていいんだっけ？
 // zaimは渡さなくても通っているように見える
@@ -36,28 +38,30 @@ export const createOAuthApplicant = ({
   accessTokenEndpoint: Endpoint;
   waitUserAuthorize: (userAuthorizeUrl: string) => Promise<string>;
 }): OAuthApplicant => {
-  return async () => {
-    const requestToken = await fetchRequestToken({
-      requestTokenEndpoint,
-      consumerKey,
-      consumerSecret,
-    });
+  return {
+    obtainAccessToken: async () => {
+      const requestToken = await fetchRequestToken({
+        requestTokenEndpoint,
+        consumerKey,
+        consumerSecret,
+      });
 
-    const oauthVerifier = await userAuthorize({
-      authorizeEndpoint,
-      requestToken,
-      waitUserAuthorize,
-    });
+      const oauthVerifier = await userAuthorize({
+        authorizeEndpoint,
+        requestToken,
+        waitUserAuthorize,
+      });
 
-    const accessToken = await fetchAccessToken({
-      accessTokenEndpoint,
-      oauthVerifier,
-      consumerKey,
-      consumerSecret,
-      requestToken,
-    });
+      const accessToken = await fetchAccessToken({
+        accessTokenEndpoint,
+        oauthVerifier,
+        consumerKey,
+        consumerSecret,
+        requestToken,
+      });
 
-    return accessToken;
+      return accessToken;
+    },
   };
 };
 
@@ -70,15 +74,14 @@ const fetchRequestToken = async ({
   consumerKey: string;
   consumerSecret: string;
 }): Promise<RequestTokenPair> => {
-  const request = {
-    url: requestTokenEndpoint.url,
-    method: requestTokenEndpoint.method,
-    params: {
-      oauth_callback: "oob",
+  const { headers, request } = await authorizeRequest({
+    request: {
+      url: requestTokenEndpoint.url,
+      method: requestTokenEndpoint.method,
+      params: {
+        oauth_callback: "oob",
+      },
     },
-  };
-  const oauthHeader = await authorizeRequest({
-    request,
     consumerKey,
     consumerSecret,
     tokenSecret: undefined,
@@ -87,9 +90,7 @@ const fetchRequestToken = async ({
   const urlWithParams = constructUrlWithParams(request.url, request.params);
   const response = await fetch(urlWithParams, {
     method: request.method,
-    headers: {
-      ...oauthHeader,
-    },
+    headers: headers,
   });
 
   const responseText = await response.text();
@@ -134,14 +135,13 @@ const fetchAccessToken = async ({
     oauth_token: requestToken.oauthToken,
     oauth_verifier: oauthVerifier,
   };
-  const request = {
-    url: accessTokenEndpoint.url,
-    method: accessTokenEndpoint.method,
-    params,
-  };
 
-  const oauthHeader = await authorizeRequest({
-    request,
+  const { request, headers } = await authorizeRequest({
+    request: {
+      url: accessTokenEndpoint.url,
+      method: accessTokenEndpoint.method,
+      params,
+    },
     consumerKey,
     consumerSecret,
     tokenSecret: requestToken.oauthTokenSecret,
@@ -150,9 +150,7 @@ const fetchAccessToken = async ({
   const urlWithParams = constructUrlWithParams(request.url, request.params);
   const response = await fetch(urlWithParams, {
     method: accessTokenEndpoint.method,
-    headers: {
-      ...oauthHeader,
-    },
+    headers: headers,
   });
 
   const responseText = await response.text();
@@ -173,7 +171,7 @@ type Request = {
 };
 
 export type OAuthSign = (request: Request) => Promise<{
-  header: AuthorizationHeader;
+  headers: AuthorizationHeader;
   request: Request;
 }>;
 
@@ -206,23 +204,11 @@ export const createOAuthSigner = ({
       },
     };
 
-    const oauthHeader = await authorizeRequest({
+    return await authorizeRequest({
       request,
       consumerKey,
       consumerSecret,
       tokenSecret: accessTokenSecret,
     });
-
-    return {
-      header: oauthHeader,
-      request: {
-        url,
-        method,
-        params: {
-          ...params,
-          oauth_token: accessToken,
-        },
-      },
-    };
   };
 };
