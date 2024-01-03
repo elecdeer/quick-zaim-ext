@@ -201,7 +201,7 @@ const useVerifyProcess = ({
 				onClose={cancelAuthorizeProcess}
 				title="User Authorize"
 			>
-				<Stack gap={16} p={16}>
+				<Stack gap={16}>
 					<Button
 						onClick={startAuthorize}
 						rightSection={<IconExternalLink size={14} />}
