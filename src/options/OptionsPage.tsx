@@ -8,6 +8,7 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useStorage } from "@plasmohq/storage/hook";
+import { IconExternalLink } from "@tabler/icons-react";
 import { type FC, useCallback, useRef, useState } from "react";
 import {
 	type AccessTokenPair,
@@ -201,7 +202,12 @@ const useVerifyProcess = ({
 				title="User Authorize"
 			>
 				<Stack gap={16} p={16}>
-					<Button onClick={startAuthorize}>Open Authorize Page</Button>
+					<Button
+						onClick={startAuthorize}
+						rightSection={<IconExternalLink size={14} />}
+					>
+						Open Authorize Page
+					</Button>
 					<TextInput
 						data-autofocus
 						disabled={!authorizeStarted}
