@@ -153,6 +153,7 @@ const useVerifyProcess = ({
 		return waitAuthorize();
 	}, [open, consumerKey, consumerSecret, waitAuthorize]);
 
+	const verifyCodeInputRef = useRef<HTMLInputElement>(null);
 	const startAuthorize = useCallback(() => {
 		setAuthorizeStarted(true);
 		const { obtainAccessToken } = createOAuthApplicant({
@@ -161,6 +162,7 @@ const useVerifyProcess = ({
 			...zaimOAuthEndpoints,
 			waitUserAuthorize: (userAuthUrl) => {
 				window.open(userAuthUrl, "zaimUserAuth");
+				verifyCodeInputRef.current?.focus();
 
 				return waitVerifyInput();
 			},
@@ -209,7 +211,7 @@ const useVerifyProcess = ({
 						Open Authorize Page
 					</Button>
 					<TextInput
-						data-autofocus
+						ref={verifyCodeInputRef}
 						disabled={!authorizeStarted}
 						label={"Verify Code"}
 						description={"「認証が完了」の下に表示されるコードを入力"}
