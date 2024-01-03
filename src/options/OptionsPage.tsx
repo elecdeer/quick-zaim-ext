@@ -219,7 +219,7 @@ const useVerifyProcess = ({
 					>
 						Open Authorize Page
 					</Button>
-					<TextInput
+					<PasswordInput
 						ref={verifyCodeInputRef}
 						disabled={!authorizeStarted}
 						label={"Verify Code"}
