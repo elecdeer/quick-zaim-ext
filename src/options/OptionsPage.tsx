@@ -1,12 +1,39 @@
-import { Button, Input, Stack, TextInput } from "@mantine/core";
+import {
+	Button,
+	Input,
+	Modal,
+	PasswordInput,
+	Stack,
+	TextInput,
+} from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { useStorage } from "@plasmohq/storage/hook";
-import { type FC, useCallback } from "react";
-import { createOAuthApplicant, createOAuthSigner } from "~lib/oauth";
+import { type FC, useCallback, useRef, useState } from "react";
+import {
+	type AccessTokenPair,
+	createOAuthApplicant,
+	createOAuthSigner,
+} from "~lib/oauth";
 import {
 	oauthAccessTokenStore,
 	oauthConsumerKeyStore,
 	oauthConsumerSecretStore,
 } from "~lib/store";
+import { usePromiseResolvers } from "~lib/usePromiseResolvers";
+
+const zaimOAuthEndpoints = {
+	accessTokenEndpoint: {
+		url: "https://api.zaim.net/v2/auth/access",
+		method: "GET",
+	},
+	requestTokenEndpoint: {
+		url: "https://api.zaim.net/v2/auth/request",
+		method: "GET",
+	},
+	authorizeEndpoint: {
+		url: "https://auth.zaim.net/users/auth",
+	},
+} as const;
 
 export const OptionsPage: FC = () => {
 	// ready前はsuspendする
@@ -21,39 +48,18 @@ export const OptionsPage: FC = () => {
 		oauthAccessTokenStore.hookAccessor(true),
 	);
 
+	const { openAuthorizeModal, modalElement } = useVerifyProcess({
+		consumerKey,
+		consumerSecret,
+	});
+
 	const handleClickUserAuthorize = useCallback(() => {
-		const { obtainAccessToken } = createOAuthApplicant({
-			consumerKey,
-			consumerSecret,
-			accessTokenEndpoint: {
-				url: "https://api.zaim.net/v2/auth/access",
-				method: "GET",
-			},
-			requestTokenEndpoint: {
-				url: "https://api.zaim.net/v2/auth/request",
-				method: "GET",
-			},
-			authorizeEndpoint: {
-				url: "https://auth.zaim.net/users/auth",
-			},
-			waitUserAuthorize: (userAuthUrl) => {
-				console.log("waitUserAuthorize");
-				console.log(userAuthUrl);
-
-				const verifier = window.prompt("Enter the code from the browser", "");
-				if (!verifier) {
-					throw new Error("verifier is empty");
-				}
-				return Promise.resolve(verifier);
-			},
-		});
-
 		void (async () => {
-			const accessToken = await obtainAccessToken();
+			const accessToken = await openAuthorizeModal();
 
 			setAccessToken(accessToken);
 		})();
-	}, [consumerKey, consumerSecret, setAccessToken]);
+	}, [openAuthorizeModal, setAccessToken]);
 
 	const handleClickRequest = useCallback(() => {
 		void (async () => {
@@ -81,36 +87,135 @@ export const OptionsPage: FC = () => {
 	}, [accessToken, consumerKey, consumerSecret]);
 
 	return (
-		<Stack p={16}>
-			<Input.Wrapper label="Api Consumer Key">
-				<Input
+		<>
+			<Stack p={16}>
+				<PasswordInput
+					label="Api Consumer Key"
 					value={consumerKey ?? ""}
 					onChange={(e) => {
 						void setConsumerKey(e.currentTarget.value);
 					}}
 				/>
-			</Input.Wrapper>
 
-			<Input.Wrapper label="Api Consumer Secret">
-				<Input
+				<PasswordInput
+					label="Api Consumer Secret"
 					value={consumerSecret ?? ""}
 					onChange={(e) => {
 						void setConsumerSecret(e.currentTarget.value);
 					}}
 				/>
-			</Input.Wrapper>
 
-			<Button type="button" onClick={handleClickUserAuthorize}>
-				Authorize
-			</Button>
+				<Button type="button" onClick={handleClickUserAuthorize}>
+					Authorize
+				</Button>
 
-			<Button
-				disabled={accessToken === undefined}
-				type="button"
-				onClick={handleClickRequest}
-			>
-				Request
-			</Button>
-		</Stack>
+				<Button
+					disabled={accessToken === undefined}
+					type="button"
+					onClick={handleClickRequest}
+				>
+					Request
+				</Button>
+			</Stack>
+			{modalElement}
+		</>
 	);
+};
+
+const useVerifyProcess = ({
+	consumerKey,
+	consumerSecret,
+}: {
+	consumerKey: string;
+	consumerSecret: string;
+}) => {
+	const [verifier, setVerifier] = useState<string>("");
+	const [authorizeStarted, setAuthorizeStarted] = useState<boolean>(false);
+
+	const [opened, { open, close }] = useDisclosure(false);
+
+	const {
+		wait: waitAuthorize,
+		done: doneAuthorize,
+		abort: abortAuthorize,
+	} = usePromiseResolvers();
+
+	const { wait: waitVerifyInput, done: doneVerifyInput } =
+		usePromiseResolvers<string>();
+
+	const openAuthorizeModal = useCallback(() => {
+		if (consumerKey === "" || consumerSecret === "") return;
+
+		setAuthorizeStarted(false);
+		setVerifier("");
+		open();
+		return waitAuthorize();
+	}, [open, consumerKey, consumerSecret, waitAuthorize]);
+
+	const startAuthorize = useCallback(() => {
+		setAuthorizeStarted(true);
+		const { obtainAccessToken } = createOAuthApplicant({
+			consumerKey,
+			consumerSecret,
+			...zaimOAuthEndpoints,
+			waitUserAuthorize: (userAuthUrl) => {
+				window.open(userAuthUrl, "zaimUserAuth");
+
+				return waitVerifyInput();
+			},
+		});
+
+		obtainAccessToken()
+			.then((token) => {
+				close();
+				doneAuthorize(token);
+			})
+			.catch((e) => {
+				// close();
+				// TODO: エラーを知らせる
+				abortAuthorize();
+			});
+	}, [
+		consumerKey,
+		consumerSecret,
+		waitVerifyInput,
+		doneAuthorize,
+		close,
+		abortAuthorize,
+	]);
+
+	const cancelAuthorizeProcess = useCallback(() => {
+		abortAuthorize();
+		close();
+	}, [close, abortAuthorize]);
+	const confirmVerifier = useCallback(() => {
+		if (verifier === "") return;
+		doneVerifyInput(verifier);
+	}, [verifier, doneVerifyInput]);
+
+	return {
+		modalElement: (
+			<Modal
+				opened={opened}
+				onClose={cancelAuthorizeProcess}
+				title="User Authorize"
+			>
+				<Stack gap={16} p={16}>
+					<Button onClick={startAuthorize}>Open Authorize Page</Button>
+					<TextInput
+						data-autofocus
+						disabled={!authorizeStarted}
+						label={"Verify Code"}
+						description={"「認証が完了」の下に表示されるコードを入力"}
+						value={verifier}
+						onChange={(e) => setVerifier(e.currentTarget.value)}
+					/>
+					<Button disabled={verifier === ""} onClick={confirmVerifier}>
+						Confirm
+					</Button>
+				</Stack>
+			</Modal>
+		),
+		openAuthorizeModal,
+	};
 };
