@@ -7,6 +7,7 @@ import {
 	TextInput,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import { notifications } from "@mantine/notifications";
 import { useStorage } from "@plasmohq/storage/hook";
 import { IconExternalLink } from "@tabler/icons-react";
 import { type FC, useCallback, useRef, useState } from "react";
@@ -162,6 +163,7 @@ const useVerifyProcess = ({
 			...zaimOAuthEndpoints,
 			waitUserAuthorize: (userAuthUrl) => {
 				window.open(userAuthUrl, "zaimUserAuth");
+
 				verifyCodeInputRef.current?.focus();
 
 				return waitVerifyInput();
@@ -172,11 +174,18 @@ const useVerifyProcess = ({
 			.then((token) => {
 				close();
 				doneAuthorize(token);
+				notifications.show({
+					message: "認証に成功しました！",
+				});
 			})
 			.catch((e) => {
-				// close();
-				// TODO: エラーを知らせる
+				close();
 				abortAuthorize();
+				console.error(e);
+				notifications.show({
+					message: "認証に失敗しました",
+					color: "red",
+				});
 			});
 	}, [
 		consumerKey,
