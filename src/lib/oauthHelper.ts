@@ -109,7 +109,7 @@ export const authorizeRequest = async ({
   request: {
     url: string;
     method: string;
-    params: Record<string, string>;
+    params: Record<string, string | number>;
   };
   consumerKey: string;
   consumerSecret: string;
@@ -124,7 +124,7 @@ export const authorizeRequest = async ({
     oauth_timestamp: timestamp,
     oauth_nonce: nonce,
     oauth_version: "1.0",
-    ...request.params,
+    ...stringifyParams(request.params),
   };
 
   const signatureBaseString = createSignatureBaseString(
@@ -159,10 +159,28 @@ export const authorizeRequest = async ({
 
 export const constructUrlWithParams = (
   url: string,
-  params: Record<string, string>
+  params: Record<string, string | number>
 ) => {
   const urlObject = new URL(url);
-  const searchParams = new URLSearchParams(params);
+  const searchParams = new URLSearchParams(stringifyParams(params));
   urlObject.search = searchParams.toString();
   return urlObject.toString();
+};
+
+const stringifyParams = <TKeys extends string>(
+  params: Record<TKeys, string | number>
+): Record<TKeys, string> => {
+  return Object.entries(params).reduce<Record<string, string>>(
+    (acc, [key, value]) => {
+      if (typeof value === "number") {
+        acc[key] = value.toString();
+      }
+      if (typeof value === "string") {
+        acc[key] = value;
+      }
+
+      return acc;
+    },
+    {}
+  );
 };

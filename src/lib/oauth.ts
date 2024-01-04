@@ -167,7 +167,7 @@ const fetchAccessToken = async ({
 type Request = {
   url: string;
   method: string;
-  params: Record<string, string>;
+  params: Record<string, string | number>;
 };
 
 export type OAuthSign = (request: Request) => Promise<{
@@ -193,7 +193,7 @@ export const createOAuthSigner = ({
   }: {
     url: string;
     method: string;
-    params: Record<string, string>;
+    params: Record<string, string | number>;
   }) => {
     const request = {
       url,
