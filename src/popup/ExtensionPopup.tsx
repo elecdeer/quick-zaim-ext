@@ -5,6 +5,7 @@ import {
 	Button,
 	Container,
 	Flex,
+	Grid,
 	NumberInput,
 	Select,
 	Stack,
@@ -12,18 +13,31 @@ import {
 	TextInput,
 	Title,
 } from "@mantine/core";
+import { DateInput } from "@mantine/dates";
+import { useStorage } from "@plasmohq/storage/hook";
 import {
+	IconBuildingStore,
+	IconCalendar,
 	IconSettings,
+	IconShoppingBag,
 	IconSquareMinus,
 	IconSquareMinusFilled,
 	IconTextScan2,
+	IconWallet,
 } from "@tabler/icons-react";
-import { type FC, useCallback } from "react";
+import { type FC, useCallback, useMemo, useState } from "react";
+import { type AccessTokenPair, createOAuthSigner } from "~lib/oauth";
 import {
 	OptionsPageUrl,
 	getExtensionUrl,
 	openExtensionPage,
 } from "~lib/runtime";
+import {
+	oauthAccessTokenStore,
+	oauthConsumerKeyStore,
+	oauthConsumerSecretStore,
+} from "~lib/store";
+import { CategorySelect } from "./components/CategorySelect";
 
 export const ExtensionPopup: FC = () => {
 	const onClickSettingButton = useCallback(() => {
@@ -35,7 +49,7 @@ export const ExtensionPopup: FC = () => {
 
 	return (
 		<AppShell
-			h={"min-height"}
+			mih={500}
 			w={560}
 			// padding="xs"
 			header={{
@@ -64,6 +78,41 @@ export const ExtensionPopup: FC = () => {
 };
 
 const Main: FC = () => {
+	const [consumerKey] = useStorage<string | undefined>(
+		oauthConsumerKeyStore.hookAccessor(true),
+	);
+	const [consumerSecret] = useStorage<string | undefined>(
+		oauthConsumerSecretStore.hookAccessor(true),
+	);
+	const [accessToken] = useStorage<AccessTokenPair | undefined>(
+		oauthAccessTokenStore.hookAccessor(true),
+	);
+
+	const oauthSign = useMemo(() => {
+		if (!consumerKey || !consumerSecret || !accessToken) return undefined;
+		return createOAuthSigner({
+			consumerKey,
+			consumerSecret,
+			accessToken: accessToken.accessToken,
+			accessTokenSecret: accessToken.accessTokenSecret,
+		});
+	}, [accessToken, consumerKey, consumerSecret]);
+
+	// TODO リストにする useListState
+	const [selectedCategory, setSelectedCategory] = useState<{
+		categoryId: string;
+		genreId: string;
+	} | null>(null);
+
+	const handleSelectCategory = useCallback(
+		(categoryId: string, genreId: string) => {
+			setSelectedCategory({ categoryId, genreId });
+		},
+		[],
+	);
+
+	if (!oauthSign) return null;
+
 	return (
 		<Stack>
 			<Table horizontalSpacing={4}>
@@ -81,7 +130,11 @@ const Main: FC = () => {
 							<TextInput size="xs" />
 						</Table.Td>
 						<Table.Td>
-							<CategorySelect />
+							<CategorySelect
+								signer={oauthSign}
+								selectedGenreId={selectedCategory?.genreId}
+								onSelect={handleSelectCategory}
+							/>
 						</Table.Td>
 						<Table.Td>
 							<NumberInput size="xs" leftSection={"¥"} hideControls />
@@ -95,45 +148,39 @@ const Main: FC = () => {
 				</Table.Tbody>
 			</Table>
 			<Stack px={4}>
-				<Select placeholder="出金元" />
-				{/* DateInput */}
-				<Select placeholder="お店" />
+				<Select
+					leftSection={<IconBuildingStore size={20} />}
+					placeholder="お店"
+				/>
+				<Grid>
+					<Grid.Col span={6}>
+						<DateInput
+							leftSection={<IconCalendar size={20} />}
+							placeholder="日付"
+							valueFormat="YYYY/MM/DD"
+							monthLabelFormat="YYYY年MM月"
+							weekdayFormat={(date) => "日月火水木金土"[date.getDay()]}
+							onChange={(date) => {
+								console.log(date);
+							}}
+						/>
+					</Grid.Col>
+					<Grid.Col span={6}>
+						<Select
+							leftSection={<IconWallet size={20} />}
+							placeholder="出金元"
+						/>
+					</Grid.Col>
+				</Grid>
 
 				<Button variant="light" color="green">
 					<IconTextScan2 size={20} />
-					ページから選択して入力
+					<span>ページから選択して入力</span>
 				</Button>
 				<Button variant="filled" color="green" fullWidth>
 					登録
 				</Button>
 			</Stack>
-
-			<Box h={300} />
 		</Stack>
-	);
-};
-
-const CategorySelect: FC<{}> = () => {
-	return (
-		<Box>
-			<Select
-				placeholder="カテゴリ"
-				searchable
-				selectFirstOptionOnChange
-				size="xs"
-				comboboxProps={{
-					position: "bottom-start",
-					offset: 0,
-					width: "300px",
-				}}
-				data={[
-					{
-						group: "Frontend",
-						items: ["ReactReactReactReactReactReactReact", "Angular"],
-					},
-					{ group: "Backend", items: ["Express", "Django"] },
-				]}
-			/>
-		</Box>
 	);
 };

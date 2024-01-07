@@ -1,10 +1,12 @@
 import type { BaseStorage, StorageCallbackMap } from "@plasmohq/storage";
+import { Storage } from "@plasmohq/storage";
 import { useStorage } from "@plasmohq/storage/hook";
 import { SecureStorage } from "@plasmohq/storage/secure";
 import type { AccessTokenPair } from "./oauth";
 import { getExtensionId } from "./runtime";
 import { createLoadable } from "./suspenseUtil";
 
+const storage = new Storage();
 const secureStorage = new SecureStorage();
 
 const waitSecureStorageReady = secureStorage.setPassword(getExtensionId());
@@ -88,4 +90,10 @@ export const oauthAccessTokenStore = createStore<AccessTokenPair | undefined>(
   secureStorage,
   `${keyPrefix}-oauth-access-token`,
   undefined
+);
+
+export const recentlyGenreStore = createStore<string[]>(
+  storage,
+  `${keyPrefix}-recently-select-genre`,
+  []
 );
