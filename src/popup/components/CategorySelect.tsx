@@ -8,13 +8,11 @@ import {
 import { useStorage } from "@plasmohq/storage/hook";
 import { useQuery } from "@tanstack/react-query";
 import { type FC, useCallback, useMemo, useState } from "react";
-import type { OAuthSign } from "~lib/oauth";
 import { recentlyGenreStore } from "~lib/store";
 import { fetchZaimCategory } from "~lib/zaim/fetchCategory";
 import { fetchZaimGenre } from "~lib/zaim/fetchGenre";
 
 export type CategorySelectProps = {
-	signer: OAuthSign;
 	selectedGenreId: string | undefined;
 	onSelect: (categoryId: string, genreId: string) => void;
 };
@@ -23,7 +21,6 @@ const RECENTLY_USED_GENRE_LABEL = "最近選択したカテゴリ";
 const RECENTLY_USED_GENRE_NUM = 5;
 
 export const CategorySelect: FC<CategorySelectProps> = ({
-	signer,
 	selectedGenreId,
 	onSelect,
 }) => {
@@ -34,7 +31,7 @@ export const CategorySelect: FC<CategorySelectProps> = ({
 	const { data: genresData } = useQuery({
 		queryKey: ["genres"],
 		queryFn: async () => {
-			return await fetchActivePaymentGenres(signer);
+			return await fetchActivePaymentGenres();
 		},
 	});
 
@@ -233,12 +230,10 @@ type ZaimGenre = {
 	genreSort: number;
 };
 
-const fetchActivePaymentGenres = async (
-	signer: OAuthSign,
-): Promise<ZaimGenre[]> => {
+const fetchActivePaymentGenres = async (): Promise<ZaimGenre[]> => {
 	const [{ categories }, { genres }] = await Promise.all([
-		fetchZaimCategory(signer),
-		fetchZaimGenre(signer),
+		fetchZaimCategory(),
+		fetchZaimGenre(),
 	]);
 
 	return genres.reduce<ZaimGenre[]>((acc, genre) => {

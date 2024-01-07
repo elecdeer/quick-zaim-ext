@@ -40,22 +40,19 @@ export const generateTimestamp = (): string => {
  */
 export const createSignatureBaseString = (
   httpMethod: string,
-  requestUri: string,
-  params: Record<string, string>
+  requestUrl: URL
 ) => {
-  const sortedKeys = Object.keys(params).sort();
-  const paramString = sortedKeys
-    .map((key) => {
-      const encodedKey = encodeURIComponent(key);
-      const encodedValue = encodeURIComponent(params[key]);
-      return `${encodedKey}=${encodedValue}`;
-    })
-    .join("&");
+  const url = new URL(requestUrl);
+
+  // 仕様上ソートは必須
+  url.searchParams.sort();
+
+  const urlWithoutParams = url.origin + url.pathname;
 
   return [
     httpMethod.toUpperCase(),
-    encodeURIComponent(requestUri),
-    encodeURIComponent(paramString),
+    encodeURIComponent(urlWithoutParams),
+    encodeURIComponent(url.searchParams.toString()),
   ].join("&");
 };
 
@@ -87,16 +84,14 @@ export const createSignature = async (baseString: string, key: string) => {
 
 // OAuthヘッダの作成
 export const constructOAuthHeader = (
-  params: Record<string, string>
+  params: URLSearchParams
 ): AuthorizationHeader => {
-  const value = `OAuth ${Object.keys(params)
-    .map(
-      (key) => `${encodeURIComponent(key)}="${encodeURIComponent(params[key])}"`
-    )
-    .join(", ")}`;
+  const values = Array.from(params.entries()).map(([key, value]) => {
+    return `${encodeURIComponent(key)}="${encodeURIComponent(value)}"`;
+  });
 
   return {
-    Authorization: value,
+    Authorization: `OAuth ${values.join(", ")}`,
   };
 };
 
@@ -106,11 +101,7 @@ export const authorizeRequest = async ({
   consumerSecret,
   tokenSecret,
 }: {
-  request: {
-    url: string;
-    method: string;
-    params: Record<string, string | number>;
-  };
+  request: Request;
   consumerKey: string;
   consumerSecret: string;
   tokenSecret: string | undefined;
@@ -118,20 +109,17 @@ export const authorizeRequest = async ({
   const nonce = generateNonce();
   const timestamp = generateTimestamp();
 
-  const paramsWithoutSignature = {
-    oauth_consumer_key: consumerKey,
-    oauth_signature_method: "HMAC-SHA1",
-    oauth_timestamp: timestamp,
-    oauth_nonce: nonce,
-    oauth_version: "1.0",
-    ...stringifyParams(request.params),
-  };
+  const url = new URL(request.url);
+  // 既存のは引き継ぐ
+  const params = url.searchParams;
+  params.set("oauth_consumer_key", consumerKey);
+  params.set("oauth_signature_method", "HMAC-SHA1");
+  params.set("oauth_timestamp", timestamp);
+  params.set("oauth_nonce", nonce);
+  params.set("oauth_version", "1.0");
+  params.sort();
 
-  const signatureBaseString = createSignatureBaseString(
-    request.method,
-    request.url,
-    paramsWithoutSignature
-  );
+  const signatureBaseString = createSignatureBaseString(request.method, url);
 
   const signatureKey = createSignatureKey(consumerSecret, tokenSecret);
 
@@ -140,47 +128,34 @@ export const authorizeRequest = async ({
     signatureKey
   );
 
-  const paramsWithSignature = {
-    ...paramsWithoutSignature,
-    oauth_signature: oauthSignature,
-  };
+  params.set("oauth_signature", oauthSignature);
+  params.sort();
+
+  const authorizedRequest = new Request(url, {
+    method: request.method,
+  });
+
+  const headers = constructOAuthHeader(params);
+  authorizedRequest.headers.set("Authorization", headers.Authorization);
 
   return {
-    headers: constructOAuthHeader(paramsWithSignature),
-    request: {
-      ...request,
-      params: {
-        ...request.params,
-        ...paramsWithSignature,
-      },
-    },
+    headers,
+    authorizedRequest,
   };
 };
 
-export const constructUrlWithParams = (
-  url: string,
-  params: Record<string, string | number>
-) => {
-  const urlObject = new URL(url);
-  const searchParams = new URLSearchParams(stringifyParams(params));
-  urlObject.search = searchParams.toString();
-  return urlObject.toString();
-};
-
-const stringifyParams = <TKeys extends string>(
-  params: Record<TKeys, string | number>
-): Record<TKeys, string> => {
-  return Object.entries(params).reduce<Record<string, string>>(
-    (acc, [key, value]) => {
-      if (typeof value === "number") {
-        acc[key] = value.toString();
-      }
-      if (typeof value === "string") {
-        acc[key] = value;
-      }
-
-      return acc;
-    },
-    {}
-  );
+export const objectToSearchParams = <TKeys extends string>(
+  params: Partial<Record<TKeys, string | number | undefined>>
+): URLSearchParams => {
+  const urlSearchParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === "number") {
+      urlSearchParams.set(key, value.toString());
+    }
+    if (typeof value === "string") {
+      urlSearchParams.set(key, value);
+    }
+    // それ以外は無視
+  }
+  return urlSearchParams;
 };

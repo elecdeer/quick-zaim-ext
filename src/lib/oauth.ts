@@ -1,8 +1,6 @@
 import {
-  type AuthorizationHeader,
   type Endpoint,
   authorizeRequest,
-  constructUrlWithParams,
   parseOAuthTokenFromResponse,
 } from "./oauthHelper";
 
@@ -74,24 +72,19 @@ const fetchRequestToken = async ({
   consumerKey: string;
   consumerSecret: string;
 }): Promise<RequestTokenPair> => {
-  const { headers, request } = await authorizeRequest({
-    request: {
-      url: requestTokenEndpoint.url,
+  const requestUrl = new URL(requestTokenEndpoint.url);
+  requestUrl.searchParams.set("oauth_callback", "oob");
+
+  const { authorizedRequest } = await authorizeRequest({
+    request: new Request(requestUrl.toString(), {
       method: requestTokenEndpoint.method,
-      params: {
-        oauth_callback: "oob",
-      },
-    },
+    }),
     consumerKey,
     consumerSecret,
     tokenSecret: undefined,
   });
 
-  const urlWithParams = constructUrlWithParams(request.url, request.params);
-  const response = await fetch(urlWithParams, {
-    method: request.method,
-    headers: headers,
-  });
+  const response = await fetch(authorizedRequest);
 
   const responseText = await response.text();
 
@@ -131,27 +124,21 @@ const fetchAccessToken = async ({
   consumerSecret: string;
   requestToken: RequestTokenPair;
 }): Promise<AccessTokenPair> => {
-  const params = {
-    oauth_token: requestToken.oauthToken,
-    oauth_verifier: oauthVerifier,
-  };
+  const requestUrl = new URL(accessTokenEndpoint.url);
+  requestUrl.searchParams.set("oauth_token", requestToken.oauthToken);
+  requestUrl.searchParams.set("oauth_verifier", oauthVerifier);
 
-  const { request, headers } = await authorizeRequest({
-    request: {
-      url: accessTokenEndpoint.url,
-      method: accessTokenEndpoint.method,
-      params,
-    },
+  const request = new Request(requestUrl, {
+    method: accessTokenEndpoint.method,
+  });
+  const { authorizedRequest } = await authorizeRequest({
+    request,
     consumerKey,
     consumerSecret,
     tokenSecret: requestToken.oauthTokenSecret,
   });
 
-  const urlWithParams = constructUrlWithParams(request.url, request.params);
-  const response = await fetch(urlWithParams, {
-    method: accessTokenEndpoint.method,
-    headers: headers,
-  });
+  const response = await fetch(authorizedRequest);
 
   const responseText = await response.text();
 
@@ -164,16 +151,10 @@ const fetchAccessToken = async ({
   };
 };
 
-type Request = {
-  url: string;
-  method: string;
-  params: Record<string, string | number>;
-};
-
-export type OAuthSign = (request: Request) => Promise<{
-  headers: AuthorizationHeader;
-  request: Request;
-}>;
+/**
+ * requestからOAuth署名を作成し、requestにAuthorizationヘッダーを付与する
+ */
+export type OAuthSign = (request: Request) => Promise<void>;
 
 export const createOAuthSigner = ({
   consumerKey,
@@ -186,29 +167,21 @@ export const createOAuthSigner = ({
   accessToken: string;
   accessTokenSecret: string;
 }): OAuthSign => {
-  return async ({
-    url,
-    method,
-    params,
-  }: {
-    url: string;
-    method: string;
-    params: Record<string, string | number>;
-  }) => {
-    const request = {
-      url,
-      method,
-      params: {
-        ...params,
-        oauth_token: accessToken,
-      },
-    };
+  return async (request) => {
+    const urlWithTokenParam = new URL(request.url);
+    urlWithTokenParam.searchParams.set("oauth_token", accessToken);
+    const requestWithToken = new Request(urlWithTokenParam, {
+      method: request.method,
+    });
 
-    return await authorizeRequest({
-      request,
+    const { headers } = await authorizeRequest({
+      request: requestWithToken,
       consumerKey,
       consumerSecret,
       tokenSecret: accessTokenSecret,
     });
+
+    // 引数のrequestに対してAuthorizationヘッダーを付与する
+    request.headers.set("Authorization", headers.Authorization);
   };
 };

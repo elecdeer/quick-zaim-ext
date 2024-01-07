@@ -1,9 +1,7 @@
 import {
 	ActionIcon,
 	AppShell,
-	Box,
 	Button,
-	Container,
 	Flex,
 	Grid,
 	NumberInput,
@@ -19,19 +17,13 @@ import {
 	IconBuildingStore,
 	IconCalendar,
 	IconSettings,
-	IconShoppingBag,
-	IconSquareMinus,
 	IconSquareMinusFilled,
 	IconTextScan2,
 	IconWallet,
 } from "@tabler/icons-react";
-import { type FC, useCallback, useMemo, useState } from "react";
-import { type AccessTokenPair, createOAuthSigner } from "~lib/oauth";
-import {
-	OptionsPageUrl,
-	getExtensionUrl,
-	openExtensionPage,
-} from "~lib/runtime";
+import { type FC, useCallback, useState } from "react";
+import { type AccessTokenPair } from "~lib/oauth";
+import { OptionsPageUrl, openExtensionPage } from "~lib/runtime";
 import {
 	oauthAccessTokenStore,
 	oauthConsumerKeyStore,
@@ -88,16 +80,6 @@ const Main: FC = () => {
 		oauthAccessTokenStore.hookAccessor(true),
 	);
 
-	const oauthSign = useMemo(() => {
-		if (!consumerKey || !consumerSecret || !accessToken) return undefined;
-		return createOAuthSigner({
-			consumerKey,
-			consumerSecret,
-			accessToken: accessToken.accessToken,
-			accessTokenSecret: accessToken.accessTokenSecret,
-		});
-	}, [accessToken, consumerKey, consumerSecret]);
-
 	// TODO リストにする useListState
 	const [selectedCategory, setSelectedCategory] = useState<{
 		categoryId: string;
@@ -110,8 +92,6 @@ const Main: FC = () => {
 		},
 		[],
 	);
-
-	if (!oauthSign) return null;
 
 	return (
 		<Stack>
@@ -131,7 +111,6 @@ const Main: FC = () => {
 						</Table.Td>
 						<Table.Td>
 							<CategorySelect
-								signer={oauthSign}
 								selectedGenreId={selectedCategory?.genreId}
 								onSelect={handleSelectCategory}
 							/>

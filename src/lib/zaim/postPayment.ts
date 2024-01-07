@@ -1,5 +1,5 @@
-import type { OAuthSign } from "~lib/oauth";
-import { constructUrlWithParams } from "~lib/oauthHelper";
+import { objectToSearchParams } from "~lib/oauthHelper";
+import { zaimApi } from "./api";
 
 type ZaimPaymentReq = {
   mapping: 1;
@@ -21,24 +21,15 @@ type ZaimPaymentReq = {
   place?: string | undefined;
 };
 
+// TODO 正しく型を定義する
 type ZaimPaymentRes = unknown;
 
 export const postZaimPayment = async (
-  signer: OAuthSign,
   req: ZaimPaymentReq
 ): Promise<ZaimPaymentRes> => {
-  const { headers, request } = await signer({
-    url: "https://api.zaim.net/v2/home/money/payment",
-    method: "POST",
-    params: req,
-  });
-
-  const urlWithParams = constructUrlWithParams(request.url, request.params);
-  console.log(urlWithParams);
-  const response = await fetch(urlWithParams, {
-    method: request.method,
-    headers: headers,
-  });
-
-  return (await response.json()) as ZaimPaymentRes;
+  return await zaimApi
+    .post("home/money/payment", {
+      searchParams: objectToSearchParams(req),
+    })
+    .json<ZaimPaymentRes>();
 };

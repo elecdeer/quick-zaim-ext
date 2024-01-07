@@ -1,5 +1,4 @@
-import type { OAuthSign } from "~lib/oauth";
-import { constructUrlWithParams } from "~lib/oauthHelper";
+import { zaimApi } from "./api";
 
 type ZaimGenreRes = {
   genres: {
@@ -15,20 +14,6 @@ type ZaimGenreRes = {
   requested: string;
 };
 
-export const fetchZaimGenre = async (
-  signer: OAuthSign
-): Promise<ZaimGenreRes> => {
-  const { headers, request } = await signer({
-    url: "https://api.zaim.net/v2/home/genre",
-    method: "GET",
-    params: {},
-  });
-
-  const urlWithParams = constructUrlWithParams(request.url, request.params);
-  const response = await fetch(urlWithParams, {
-    method: request.method,
-    headers: headers,
-  });
-
-  return (await response.json()) as ZaimGenreRes;
+export const fetchZaimGenre = async (): Promise<ZaimGenreRes> => {
+  return await zaimApi.get("home/genre").json<ZaimGenreRes>();
 };

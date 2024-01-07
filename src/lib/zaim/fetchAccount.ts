@@ -1,5 +1,4 @@
-import type { OAuthSign } from "~lib/oauth";
-import { constructUrlWithParams } from "~lib/oauthHelper";
+import { zaimApi } from "./api";
 
 export type ZaimAccountRes = {
   accounts: {
@@ -9,20 +8,6 @@ export type ZaimAccountRes = {
   requested: string;
 };
 
-export const fetchZaimAccount = async (
-  signer: OAuthSign
-): Promise<ZaimAccountRes> => {
-  const { headers, request } = await signer({
-    url: "https://api.zaim.net/v2/home/account",
-    method: "GET",
-    params: {},
-  });
-
-  const urlWithParams = constructUrlWithParams(request.url, request.params);
-  const response = await fetch(urlWithParams, {
-    method: request.method,
-    headers: headers,
-  });
-
-  return (await response.json()) as ZaimAccountRes;
+export const fetchZaimAccount = async (): Promise<ZaimAccountRes> => {
+  return await zaimApi.get("home/account").json<ZaimAccountRes>();
 };

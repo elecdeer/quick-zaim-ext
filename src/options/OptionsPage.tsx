@@ -22,6 +22,7 @@ import {
 	oauthConsumerSecretStore,
 } from "~lib/store";
 import { usePromiseResolvers } from "~lib/usePromiseResolvers";
+import { fetchZaimAccount } from "~lib/zaim/fetchAccount";
 import { postZaimPayment } from "~lib/zaim/postPayment";
 
 const zaimOAuthEndpoints = {
@@ -66,37 +67,19 @@ export const OptionsPage: FC = () => {
 
 	const handleClickRequest = useCallback(() => {
 		void (async () => {
-			const oauthSign = createOAuthSigner({
-				consumerKey,
-				consumerSecret,
-				accessToken: accessToken.accessToken,
-				accessTokenSecret: accessToken.accessTokenSecret,
-			});
+			console.log(await fetchZaimAccount());
 
-			const body = await postZaimPayment(oauthSign, {
-				mapping: 1,
-				category_id: 101,
-				genre_id: 10101,
-				amount: 100,
-				name: "test",
-				date: "2024-01-01",
-			});
-
-			// const { request, headers } = await oauthSign({
-			// 	url: "https://api.zaim.net/v2/home/user/verify",
-			// 	method: "GET",
-			// 	params: {},
+			// const body = await postZaimPayment({
+			// 	mapping: 1,
+			// 	category_id: 101,
+			// 	genre_id: 10101,
+			// 	amount: 100,
+			// 	name: "test",
+			// 	date: "2024-01-01",
 			// });
-
-			// const response = await fetch(request.url, {
-			// 	method: request.method,
-			// 	headers: headers,
-			// });
-
-			// const body = await response.json();
-			console.log(body);
+			// console.log(body);
 		})();
-	}, [accessToken, consumerKey, consumerSecret]);
+	}, []);
 
 	return (
 		<>
