@@ -97,3 +97,9 @@ export const recentlyGenreStore = createStore<string[]>(
   `${keyPrefix}-recently-select-genre`,
   []
 );
+
+export const paymentPlacesStore = createStore<string[]>(
+  storage,
+  `${keyPrefix}-payment-places`,
+  []
+);

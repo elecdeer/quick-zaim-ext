@@ -17,12 +17,28 @@ type ZaimPaymentReq = {
   comment?: string | undefined;
   /** product name (within 100 characters) */
   name?: string | undefined;
-  /** place name (within 100 characters) */
-  place?: string | undefined;
+  /** place name (within 100 characters) 使用不可？ 指定すると400エラーになる */
+  // place?: string | undefined;
+
+  /** undocumented placeの代わりにこちらを指定する必要がある */
+  place_uid?: string | undefined;
+  /** undocumented 同じ値を割り当てたレコードはZaim上でまとめて表示される */
+  receipt_id?: number | undefined;
 };
 
-// TODO 正しく型を定義する
-type ZaimPaymentRes = unknown;
+type ZaimPaymentRes = {
+  banners: unknown[];
+  money: {
+    id: string;
+    modified: string;
+  };
+  requested: number;
+  stamp: unknown;
+  user: {
+    data_modified: string;
+    input_count: number;
+  };
+};
 
 export const postZaimPayment = async (
   req: ZaimPaymentReq

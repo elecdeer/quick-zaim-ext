@@ -16,12 +16,14 @@ import {
 	createOAuthApplicant,
 	createOAuthSigner,
 } from "~lib/oauth";
+import { generateNonce } from "~lib/oauthHelper";
 import {
 	oauthAccessTokenStore,
 	oauthConsumerKeyStore,
 	oauthConsumerSecretStore,
 } from "~lib/store";
 import { usePromiseResolvers } from "~lib/usePromiseResolvers";
+import { zaimApi } from "~lib/zaim/api";
 import { fetchZaimAccount } from "~lib/zaim/fetchAccount";
 import { postZaimPayment } from "~lib/zaim/postPayment";
 
@@ -67,17 +69,35 @@ export const OptionsPage: FC = () => {
 
 	const handleClickRequest = useCallback(() => {
 		void (async () => {
-			console.log(await fetchZaimAccount());
+			// console.log(await fetchZaimAccount());
 
-			// const body = await postZaimPayment({
-			// 	mapping: 1,
-			// 	category_id: 101,
-			// 	genre_id: 10101,
-			// 	amount: 100,
-			// 	name: "test",
-			// 	date: "2024-01-01",
-			// });
-			// console.log(body);
+			// console.log(await zaimApi.get("home/place").json());
+
+			// console.log(await zaimApi.get("home/money").json());
+
+			const moneyRecords = await zaimApi.get("home/money").json<{
+				money: {
+					place: string;
+					place_uid: string;
+				}[];
+			}>();
+			console.log(
+				new Set(moneyRecords.money.map((m) => `${m.place}&${m.place_uid}`)),
+			);
+
+			const body = await postZaimPayment({
+				mapping: 1,
+				category_id: 101,
+				genre_id: 10101,
+				amount: 10,
+				place_uid: "zm-73d0b8f139367805",
+				// place: "テスト６",
+				from_account_id: 0,
+				date: "2024-01-07",
+				receipt_id: Date.now(),
+				comment: "",
+			});
+			console.log(body);
 		})();
 	}, []);
 

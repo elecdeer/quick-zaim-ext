@@ -12,7 +12,6 @@ import {
 	Title,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
-import { useStorage } from "@plasmohq/storage/hook";
 import {
 	IconBuildingStore,
 	IconCalendar,
@@ -22,14 +21,12 @@ import {
 	IconWallet,
 } from "@tabler/icons-react";
 import { type FC, useCallback, useState } from "react";
-import { type AccessTokenPair } from "~lib/oauth";
 import { OptionsPageUrl, openExtensionPage } from "~lib/runtime";
-import {
-	oauthAccessTokenStore,
-	oauthConsumerKeyStore,
-	oauthConsumerSecretStore,
-} from "~lib/store";
 import { CategorySelect } from "./components/CategorySelect";
+import {
+	PaymentPlaceSelect,
+	type ZaimPlace,
+} from "./components/PaymentPlaceSelect";
 
 export const ExtensionPopup: FC = () => {
 	const onClickSettingButton = useCallback(() => {
@@ -70,16 +67,6 @@ export const ExtensionPopup: FC = () => {
 };
 
 const Main: FC = () => {
-	const [consumerKey] = useStorage<string | undefined>(
-		oauthConsumerKeyStore.hookAccessor(true),
-	);
-	const [consumerSecret] = useStorage<string | undefined>(
-		oauthConsumerSecretStore.hookAccessor(true),
-	);
-	const [accessToken] = useStorage<AccessTokenPair | undefined>(
-		oauthAccessTokenStore.hookAccessor(true),
-	);
-
 	// TODO リストにする useListState
 	const [selectedCategory, setSelectedCategory] = useState<{
 		categoryId: string;
@@ -92,6 +79,13 @@ const Main: FC = () => {
 		},
 		[],
 	);
+
+	const [selectedPaymentPlaceUid, setSelectedPaymentPlaceUid] = useState<
+		string | null
+	>(null);
+	const handleSelectPaymentPlace = useCallback(({ placeUid }: ZaimPlace) => {
+		setSelectedPaymentPlaceUid(placeUid);
+	}, []);
 
 	return (
 		<Stack>
@@ -127,9 +121,9 @@ const Main: FC = () => {
 				</Table.Tbody>
 			</Table>
 			<Stack px={4}>
-				<Select
-					leftSection={<IconBuildingStore size={20} />}
-					placeholder="お店"
+				<PaymentPlaceSelect
+					selectedPlaceUid={selectedPaymentPlaceUid}
+					onSelect={handleSelectPaymentPlace}
 				/>
 				<Grid>
 					<Grid.Col span={6}>
