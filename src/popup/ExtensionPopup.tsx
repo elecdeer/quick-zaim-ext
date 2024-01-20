@@ -131,7 +131,8 @@ const Main: FC = () => {
 							leftSection={<IconCalendar size={20} />}
 							placeholder="日付"
 							valueFormat="YYYY/MM/DD"
-							monthLabelFormat="YYYY年MM月"
+							monthLabelFormat="YYYY年M月"
+							monthsListFormat="M月"
 							weekdayFormat={(date) => "日月火水木金土"[date.getDay()]}
 							onChange={(date) => {
 								console.log(date);
