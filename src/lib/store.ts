@@ -31,9 +31,9 @@ export const createStore = <T>(
     get: async (): Promise<T> => {
       await waitSecureStorageReady;
       const value = await storage.get<T>(key);
-      console.log(key, value);
+      // console.log(key, value);
       if (value === undefined && defaultValue !== undefined) {
-        console.log("set default value", key, defaultValue);
+        // console.log("set default value", key, defaultValue);
         await storage.set(key, defaultValue);
         return defaultValue;
       }
