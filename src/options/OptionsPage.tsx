@@ -75,6 +75,8 @@ export const OptionsPage: FC = () => {
 
 			// console.log(await zaimApi.get("home/money").json());
 
+			console.log(await fetchZaimAccount());
+
 			const moneyRecords = await zaimApi.get("home/money").json<{
 				money: {
 					place: string;

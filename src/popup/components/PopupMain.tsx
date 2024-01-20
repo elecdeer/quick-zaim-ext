@@ -3,7 +3,6 @@ import {
 	Button,
 	Grid,
 	NumberInput,
-	Select,
 	Stack,
 	Table,
 	TextInput,
@@ -14,12 +13,11 @@ import {
 	IconCalendar,
 	IconSquareMinusFilled,
 	IconTextScan2,
-	IconWallet,
 } from "@tabler/icons-react";
 import { type FC, useCallback, useState } from "react";
 import type { AccessTokenPair } from "~lib/oauth";
 import { oauthAccessTokenStore } from "~lib/store";
-import { createLoadable } from "~lib/suspenseUtil";
+import { AccountSelect, type ZaimAccount } from "./AccountSelect";
 import { CategorySelect } from "./CategorySelect";
 import { PaymentPlaceSelect, type ZaimPlace } from "./PaymentPlaceSelect";
 import { Unauthorized } from "./Unauthorized";
@@ -53,6 +51,13 @@ const PopupMainAuthorized: FC = () => {
 	>(null);
 	const handleSelectPaymentPlace = useCallback(({ placeUid }: ZaimPlace) => {
 		setSelectedPaymentPlaceUid(placeUid);
+	}, []);
+
+	const [selectedAccountId, setSelectedAccountId] = useState<
+		string | undefined
+	>(undefined);
+	const handleSelectAccount = useCallback(({ accountId }: ZaimAccount) => {
+		setSelectedAccountId(accountId);
 	}, []);
 
 	return (
@@ -108,9 +113,9 @@ const PopupMainAuthorized: FC = () => {
 						/>
 					</Grid.Col>
 					<Grid.Col span={6}>
-						<Select
-							leftSection={<IconWallet size={20} />}
-							placeholder="出金元"
+						<AccountSelect
+							selectedAccountId={selectedAccountId}
+							onSelect={handleSelectAccount}
 						/>
 					</Grid.Col>
 				</Grid>

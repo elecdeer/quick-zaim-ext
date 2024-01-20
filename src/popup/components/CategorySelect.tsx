@@ -33,6 +33,7 @@ export const CategorySelect: FC<CategorySelectProps> = ({
 		queryFn: async () => {
 			return await fetchActivePaymentGenres();
 		},
+		throwOnError: true,
 	});
 
 	/**
@@ -156,9 +157,9 @@ export const CategorySelect: FC<CategorySelectProps> = ({
 					type="button"
 					size="xs"
 					pointer
+					rightSectionPointerEvents="none"
 					rightSection={<Combobox.Chevron />}
 					onClick={() => combobox.toggleDropdown()}
-					rightSectionPointerEvents="none"
 				>
 					{selectedOptionLabel || (
 						<Input.Placeholder>カテゴリ</Input.Placeholder>
