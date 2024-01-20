@@ -76,8 +76,8 @@ export const PaymentPlaceSelect: FC<PaymentPlaceSelectProps> = ({
 				})
 				.map((item) => (
 					<Combobox.Option value={item.placeUid} key={item.placeUid}>
-						<Grid px={8} py={4} justify="space-between" align="center">
-							<Text span size="sm">
+						<Grid px={8} py={8} justify="space-between" align="center">
+							<Text span size="xs">
 								{item.name}
 							</Text>
 							<Text span size="xs" c="gray">
@@ -104,6 +104,7 @@ export const PaymentPlaceSelect: FC<PaymentPlaceSelectProps> = ({
 				}
 				combobox.closeDropdown();
 			}}
+			size={"xs"}
 		>
 			<Combobox.Target>
 				<InputBase
@@ -115,7 +116,13 @@ export const PaymentPlaceSelect: FC<PaymentPlaceSelectProps> = ({
 					onClick={() => combobox.toggleDropdown()}
 					rightSectionPointerEvents="none"
 				>
-					{selectedOption?.name || <Input.Placeholder>お店</Input.Placeholder>}
+					{selectedOption ? (
+						<Text span lineClamp={1} size="xs">
+							{selectedOption?.name}
+						</Text>
+					) : (
+						<Input.Placeholder>お店</Input.Placeholder>
+					)}
 				</InputBase>
 			</Combobox.Target>
 
