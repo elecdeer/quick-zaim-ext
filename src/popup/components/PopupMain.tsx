@@ -9,6 +9,7 @@ import {
 	TextInput,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
+import { useStorage } from "@plasmohq/storage/hook";
 import {
 	IconCalendar,
 	IconSquareMinusFilled,
@@ -16,10 +17,24 @@ import {
 	IconWallet,
 } from "@tabler/icons-react";
 import { type FC, useCallback, useState } from "react";
+import type { AccessTokenPair } from "~lib/oauth";
+import { oauthAccessTokenStore } from "~lib/store";
+import { createLoadable } from "~lib/suspenseUtil";
 import { CategorySelect } from "./CategorySelect";
 import { PaymentPlaceSelect, type ZaimPlace } from "./PaymentPlaceSelect";
+import { Unauthorized } from "./Unauthorized";
 
 export const PopupMain: FC = () => {
+	const [accessToken] = useStorage<AccessTokenPair | undefined>(
+		oauthAccessTokenStore.hookAccessor(true),
+	);
+
+	if (accessToken === undefined) return <Unauthorized />;
+
+	return <PopupMainAuthorized />;
+};
+
+const PopupMainAuthorized: FC = () => {
 	// TODO リストにする useListState
 	const [selectedCategory, setSelectedCategory] = useState<{
 		categoryId: string;

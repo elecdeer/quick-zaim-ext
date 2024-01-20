@@ -31,5 +31,13 @@ export const zaimApi = ky.extend({
         await sign(request);
       },
     ],
+    afterResponse: [
+      async (request, options, response) => {
+        if (response.status === 401) {
+          await oauthAccessTokenStore.remove();
+          throw new Error("認証情報が無効です。");
+        }
+      },
+    ],
   },
 });

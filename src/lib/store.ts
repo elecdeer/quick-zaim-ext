@@ -27,48 +27,60 @@ export const createStore = <T>(
   key: string,
   defaultValue: T
 ): Store<T> => {
+  const get = async (): Promise<T> => {
+    await waitSecureStorageReady;
+    const value = await storage.get<T>(key);
+    // console.log(key, value);
+    if (value === undefined && defaultValue !== undefined) {
+      // console.log("set default value", key, defaultValue);
+      await storage.set(key, defaultValue);
+      return defaultValue;
+    }
+    return value;
+  };
+
+  const set = async (value: T): Promise<void> => {
+    await waitSecureStorageReady;
+    await storage.set(key, value);
+  };
+
+  const remove = async (): Promise<void> => {
+    await waitSecureStorageReady;
+    await storage.remove(key);
+  };
+
+  const hookAccessor = (
+    suspense: boolean | undefined = false
+  ): Exclude<Parameters<typeof useStorage>[0], string> => {
+    if (suspense) {
+      waitSecureStorageReadyLoadable();
+    }
+    return {
+      key,
+      instance: storage,
+    };
+  };
+
+  const watch = (
+    callback: (newValue: T, oldValue: T) => void
+  ): (() => void) => {
+    const callbackMap: StorageCallbackMap = {
+      [key]: (value) => callback(value.newValue, value.oldValue),
+    };
+
+    storage.watch(callbackMap);
+
+    return () => {
+      storage.unwatch(callbackMap);
+    };
+  };
+
   return {
-    get: async (): Promise<T> => {
-      await waitSecureStorageReady;
-      const value = await storage.get<T>(key);
-      // console.log(key, value);
-      if (value === undefined && defaultValue !== undefined) {
-        // console.log("set default value", key, defaultValue);
-        await storage.set(key, defaultValue);
-        return defaultValue;
-      }
-      return value;
-    },
-    set: async (value: T): Promise<void> => {
-      await waitSecureStorageReady;
-      await storage.set(key, value);
-    },
-    remove: async (): Promise<void> => {
-      await waitSecureStorageReady;
-      await storage.remove(key);
-    },
-    hookAccessor: (
-      suspense = false
-    ): Exclude<Parameters<typeof useStorage>[0], string> => {
-      if (suspense) {
-        waitSecureStorageReadyLoadable();
-      }
-      return {
-        key,
-        instance: storage,
-      };
-    },
-    watch: (callback: (newValue: T, oldValue: T) => void): (() => void) => {
-      const callbackMap: StorageCallbackMap = {
-        [key]: (value) => callback(value.newValue, value.oldValue),
-      };
-
-      storage.watch(callbackMap);
-
-      return () => {
-        storage.unwatch(callbackMap);
-      };
-    },
+    get: get,
+    set: set,
+    remove: remove,
+    hookAccessor: hookAccessor,
+    watch: watch,
   };
 };
 
