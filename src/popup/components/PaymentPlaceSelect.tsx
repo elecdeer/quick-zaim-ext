@@ -163,7 +163,7 @@ export type ZaimPlace = {
 	placeUid: string;
 	name: string;
 	count: number;
-	accountId: number;
+	accountId: string;
 	sortDate: number;
 };
 
@@ -175,7 +175,7 @@ const fetchPlaces = async (today: Date): Promise<ZaimPlace[]> => {
 	const places = zaimMoneyRes.money.map((item) => ({
 		placeUid: item.place_uid,
 		name: item.place,
-		accountId: item.from_account_id,
+		accountId: String(item.from_account_id),
 		receiptId: item.receipt_id,
 		sortDate: new Date(item.date).getTime(),
 	}));
@@ -195,7 +195,7 @@ const fetchPlaces = async (today: Date): Promise<ZaimPlace[]> => {
 			// より新しい日付の場合
 			if (place.sortDate > existingPlace.sortDate) {
 				existingPlace.sortDate = place.sortDate;
-				existingPlace.accountId = place.accountId;
+				existingPlace.accountId = String(place.accountId);
 			}
 		} else {
 			deduplicatedPlaces.set(place.placeUid, {

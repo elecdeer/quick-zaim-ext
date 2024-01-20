@@ -49,9 +49,16 @@ const PopupMainAuthorized: FC = () => {
 	const [selectedPaymentPlaceUid, setSelectedPaymentPlaceUid] = useState<
 		string | null
 	>(null);
-	const handleSelectPaymentPlace = useCallback(({ placeUid }: ZaimPlace) => {
-		setSelectedPaymentPlaceUid(placeUid);
-	}, []);
+	const handleSelectPaymentPlace = useCallback(
+		({ placeUid, accountId }: ZaimPlace) => {
+			setSelectedPaymentPlaceUid(placeUid);
+
+			if (selectedAccountId === undefined && accountId !== undefined) {
+				setSelectedAccountId(accountId);
+			}
+		},
+		[],
+	);
 
 	const [selectedAccountId, setSelectedAccountId] = useState<
 		string | undefined
