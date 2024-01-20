@@ -197,7 +197,6 @@ const sortAndGroupGenres = (
 		(genre) => genre.categoryId,
 	);
 
-	console.log(groupRecord);
 	const sortedGroupEntries = Object.entries(groupRecord)
 		.map<ZaimGenre[]>(([_, genres]) => genres as ZaimGenre[])
 		.toSorted((a, b) => a[0].categorySort - b[0].categorySort)
@@ -217,7 +216,6 @@ const sortAndGroupGenres = (
 			};
 		});
 
-	console.log(sortedGroupEntries);
 	return sortedGroupEntries;
 };
 

@@ -5,6 +5,7 @@ import {
 	Input,
 	InputBase,
 	ScrollArea,
+	Skeleton,
 	Text,
 	useCombobox,
 } from "@mantine/core";
@@ -13,7 +14,7 @@ import {
 	IconBuildingStore,
 	IconSortDescendingNumbers,
 } from "@tabler/icons-react";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { type FC, useCallback, useMemo, useState } from "react";
 import { fetchZaimMoney } from "~lib/zaim/fetchMoney";
 
@@ -26,8 +27,11 @@ export const PaymentPlaceSelect: FC<PaymentPlaceSelectProps> = ({
 	selectedPlaceUid,
 	onSelect,
 }) => {
+	// TODO 最近登録したお店は拡張側で持つ様にする？
+
 	const [today] = useState(new Date());
-	const { data } = useSuspenseQuery({
+
+	const { data } = useQuery({
 		queryKey: ["places"],
 		queryFn: async () => {
 			return await fetchPlaces(today);
@@ -49,7 +53,7 @@ export const PaymentPlaceSelect: FC<PaymentPlaceSelectProps> = ({
 
 	const filteredOptions = useMemo(
 		() =>
-			data.filter((item) =>
+			data?.filter((item) =>
 				item.name.toLowerCase().includes(search.toLowerCase().trim()),
 			),
 		[data, search],
@@ -64,7 +68,7 @@ export const PaymentPlaceSelect: FC<PaymentPlaceSelectProps> = ({
 	const options = useMemo(
 		() =>
 			filteredOptions
-				.toSorted((a, b) => {
+				?.toSorted((a, b) => {
 					if (countSort) {
 						return b.count - a.count;
 					}
@@ -86,7 +90,7 @@ export const PaymentPlaceSelect: FC<PaymentPlaceSelectProps> = ({
 	);
 
 	const selectedOption = useMemo(() => {
-		return filteredOptions.find((item) => item.placeUid === selectedPlaceUid);
+		return filteredOptions?.find((item) => item.placeUid === selectedPlaceUid);
 	}, [filteredOptions, selectedPlaceUid]);
 
 	return (
@@ -94,7 +98,7 @@ export const PaymentPlaceSelect: FC<PaymentPlaceSelectProps> = ({
 			store={combobox}
 			withinPortal={false}
 			onOptionSubmit={(val) => {
-				const selected = filteredOptions.find((item) => item.placeUid === val);
+				const selected = filteredOptions?.find((item) => item.placeUid === val);
 				if (selected !== undefined) {
 					onSelect(selected);
 				}
@@ -134,7 +138,9 @@ export const PaymentPlaceSelect: FC<PaymentPlaceSelectProps> = ({
 				/>
 				<Combobox.Options>
 					<ScrollArea.Autosize type="scroll" mah={250}>
-						{options.length > 0 ? (
+						{options === undefined ? (
+							<Skeleton height={8} />
+						) : options.length > 0 ? (
 							options
 						) : (
 							<Combobox.Empty>Nothing found</Combobox.Empty>
