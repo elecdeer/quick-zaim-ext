@@ -14,12 +14,12 @@ import {
 	IconBuildingStore,
 	IconSortDescendingNumbers,
 } from "@tabler/icons-react";
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { type FC, useCallback, useMemo, useState } from "react";
 import { fetchZaimMoney } from "~lib/zaim/fetchMoney";
 
 type PaymentPlaceSelectProps = {
-	selectedPlaceUid: string | null;
+	selectedPlaceUid: string | undefined;
 	onSelect: (value: ZaimPlace) => void;
 };
 

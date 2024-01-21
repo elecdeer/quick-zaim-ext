@@ -34,10 +34,15 @@ export const PopupMain: FC = () => {
 
 const PopupMainAuthorized: FC = () => {
 	// TODO リストにする useListState
-	const [selectedCategory, setSelectedCategory] = useState<{
-		categoryId: string;
-		genreId: string;
-	} | null>(null);
+	const [selectedCategory, setSelectedCategory] = useState<
+		{ categoryId: string; genreId: string } | undefined
+	>(undefined);
+	const [selectedPaymentPlaceUid, setSelectedPaymentPlaceUid] = useState<
+		string | undefined
+	>(undefined);
+	const [selectedAccountId, setSelectedAccountId] = useState<
+		string | undefined
+	>(undefined);
 
 	const handleSelectCategory = useCallback(
 		(categoryId: string, genreId: string) => {
@@ -46,9 +51,6 @@ const PopupMainAuthorized: FC = () => {
 		[],
 	);
 
-	const [selectedPaymentPlaceUid, setSelectedPaymentPlaceUid] = useState<
-		string | null
-	>(null);
 	const handleSelectPaymentPlace = useCallback(
 		({ placeUid, accountId }: ZaimPlace) => {
 			setSelectedPaymentPlaceUid(placeUid);
@@ -57,12 +59,9 @@ const PopupMainAuthorized: FC = () => {
 				setSelectedAccountId(accountId);
 			}
 		},
-		[],
+		[selectedAccountId],
 	);
 
-	const [selectedAccountId, setSelectedAccountId] = useState<
-		string | undefined
-	>(undefined);
 	const handleSelectAccount = useCallback(({ accountId }: ZaimAccount) => {
 		setSelectedAccountId(accountId);
 	}, []);
