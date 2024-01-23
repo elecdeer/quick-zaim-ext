@@ -3,6 +3,7 @@ import {
 	Button,
 	Grid,
 	NumberInput,
+	SimpleGrid,
 	Stack,
 	Table,
 	TextInput,
@@ -11,6 +12,7 @@ import { DateInput } from "@mantine/dates";
 import { useListState } from "@mantine/hooks";
 import { useStorage } from "@plasmohq/storage/hook";
 import {
+	IconBarcode,
 	IconCalendar,
 	IconSquareMinusFilled,
 	IconTextScan2,
@@ -43,6 +45,10 @@ const createDefaultRecord = () => ({
 });
 
 const PopupMainAuthorized: FC = () => {
+	// TODO: 入力項目はstorageに保存するようにする？
+	// TODO: "ACT"の部分をハンバーガーアイコンにして、メニューをいくつか用意する
+	// 	今歯車アイコンになっている所をメニューにしても良いな
+
 	const [paymentRecords, paymentRecordsController] = useListState<{
 		uid: string;
 		itemName: string;
@@ -188,32 +194,38 @@ const PopupMainAuthorized: FC = () => {
 					selectedPlaceUid={selectedPaymentPlaceUid}
 					onSelect={handleSelectPaymentPlace}
 				/>
-				<Grid>
-					<Grid.Col span={6}>
-						<DateInput
-							leftSection={<IconCalendar size={20} />}
-							placeholder="日付"
-							valueFormat="YYYY/MM/DD"
-							monthLabelFormat="YYYY年M月"
-							monthsListFormat="M月"
-							weekdayFormat={(date) => "日月火水木金土"[date.getDay()]}
-							onChange={(date) => {
-								console.log(date);
-							}}
-						/>
-					</Grid.Col>
-					<Grid.Col span={6}>
-						<AccountSelect
-							selectedAccountId={selectedAccountId}
-							onSelect={handleSelectAccount}
-						/>
-					</Grid.Col>
-				</Grid>
 
-				<Button variant="light">
-					<IconTextScan2 size={20} />
-					<span>ページから選択して入力</span>
-				</Button>
+				<SimpleGrid cols={2} spacing={"sm"}>
+					<DateInput
+						leftSection={<IconCalendar size={20} />}
+						placeholder="日付"
+						valueFormat="YYYY/MM/DD"
+						monthLabelFormat="YYYY年M月"
+						monthsListFormat="M月"
+						weekdayFormat={(date) => "日月火水木金土"[date.getDay()]}
+						onChange={(date) => {
+							console.log(date);
+						}}
+					/>
+					<AccountSelect
+						selectedAccountId={selectedAccountId}
+						onSelect={handleSelectAccount}
+					/>
+				</SimpleGrid>
+
+				<SimpleGrid cols={2} spacing={"sm"}>
+					<Button variant="light" leftSection={<IconTextScan2 size={20} />}>
+						ページから選択して入力
+					</Button>
+					<Button
+						variant="light"
+						disabled
+						leftSection={<IconBarcode size={20} />}
+					>
+						ページから自動入力
+					</Button>
+				</SimpleGrid>
+
 				<Button variant="filled" fullWidth>
 					登録
 				</Button>

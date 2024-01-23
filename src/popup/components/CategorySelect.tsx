@@ -24,6 +24,8 @@ export const CategorySelect: FC<CategorySelectProps> = ({
 	selectedGenreId,
 	onSelect,
 }) => {
+	//TODO: 2行になってはみ出るやつの対処
+
 	const [searchText, setSearchText] = useState("");
 	const { recentlyUsedGenreIds, addRecentlyUsedGenre } =
 		useRecentlyUsedGenreIds();
