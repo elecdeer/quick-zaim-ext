@@ -8,6 +8,7 @@ import {
 	TextInput,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
+import { useListState } from "@mantine/hooks";
 import { useStorage } from "@plasmohq/storage/hook";
 import {
 	IconCalendar,
@@ -32,24 +33,31 @@ export const PopupMain: FC = () => {
 	return <PopupMainAuthorized />;
 };
 
+const createDefaultRecord = () => ({
+	uid: crypto.randomUUID(),
+	itemName: "",
+	categoryId: undefined,
+	genreId: undefined,
+	price: undefined,
+	amount: 1,
+});
+
 const PopupMainAuthorized: FC = () => {
-	// TODO リストにする useListState
-	const [selectedCategory, setSelectedCategory] = useState<
-		{ categoryId: string; genreId: string } | undefined
-	>(undefined);
+	const [paymentRecords, paymentRecordsController] = useListState<{
+		uid: string;
+		itemName: string;
+		categoryId: string | undefined;
+		genreId: string | undefined;
+		price: number | undefined;
+		amount: number;
+	}>([createDefaultRecord()]);
+
 	const [selectedPaymentPlaceUid, setSelectedPaymentPlaceUid] = useState<
 		string | undefined
 	>(undefined);
 	const [selectedAccountId, setSelectedAccountId] = useState<
 		string | undefined
 	>(undefined);
-
-	const handleSelectCategory = useCallback(
-		(categoryId: string, genreId: string) => {
-			setSelectedCategory({ categoryId, genreId });
-		},
-		[],
-	);
 
 	const handleSelectPaymentPlace = useCallback(
 		({ placeUid, accountId }: ZaimPlace) => {
@@ -66,37 +74,113 @@ const PopupMainAuthorized: FC = () => {
 		setSelectedAccountId(accountId);
 	}, []);
 
+	const appendRecord = useCallback(() => {
+		paymentRecordsController.append(createDefaultRecord());
+	}, [paymentRecordsController]);
+
 	return (
 		<Stack>
 			<Table horizontalSpacing={4}>
 				<Table.Thead>
 					<Table.Tr>
-						<Table.Th>品目</Table.Th>
-						<Table.Th>カテゴリ</Table.Th>
-						<Table.Th>金額</Table.Th>
+						<Table.Th w={250}>品目</Table.Th>
+						<Table.Th w={150}>カテゴリ</Table.Th>
+						<Table.Th w={100}>金額</Table.Th>
+						<Table.Th w={70}>個数</Table.Th>
 						<Table.Th>Act</Table.Th>
 					</Table.Tr>
 				</Table.Thead>
 				<Table.Tbody>
-					<Table.Tr>
-						<Table.Td>
-							<TextInput size="xs" />
-						</Table.Td>
-						<Table.Td>
-							<CategorySelect
-								selectedGenreId={selectedCategory?.genreId}
-								onSelect={handleSelectCategory}
-							/>
-						</Table.Td>
-						<Table.Td>
-							<NumberInput size="xs" leftSection={"¥"} hideControls />
-						</Table.Td>
-						<Table.Td>
-							<ActionIcon variant={"transparent"}>
-								<IconSquareMinusFilled size={20} />
-							</ActionIcon>
-						</Table.Td>
-					</Table.Tr>
+					{paymentRecords.map((item, index) => {
+						return (
+							<Table.Tr key={item.uid}>
+								<Table.Td>
+									<TextInput
+										size="xs"
+										value={item.itemName}
+										onChange={(event) => {
+											if (index === paymentRecords.length - 1) {
+												appendRecord();
+											}
+											paymentRecordsController.setItemProp(
+												index,
+												"itemName",
+												event.currentTarget.value,
+											);
+										}}
+									/>
+								</Table.Td>
+								<Table.Td>
+									<CategorySelect
+										selectedGenreId={item.genreId}
+										onSelect={(categoryId, genreId) => {
+											if (index === paymentRecords.length - 1) {
+												appendRecord();
+											}
+											paymentRecordsController.setItem(index, {
+												...item,
+												categoryId,
+												genreId,
+											});
+										}}
+									/>
+								</Table.Td>
+								<Table.Td>
+									<NumberInput
+										size="xs"
+										leftSection={"¥"}
+										hideControls
+										value={item.price ?? ""}
+										onChange={(val) => {
+											if (index === paymentRecords.length - 1) {
+												appendRecord();
+											}
+											paymentRecordsController.setItemProp(
+												index,
+												"price",
+												val === "" ? undefined : Number(val),
+											);
+										}}
+									/>
+								</Table.Td>
+								<Table.Td>
+									<NumberInput
+										size="xs"
+										value={item.amount}
+										onChange={(val) => {
+											if (index === paymentRecords.length - 1) {
+												appendRecord();
+											}
+											paymentRecordsController.setItemProp(
+												index,
+												"amount",
+												Number(val),
+											);
+										}}
+									/>
+								</Table.Td>
+								<Table.Td>
+									<ActionIcon variant={"transparent"}>
+										<IconSquareMinusFilled
+											size={20}
+											onClick={() => {
+												if (
+													paymentRecords.length === 1 ||
+													index === paymentRecords.length - 1
+												) {
+													paymentRecordsController.setItem(index, {
+														...createDefaultRecord(),
+													});
+													return;
+												}
+												paymentRecordsController.remove(index);
+											}}
+										/>
+									</ActionIcon>
+								</Table.Td>
+							</Table.Tr>
+						);
+					})}
 				</Table.Tbody>
 			</Table>
 			<Stack px={4}>
