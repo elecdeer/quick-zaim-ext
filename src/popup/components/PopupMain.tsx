@@ -1,7 +1,6 @@
 import {
 	ActionIcon,
 	Button,
-	Grid,
 	NumberInput,
 	SimpleGrid,
 	Stack,
@@ -19,10 +18,9 @@ import {
 	IconTextScan2,
 } from "@tabler/icons-react";
 import { type FC, useCallback, useMemo, useState } from "react";
-import { formatToYYYYMMDD } from "~lib/dateUtil";
 import type { AccessTokenPair } from "~lib/oauth";
+import { postPayments } from "~lib/service/payment";
 import { oauthAccessTokenStore } from "~lib/store";
-import { type ZaimPaymentReq, postZaimPayment } from "~lib/zaim/postPayment";
 import { AccountSelect, type ZaimAccount } from "./AccountSelect";
 import { CategorySelect } from "./CategorySelect";
 import { PaymentPlaceSelect, type ZaimPlace } from "./PaymentPlaceSelect";
@@ -44,7 +42,7 @@ const createDefaultRecord = () => ({
 	categoryId: undefined,
 	genreId: undefined,
 	price: undefined,
-	amount: 1,
+	quantity: 1,
 });
 
 type PaymentRecordItem = {
@@ -53,7 +51,7 @@ type PaymentRecordItem = {
 	categoryId: string | undefined;
 	genreId: string | undefined;
 	price: number | undefined;
-	amount: number;
+	quantity: number;
 };
 
 type ValidRecordItem = {
@@ -62,7 +60,7 @@ type ValidRecordItem = {
 	categoryId: string;
 	genreId: string;
 	price: number;
-	amount: number;
+	quantity: number;
 };
 
 const PopupMainAuthorized: FC = () => {
@@ -119,34 +117,25 @@ const PopupMainAuthorized: FC = () => {
 	const handleClickRegister = useCallback(() => {
 		if (selectedAccountId === undefined) return;
 
-		console.log(validRecords);
-
 		const date = new Date();
-		const receiptId = Math.floor(date.getTime() / 1000); // ユニークなID
 
-		const paymentReqPayloads = validRecords.map(
-			(record) =>
-				({
-					mapping: 1,
-					category_id: Number(record.categoryId),
-					genre_id: Number(record.genreId),
-					amount: (record.price ?? 0) * record.amount,
-					date: formatToYYYYMMDD(date),
-					from_account_id: Number(selectedAccountId),
-					name: record.itemName,
-					place_uid: selectedPaymentPlaceUid,
-					receipt_id: receiptId,
-					comment: "test",
-				}) satisfies ZaimPaymentReq,
-		);
-
-		console.log({ paymentReqPayloads });
-
-		Promise.all(paymentReqPayloads.map((payload) => postZaimPayment(payload)))
+		postPayments(
+			{
+				items: validRecords.map((record) => ({
+					uid: record.uid,
+					itemName: record.itemName,
+					categoryId: Number(record.categoryId),
+					genreId: Number(record.genreId),
+					pricePerItem: record.price,
+					quantity: record.quantity,
+				})),
+				date,
+				placeUid: selectedAccountId,
+				fromAccountId: Number(selectedAccountId),
+			},
+			true,
+		)
 			.then((res) => {
-				console.log("all posted");
-				console.log({ res });
-
 				paymentRecordsController.setState([createDefaultRecord()]);
 				showNotification({
 					title: "登録完了",
@@ -162,12 +151,7 @@ const PopupMainAuthorized: FC = () => {
 					color: "red",
 				});
 			});
-	}, [
-		paymentRecordsController,
-		selectedAccountId,
-		selectedPaymentPlaceUid,
-		validRecords,
-	]);
+	}, [validRecords, selectedAccountId, paymentRecordsController]);
 
 	return (
 		<Stack>
@@ -237,14 +221,14 @@ const PopupMainAuthorized: FC = () => {
 								<Table.Td>
 									<NumberInput
 										size="xs"
-										value={item.amount}
+										value={item.quantity}
 										onChange={(val) => {
 											if (index === paymentRecords.length - 1) {
 												appendRecord();
 											}
 											paymentRecordsController.setItemProp(
 												index,
-												"amount",
+												"quantity",
 												Number(val),
 											);
 										}}
