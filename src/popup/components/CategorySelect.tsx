@@ -9,8 +9,8 @@ import { useStorage } from "@plasmohq/storage/hook";
 import { useQuery } from "@tanstack/react-query";
 import { type FC, useCallback, useMemo, useState } from "react";
 import { recentlyGenreStore } from "~lib/store";
-import { fetchZaimCategory } from "~lib/zaim/fetchCategory";
-import { fetchZaimGenre } from "~lib/zaim/fetchGenre";
+import { fetchZaimCategory } from "~lib/zaimApi/fetchCategory";
+import { fetchZaimGenre } from "~lib/zaimApi/fetchGenre";
 
 export type CategorySelectProps = {
 	selectedGenreId: string | undefined;

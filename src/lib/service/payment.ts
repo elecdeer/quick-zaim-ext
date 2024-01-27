@@ -3,7 +3,7 @@ import {
   type ZaimPaymentReq,
   type ZaimPaymentRes,
   postZaimPayment,
-} from "../zaim/postPayment";
+} from "../zaimApi/postPayment";
 
 export type PaymentRecords = {
   items: {

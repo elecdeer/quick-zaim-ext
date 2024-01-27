@@ -23,9 +23,9 @@ import {
 	oauthConsumerSecretStore,
 } from "~lib/store";
 import { usePromiseResolvers } from "~lib/usePromiseResolvers";
-import { zaimApi } from "~lib/zaim/api";
-import { fetchZaimAccount } from "~lib/zaim/fetchAccount";
-import { postZaimPayment } from "~lib/zaim/postPayment";
+import { zaimApi } from "~lib/zaimApi/api";
+import { fetchZaimAccount } from "~lib/zaimApi/fetchAccount";
+import { postZaimPayment } from "~lib/zaimApi/postPayment";
 
 const zaimOAuthEndpoints = {
 	accessTokenEndpoint: {

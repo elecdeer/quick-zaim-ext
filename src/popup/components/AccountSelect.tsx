@@ -9,7 +9,7 @@ import {
 import { IconWallet } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
-import { fetchZaimAccount } from "~lib/zaim/fetchAccount";
+import { fetchZaimAccount } from "~lib/zaimApi/fetchAccount";
 
 export type AccountSelectProps = {
 	selectedAccountId: string | undefined;

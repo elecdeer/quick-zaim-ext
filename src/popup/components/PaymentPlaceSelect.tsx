@@ -16,7 +16,7 @@ import {
 } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { type FC, useCallback, useMemo, useState } from "react";
-import { fetchZaimMoney } from "~lib/zaim/fetchMoney";
+import { fetchZaimMoney } from "~lib/zaimApi/fetchMoney";
 
 type PaymentPlaceSelectProps = {
 	selectedPlaceUid: string | undefined;
