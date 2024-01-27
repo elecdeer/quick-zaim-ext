@@ -21,6 +21,7 @@ import { type FC, useCallback, useMemo, useState } from "react";
 import type { AccessTokenPair } from "~lib/oauth";
 import { postPayments } from "~lib/service/payment";
 import { oauthAccessTokenStore } from "~lib/store";
+import { type ZaimPaymentReq, postZaimPayment } from "~lib/zaim/postPayment";
 import { AccountSelect, type ZaimAccount } from "./AccountSelect";
 import { CategorySelect } from "./CategorySelect";
 import { PaymentPlaceSelect, type ZaimPlace } from "./PaymentPlaceSelect";
