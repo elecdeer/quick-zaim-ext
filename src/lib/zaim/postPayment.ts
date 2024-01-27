@@ -1,7 +1,7 @@
 import { objectToSearchParams } from "~lib/oauthHelper";
 import { zaimApi } from "./api";
 
-type ZaimPaymentReq = {
+export type ZaimPaymentReq = {
   mapping: 1;
   /** category id for payment */
   category_id: number;
@@ -20,13 +20,13 @@ type ZaimPaymentReq = {
   /** place name (within 100 characters) 使用不可？ 指定すると400エラーになる */
   // place?: string | undefined;
 
-  /** undocumented placeの代わりにこちらを指定する必要がある */
+  /** undocumented placeの代わりにこちらを指定する必要がある 10桁である必要がある？ */
   place_uid?: string | undefined;
   /** undocumented 同じ値を割り当てたレコードはZaim上でまとめて表示される */
   receipt_id?: number | undefined;
 };
 
-type ZaimPaymentRes = {
+export type ZaimPaymentRes = {
   banners: unknown[];
   money: {
     id: string;
