@@ -6,6 +6,7 @@ import {
 	Stack,
 	Table,
 	TextInput,
+	Textarea,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import { useListState } from "@mantine/hooks";
@@ -14,6 +15,7 @@ import { useStorage } from "@plasmohq/storage/hook";
 import {
 	IconBarcode,
 	IconCalendar,
+	IconNote,
 	IconSquareMinusFilled,
 	IconTextScan2,
 } from "@tabler/icons-react";
@@ -81,6 +83,7 @@ const PopupMainAuthorized: FC = () => {
 	const [selectedDate, setSelectedDate] = useState<Date | undefined>(
 		new Date(),
 	);
+	const [memoText, setMemoText] = useState<string>("");
 
 	const handleSelectPaymentPlace = useCallback(
 		({ placeUid, accountId }: ZaimPlace) => {
@@ -129,6 +132,7 @@ const PopupMainAuthorized: FC = () => {
 					genreId: Number(record.genreId),
 					pricePerItem: record.price,
 					quantity: record.quantity,
+					memo: memoText,
 				})),
 				date,
 				placeUid: selectedAccountId,
@@ -152,7 +156,7 @@ const PopupMainAuthorized: FC = () => {
 					color: "red",
 				});
 			});
-	}, [validRecords, selectedAccountId, paymentRecordsController]);
+	}, [validRecords, selectedAccountId, paymentRecordsController, memoText]);
 
 	return (
 		<Stack>
@@ -260,6 +264,16 @@ const PopupMainAuthorized: FC = () => {
 				</Table.Tbody>
 			</Table>
 			<Stack px={4}>
+				<Textarea
+					value={memoText}
+					onChange={(event) => setMemoText(event.currentTarget.value)}
+					autosize
+					minRows={1}
+					placeholder="メモ"
+					leftSection={<IconNote size={20} />}
+					leftSectionPointerEvents="none"
+				/>
+
 				<PaymentPlaceSelect
 					selectedPlaceUid={selectedPaymentPlaceUid}
 					onSelect={handleSelectPaymentPlace}
