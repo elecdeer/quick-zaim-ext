@@ -23,7 +23,7 @@ import {
 import { type FC, useCallback, useMemo, useState } from "react";
 import type { AccessTokenPair } from "~lib/oauth";
 import type { ExtractedOrder } from "~lib/service/extract/extractTypes";
-import { postPayments } from "~lib/service/payment";
+import { type PaymentRecords, postPayments } from "~lib/service/payment";
 import { oauthAccessTokenStore } from "~lib/store";
 import { type ZaimPaymentReq, postZaimPayment } from "~lib/zaimApi/postPayment";
 import { AccountSelect, type ZaimAccount } from "./AccountSelect";
@@ -134,12 +134,12 @@ const PopupMainAuthorized: FC = () => {
 					genreId: Number(record.genreId),
 					pricePerItem: record.price,
 					quantity: record.quantity,
-					memo: memoText,
+					comment: memoText,
 				})),
 				date,
 				placeUid: selectedAccountId,
 				fromAccountId: Number(selectedAccountId),
-			},
+			} satisfies PaymentRecords,
 			true,
 		)
 			.then((res) => {
