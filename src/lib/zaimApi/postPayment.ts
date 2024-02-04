@@ -20,9 +20,9 @@ export type ZaimPaymentReq = {
   /** place name (within 100 characters) 使用不可？ 指定すると400エラーになる */
   // place?: string | undefined;
 
-  /** undocumented placeの代わりにこちらを指定する必要がある 10桁である必要がある？ */
+  /** undocumented placeの代わりにこちらを指定する必要がある*/
   place_uid?: string | undefined;
-  /** undocumented 同じ値を割り当てたレコードはZaim上でまとめて表示される */
+  /** undocumented 同じ値を割り当てたレコードはZaim上でまとめて表示される 10桁である必要がある？ */
   receipt_id?: number | undefined;
 };
 

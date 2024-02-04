@@ -29,7 +29,8 @@ export const postPayments = async (
   const { items, date, placeUid, fromAccountId } = records;
   const dateStr = formatToYYYYMMDD(date);
 
-  const receiptId = bulk ? Math.floor(date.getTime() / 1000) : undefined;
+  // ユニークなレシートIDを生成
+  const receiptId = bulk ? Math.floor(Date.now() / 1000) : undefined;
   const payments = items.map((item) => {
     return {
       mapping: 1,

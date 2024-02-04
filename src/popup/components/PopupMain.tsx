@@ -122,8 +122,7 @@ const PopupMainAuthorized: FC = () => {
 
 	const handleClickRegister = useCallback(() => {
 		if (selectedAccountId === undefined) return;
-
-		const date = new Date();
+		if (selectedDate === undefined) return;
 
 		postPayments(
 			{
@@ -136,8 +135,8 @@ const PopupMainAuthorized: FC = () => {
 					quantity: record.quantity,
 					comment: memoText,
 				})),
-				date,
-				placeUid: selectedAccountId,
+				date: selectedDate,
+				placeUid: selectedPaymentPlaceUid,
 				fromAccountId: Number(selectedAccountId),
 			} satisfies PaymentRecords,
 			true,
@@ -158,7 +157,14 @@ const PopupMainAuthorized: FC = () => {
 					color: "red",
 				});
 			});
-	}, [validRecords, selectedAccountId, paymentRecordsController, memoText]);
+	}, [
+		validRecords,
+		selectedAccountId,
+		paymentRecordsController,
+		memoText,
+		selectedDate,
+		selectedPaymentPlaceUid,
+	]);
 
 	const handleClickAutoInput = useCallback(() => {
 		console.log("extract from page");
