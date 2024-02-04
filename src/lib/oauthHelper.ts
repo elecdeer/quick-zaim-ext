@@ -49,10 +49,12 @@ export const createSignatureBaseString = (
 
   const urlWithoutParams = url.origin + url.pathname;
 
+  // searchParamsは半角スペースを+にエンコードするが、OAuthでは%20を使うので置換
+  // https://openid-foundation-japan.github.io/rfc5849.ja.html#encoding
   return [
     httpMethod.toUpperCase(),
     encodeURIComponent(urlWithoutParams),
-    encodeURIComponent(url.searchParams.toString()),
+    encodeURIComponent(url.searchParams.toString().replaceAll("+", "%20")),
   ].join("&");
 };
 
@@ -150,7 +152,7 @@ export const objectToSearchParams = <TKeys extends string>(
   const urlSearchParams = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (typeof value === "number") {
-      urlSearchParams.set(key, value.toString());
+      urlSearchParams.set(key, encodeURIComponent(value.toString()));
     }
     if (typeof value === "string") {
       urlSearchParams.set(key, value);

@@ -97,6 +97,7 @@ export const OptionsPage: FC = () => {
 				from_account_id: 0,
 				date: "2024-01-07",
 				receipt_id: Date.now(),
+				name: "テスト テスト",
 				comment: "",
 			});
 			console.log(body);
