@@ -11,6 +11,7 @@ import {
 import { DateInput } from "@mantine/dates";
 import { useListState } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
+import { sendToContentScript } from "@plasmohq/messaging";
 import { useStorage } from "@plasmohq/storage/hook";
 import {
 	IconBarcode,
@@ -21,6 +22,7 @@ import {
 } from "@tabler/icons-react";
 import { type FC, useCallback, useMemo, useState } from "react";
 import type { AccessTokenPair } from "~lib/oauth";
+import type { ExtractedOrder } from "~lib/service/extract/extractTypes";
 import { postPayments } from "~lib/service/payment";
 import { oauthAccessTokenStore } from "~lib/store";
 import { type ZaimPaymentReq, postZaimPayment } from "~lib/zaimApi/postPayment";
@@ -157,6 +159,29 @@ const PopupMainAuthorized: FC = () => {
 				});
 			});
 	}, [validRecords, selectedAccountId, paymentRecordsController, memoText]);
+
+	const handleClickAutoInput = useCallback(() => {
+		console.log("extract from page");
+		void sendToContentScript({ name: "extract" }).then(
+			(res: ExtractedOrder) => {
+				console.log("extracted", res);
+				setSelectedDate(new Date(res.orderDate));
+				setMemoText(res.orderNumber);
+
+				// TODO: 上書きの確認？
+				paymentRecordsController.setState(
+					res.products.map((item) => ({
+						uid: crypto.randomUUID(),
+						itemName: item.productName,
+						categoryId: undefined,
+						genreId: undefined,
+						price: item.priceYen,
+						quantity: item.quantity,
+					})),
+				);
+			},
+		);
+	}, [paymentRecordsController]);
 
 	return (
 		<Stack>
@@ -307,7 +332,7 @@ const PopupMainAuthorized: FC = () => {
 					</Button>
 					<Button
 						variant="light"
-						disabled
+						onClick={handleClickAutoInput}
 						leftSection={<IconBarcode size={20} />}
 					>
 						ページから自動入力

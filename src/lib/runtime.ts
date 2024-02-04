@@ -33,3 +33,17 @@ export const openExtensionPage = async (path: string): Promise<void> => {
     await chrome.tabs.create({ url: extensionUrl });
   }
 };
+
+/**
+ * sendToContentScriptによって送信されたメッセージへのリスナーを追加する
+ * @param handler
+ */
+export const addMessageListener = (
+  handler: (
+    message: { name: string },
+    sender: chrome.runtime.MessageSender,
+    sendResponse: (response: unknown) => void
+  ) => void
+): void => {
+  chrome.runtime.onMessage.addListener(handler);
+};

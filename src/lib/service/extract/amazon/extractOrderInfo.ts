@@ -42,8 +42,9 @@ export const extractOrderNumber = (document: Document): string => {
  *
  * Amazon.co.jp 注文日: xxxx年xx月xx日 という形式で記載されている
  * @param document
+ * @returns 注文日 YYYY-MM-DD
  */
-export const extractOrderDate = (document: Document): Date => {
+export const extractOrderDate = (document: Document): string => {
   const tables = Array.from(document.querySelectorAll("td"));
   // 入れ子の一番下で"注文日"という文字列を含むテーブルを抽出
   const orderDateTd = tables.find(
@@ -75,5 +76,5 @@ export const extractOrderDate = (document: Document): Date => {
   const month = orderDate.groups.month.padStart(2, "0");
   const day = orderDate.groups.day.padStart(2, "0");
 
-  return new Date(`${year}-${month}-${day}`);
+  return `${year}-${month}-${day}`;
 };

@@ -1,3 +1,5 @@
+// ここの型はJSON化可能でなければならない
+
 export type ExtractedProduct = {
   productName: string;
   priceYen: number;
@@ -6,6 +8,7 @@ export type ExtractedProduct = {
 
 export type ExtractedOrder = {
   orderNumber: string;
-  orderDate: Date;
+  /** YYYY-MM-dd */
+  orderDate: string;
   products: ExtractedProduct[];
 };
