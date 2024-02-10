@@ -9,7 +9,6 @@ import {
 	Textarea,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
-import { useListState } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
 import { sendToContentScript } from "@plasmohq/messaging";
 import { useStorage } from "@plasmohq/storage/hook";
@@ -24,8 +23,13 @@ import { type FC, useCallback, useMemo, useState } from "react";
 import type { AccessTokenPair } from "~lib/oauth";
 import type { ExtractedOrder } from "~lib/service/extract/extractTypes";
 import { type PaymentRecords, postPayments } from "~lib/service/payment";
+import {
+	type PaymentRecordFieldItem,
+	createPaymentRequestFromFields,
+	initialPaymentRecordFields,
+	paymentRecordFieldsReducer,
+} from "~lib/service/paymentRecordFieldsState";
 import { oauthAccessTokenStore } from "~lib/store";
-import { type ZaimPaymentReq, postZaimPayment } from "~lib/zaimApi/postPayment";
 import { AccountSelect, type ZaimAccount } from "./AccountSelect";
 import { CategorySelect } from "./CategorySelect";
 import { PaymentPlaceSelect, type ZaimPlace } from "./PaymentPlaceSelect";
@@ -41,40 +45,14 @@ export const PopupMain: FC = () => {
 	return <PopupMainAuthorized />;
 };
 
-const createDefaultRecord = () => ({
-	uid: crypto.randomUUID(),
-	itemName: "",
-	categoryId: undefined,
-	genreId: undefined,
-	price: undefined,
-	quantity: 1,
-});
-
-type PaymentRecordItem = {
-	uid: string;
-	itemName: string;
-	categoryId: string | undefined;
-	genreId: string | undefined;
-	price: number | undefined;
-	quantity: number;
-};
-
-type ValidRecordItem = {
-	uid: string;
-	itemName: string;
-	categoryId: string;
-	genreId: string;
-	price: number;
-	quantity: number;
-};
-
 const PopupMainAuthorized: FC = () => {
 	// TODO: 入力項目はstorageに保存するようにする？
 	// TODO: "ACT"の部分をハンバーガーアイコンにして、メニューをいくつか用意する
 	// 	今歯車アイコンになっている所をメニューにしても良いな
 
-	const [paymentRecords, paymentRecordsController] =
-		useListState<PaymentRecordItem>([createDefaultRecord()]);
+	const [paymentRecords, setPaymentRecords] = useState<
+		PaymentRecordFieldItem[]
+	>(initialPaymentRecordFields);
 
 	const [selectedPaymentPlaceUid, setSelectedPaymentPlaceUid] = useState<
 		string | undefined
@@ -102,47 +80,34 @@ const PopupMainAuthorized: FC = () => {
 		setSelectedAccountId(accountId);
 	}, []);
 
-	const appendRecord = useCallback(() => {
-		paymentRecordsController.append(createDefaultRecord());
-	}, [paymentRecordsController]);
+	const paymentRequest = useMemo<PaymentRecords | undefined>(() => {
+		if (selectedDate === undefined) return undefined;
+		if (selectedAccountId === undefined) return undefined;
 
-	const validRecords = useMemo(
-		() =>
-			paymentRecords.filter((record): record is ValidRecordItem => {
-				if (record.itemName === "") return false;
-				if (record.categoryId === undefined) return false;
-				if (record.genreId === undefined) return false;
-				if (record.price === undefined) return false;
-				return true;
-			}),
-		[paymentRecords],
-	);
+		return {
+			...createPaymentRequestFromFields(paymentRecords),
+			date: selectedDate,
+			placeUid: selectedPaymentPlaceUid,
+			fromAccountId: Number(selectedAccountId),
+		};
+	}, [
+		paymentRecords,
+		selectedAccountId,
+		selectedDate,
+		selectedPaymentPlaceUid,
+	]);
+
 	const isRegisterButtonActive =
-		validRecords.length > 0 && selectedAccountId !== undefined;
+		paymentRequest !== undefined && paymentRequest.items.length > 0;
 
 	const handleClickRegister = useCallback(() => {
-		if (selectedAccountId === undefined) return;
-		if (selectedDate === undefined) return;
+		if (paymentRequest === undefined) return;
 
-		postPayments(
-			{
-				items: validRecords.map((record) => ({
-					uid: record.uid,
-					itemName: record.itemName,
-					categoryId: Number(record.categoryId),
-					genreId: Number(record.genreId),
-					pricePerItem: record.price,
-					quantity: record.quantity,
-					comment: memoText,
-				})),
-				date: selectedDate,
-				placeUid: selectedPaymentPlaceUid,
-				fromAccountId: Number(selectedAccountId),
-			} satisfies PaymentRecords,
-			true,
-		)
+		postPayments(paymentRequest, true)
 			.then((res) => {
-				paymentRecordsController.setState([createDefaultRecord()]);
+				setPaymentRecords((prev) =>
+					paymentRecordFieldsReducer(prev, { type: "reset" }),
+				);
 				showNotification({
 					title: "登録完了",
 					message: `${res.length}件の支出を登録しました`,
@@ -157,14 +122,7 @@ const PopupMainAuthorized: FC = () => {
 					color: "red",
 				});
 			});
-	}, [
-		validRecords,
-		selectedAccountId,
-		paymentRecordsController,
-		memoText,
-		selectedDate,
-		selectedPaymentPlaceUid,
-	]);
+	}, [paymentRequest]);
 
 	const handleClickAutoInput = useCallback(() => {
 		console.log("extract from page");
@@ -175,19 +133,21 @@ const PopupMainAuthorized: FC = () => {
 				setMemoText(res.orderNumber);
 
 				// TODO: 上書きの確認？
-				paymentRecordsController.setState(
-					res.products.map((item) => ({
-						uid: crypto.randomUUID(),
-						itemName: item.productName,
-						categoryId: undefined,
-						genreId: undefined,
-						price: item.priceYen,
-						quantity: item.quantity,
-					})),
+				setPaymentRecords((prev) =>
+					paymentRecordFieldsReducer(prev, {
+						type: "bulkSet",
+						items: res.products.map((item) => ({
+							itemName: item.productName,
+							categoryId: undefined,
+							genreId: undefined,
+							price: item.priceYen,
+							quantity: item.quantity,
+						})),
+					}),
 				);
 			},
 		);
-	}, [paymentRecordsController]);
+	}, []);
 
 	return (
 		<Stack>
@@ -210,13 +170,12 @@ const PopupMainAuthorized: FC = () => {
 										size="xs"
 										value={item.itemName}
 										onChange={(event) => {
-											if (index === paymentRecords.length - 1) {
-												appendRecord();
-											}
-											paymentRecordsController.setItemProp(
-												index,
-												"itemName",
-												event.currentTarget.value,
+											setPaymentRecords((prev) =>
+												paymentRecordFieldsReducer(prev, {
+													type: "setItemName",
+													index,
+													itemName: event.currentTarget.value,
+												}),
 											);
 										}}
 									/>
@@ -225,14 +184,14 @@ const PopupMainAuthorized: FC = () => {
 									<CategorySelect
 										selectedGenreId={item.genreId}
 										onSelect={(categoryId, genreId) => {
-											if (index === paymentRecords.length - 1) {
-												appendRecord();
-											}
-											paymentRecordsController.setItem(index, {
-												...item,
-												categoryId,
-												genreId,
-											});
+											setPaymentRecords((prev) =>
+												paymentRecordFieldsReducer(prev, {
+													type: "setCategory",
+													index,
+													categoryId,
+													genreId,
+												}),
+											);
 										}}
 									/>
 								</Table.Td>
@@ -243,13 +202,12 @@ const PopupMainAuthorized: FC = () => {
 										hideControls
 										value={item.price ?? ""}
 										onChange={(val) => {
-											if (index === paymentRecords.length - 1) {
-												appendRecord();
-											}
-											paymentRecordsController.setItemProp(
-												index,
-												"price",
-												val === "" ? undefined : Number(val),
+											setPaymentRecords((prev) =>
+												paymentRecordFieldsReducer(prev, {
+													type: "setPrice",
+													index,
+													price: val === "" ? undefined : Number(val),
+												}),
 											);
 										}}
 									/>
@@ -259,13 +217,12 @@ const PopupMainAuthorized: FC = () => {
 										size="xs"
 										value={item.quantity}
 										onChange={(val) => {
-											if (index === paymentRecords.length - 1) {
-												appendRecord();
-											}
-											paymentRecordsController.setItemProp(
-												index,
-												"quantity",
-												Number(val),
+											setPaymentRecords((prev) =>
+												paymentRecordFieldsReducer(prev, {
+													type: "setQuantity",
+													index,
+													quantity: val === "" ? 0 : Number(val),
+												}),
 											);
 										}}
 									/>
@@ -275,16 +232,12 @@ const PopupMainAuthorized: FC = () => {
 										<IconSquareMinusFilled
 											size={20}
 											onClick={() => {
-												if (
-													paymentRecords.length === 1 ||
-													index === paymentRecords.length - 1
-												) {
-													paymentRecordsController.setItem(index, {
-														...createDefaultRecord(),
-													});
-													return;
-												}
-												paymentRecordsController.remove(index);
+												setPaymentRecords((prev) =>
+													paymentRecordFieldsReducer(prev, {
+														type: "delete",
+														index,
+													}),
+												);
 											}}
 										/>
 									</ActionIcon>
