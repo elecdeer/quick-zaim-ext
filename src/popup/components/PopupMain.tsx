@@ -30,9 +30,15 @@ import {
 	paymentRecordFieldsReducer,
 } from "~lib/service/paymentRecordFieldsState";
 import { oauthAccessTokenStore } from "~lib/store";
-import { AccountSelect, type ZaimAccount } from "./AccountSelect";
-import { CategorySelect } from "./CategorySelect";
-import { PaymentPlaceSelect, type ZaimPlace } from "./PaymentPlaceSelect";
+import {
+	AccountSelect,
+	type ZaimAccount,
+} from "../../features/addPayment/form/AccountSelect";
+import { CategorySelect } from "../../features/addPayment/form/CategorySelect";
+import {
+	PaymentPlaceSelect,
+	type ZaimPlace,
+} from "../../features/addPayment/form/PaymentPlaceSelect";
 import { Unauthorized } from "./Unauthorized";
 
 export const PopupMain: FC = () => {
