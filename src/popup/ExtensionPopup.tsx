@@ -1,8 +1,8 @@
 import { AppShell, Loader } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import { type FC, Suspense } from "react";
+import { AddPayment } from "~features/addPayment/AddPayment";
 import { PopupHeader } from "./components/PopupHeader";
-import { PopupMain } from "./components/PopupMain";
 
 export const ExtensionPopup: FC = () => {
 	return (
@@ -19,7 +19,7 @@ export const ExtensionPopup: FC = () => {
 			{/* 100dvhがつけられてしまうので外す */}
 			<AppShell.Main mih="initial">
 				<Suspense fallback={<Loader color="blue" />}>
-					<PopupMain />
+					<AddPayment />
 				</Suspense>
 				<Notifications position="bottom-right" m={16} />
 			</AppShell.Main>

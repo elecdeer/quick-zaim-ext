@@ -30,28 +30,22 @@ import {
 	paymentRecordFieldsReducer,
 } from "~lib/service/paymentRecordFieldsState";
 import { oauthAccessTokenStore } from "~lib/store";
-import {
-	AccountSelect,
-	type ZaimAccount,
-} from "../../features/addPayment/form/AccountSelect";
-import { CategorySelect } from "../../features/addPayment/form/CategorySelect";
-import {
-	PaymentPlaceSelect,
-	type ZaimPlace,
-} from "../../features/addPayment/form/PaymentPlaceSelect";
-import { Unauthorized } from "./Unauthorized";
+import { Unauthorized } from "~popup/components/Unauthorized";
+import { AccountSelect, type ZaimAccount } from "./form/AccountSelect";
+import { CategorySelect } from "./form/CategorySelect";
+import { PaymentPlaceSelect, type ZaimPlace } from "./form/PaymentPlaceSelect";
 
-export const PopupMain: FC = () => {
+export const AddPayment: FC = () => {
 	const [accessToken] = useStorage<AccessTokenPair | undefined>(
 		oauthAccessTokenStore.hookAccessor(true),
 	);
 
 	if (accessToken === undefined) return <Unauthorized />;
 
-	return <PopupMainAuthorized />;
+	return <AddPaymentAuthorized />;
 };
 
-const PopupMainAuthorized: FC = () => {
+const AddPaymentAuthorized: FC = () => {
 	// TODO: 入力項目はstorageに保存するようにする？
 	// TODO: "ACT"の部分をハンバーガーアイコンにして、メニューをいくつか用意する
 	// 	今歯車アイコンになっている所をメニューにしても良いな
