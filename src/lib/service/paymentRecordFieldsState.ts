@@ -4,9 +4,7 @@ import type { PaymentRecords } from "./payment";
 export type PaymentRecordFieldItem = {
   uid: string;
   itemName: string;
-  // categoryAndGenre: { categoryId: string; genreId: string } | undefined;
-  categoryId: string | undefined;
-  genreId: string | undefined;
+  categoryAndGenre: { categoryId: string; genreId: string } | undefined;
   price: number | undefined;
   quantity: number;
   touched: boolean;
@@ -15,8 +13,7 @@ export type PaymentRecordFieldItem = {
 type ValidPaymentRecordFieldItem = {
   uid: string;
   itemName: string;
-  categoryId: string;
-  genreId: string;
+  categoryAndGenre: { categoryId: string; genreId: string };
   price: number;
   quantity: number;
   touched: boolean;
@@ -45,8 +42,7 @@ export const paymentRecordFieldsReducer = (
         // カテゴリは引き継ぐ
         draft.push({
           ...createDefaultRecord(),
-          categoryId: draft[index].categoryId,
-          genreId: draft[index].genreId,
+          categoryAndGenre: draft[index].categoryAndGenre,
         });
       }
     };
@@ -63,20 +59,19 @@ export const paymentRecordFieldsReducer = (
       case "setCategory":
         appendIfLastItem(action.index);
 
-        draft[action.index].categoryId = action.categoryId;
-        draft[action.index].genreId = action.genreId;
+        draft[action.index].categoryAndGenre = {
+          categoryId: action.categoryId,
+          genreId: action.genreId,
+        };
         markTouched(action.index);
-
-        // draft[action.index].categoryAndGenre = {
-        //   categoryId: action.categoryId,
-        //   genreId: action.genreId,
-        // };
 
         // その下の未設定のレコードにも同じカテゴリとジャンルを設定する
         for (let i = action.index + 1; i < draft.length; i++) {
           if (draft[i].touched) continue;
-          draft[i].categoryId = action.categoryId;
-          draft[i].genreId = action.genreId;
+          draft[i].categoryAndGenre = {
+            categoryId: action.categoryId,
+            genreId: action.genreId,
+          };
         }
 
         break;
@@ -115,8 +110,7 @@ export const createUid = (): string => crypto.randomUUID();
 const createDefaultRecord = (): PaymentRecordFieldItem => ({
   uid: createUid(),
   itemName: "",
-  categoryId: undefined,
-  genreId: undefined,
+  categoryAndGenre: undefined,
   price: undefined,
   quantity: 1,
   touched: false,
@@ -135,14 +129,13 @@ export const createPaymentRequestFromFields = (
         (record): record is ValidPaymentRecordFieldItem =>
           record.itemName !== "" &&
           record.price !== undefined &&
-          record.categoryId !== undefined &&
-          record.genreId !== undefined
+          record.categoryAndGenre !== undefined
       )
       .map((record) => ({
         uid: record.uid,
         itemName: record.itemName,
-        categoryId: Number(record.categoryId),
-        genreId: Number(record.genreId),
+        categoryId: Number(record.categoryAndGenre.categoryId),
+        genreId: Number(record.categoryAndGenre.genreId),
         pricePerItem: record.price,
         quantity: record.quantity,
       })),

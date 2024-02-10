@@ -138,8 +138,7 @@ const PopupMainAuthorized: FC = () => {
 						type: "bulkSet",
 						items: res.products.map((item) => ({
 							itemName: item.productName,
-							categoryId: undefined,
-							genreId: undefined,
+							categoryAndGenre: undefined,
 							price: item.priceYen,
 							quantity: item.quantity,
 						})),
@@ -182,7 +181,7 @@ const PopupMainAuthorized: FC = () => {
 								</Table.Td>
 								<Table.Td>
 									<CategorySelect
-										selectedGenreId={item.genreId}
+										selectedGenreId={item.categoryAndGenre?.genreId}
 										onSelect={(categoryId, genreId) => {
 											setPaymentRecords((prev) =>
 												paymentRecordFieldsReducer(prev, {
