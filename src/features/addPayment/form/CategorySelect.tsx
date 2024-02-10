@@ -260,10 +260,9 @@ const fetchActivePaymentGenres = async (): Promise<ZaimGenre[]> => {
 };
 
 const useRecentlyUsedGenreIds = () => {
-	const [recentlyUsedGenreIds, setRecentlyUsedGenreIds] = useStorage<string[]>(
-		recentlyGenreStore.hookAccessor(),
-		[],
-	);
+	const [recentlyUsedGenreIds = [], setRecentlyUsedGenreIds] = useStorage<
+		string[]
+	>(recentlyGenreStore.hookAccessor(), []);
 
 	const addRecentlyUsedGenre = (genreId: string) => {
 		const newRecentlyUsedGenreIds = [
