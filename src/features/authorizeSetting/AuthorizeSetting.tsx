@@ -29,7 +29,7 @@ const zaimOAuthEndpoints = {
 	},
 } as const;
 
-export const OptionsPage: FC = () => {
+export const AuthorizeSetting: FC = () => {
 	// ready前はsuspendする
 	const [consumerKey, setConsumerKey] = useStorage(
 		oauthConsumerKeyStore.hookAccessor(true),

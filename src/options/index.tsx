@@ -14,12 +14,12 @@ import { Notifications } from "@mantine/notifications";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AddPayment } from "~features/addPayment/AddPayment";
 import { appTheme } from "~lib/appTheme";
-import { OptionsPage } from "./OptionsPage";
 
 import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
+import { AuthorizeSetting } from "~features/authorizeSetting/AuthorizeSetting";
 
 dayjs.extend(customParseFormat);
 
@@ -61,10 +61,10 @@ export const Options: FC = () => {
 						<Tabs.Tab value={"#payment"}>Payment</Tabs.Tab>
 					</Tabs.List>
 				</AppShell.Header>
-				<AppShell.Main>
+				<AppShell.Main mih="initial">
 					<Tabs.Panel value={"#authorize"}>
 						<Suspense fallback={<Loader color="green" />}>
-							<OptionsPage />
+							<AuthorizeSetting />
 						</Suspense>
 					</Tabs.Panel>
 					<Tabs.Panel value={"#payment"}>
