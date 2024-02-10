@@ -1,22 +1,10 @@
-import {
-	Button,
-	Input,
-	Modal,
-	PasswordInput,
-	Stack,
-	TextInput,
-} from "@mantine/core";
+import { Button, Modal, PasswordInput, Stack } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { useStorage } from "@plasmohq/storage/hook";
 import { IconExternalLink } from "@tabler/icons-react";
 import { type FC, useCallback, useRef, useState } from "react";
-import {
-	type AccessTokenPair,
-	createOAuthApplicant,
-	createOAuthSigner,
-} from "~lib/oauth";
-import { generateNonce } from "~lib/oauthHelper";
+import { createOAuthApplicant } from "~lib/oauth";
 import {
 	oauthAccessTokenStore,
 	oauthConsumerKeyStore,
