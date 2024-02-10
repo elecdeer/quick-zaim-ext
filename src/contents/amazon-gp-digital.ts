@@ -4,7 +4,7 @@ import { extractDigitalOrder } from "~lib/service/extract/amazon/extractDigitalO
 
 export const config: PlasmoCSConfig = {
   matches: [
-    "https://www.amazon.co.jp/gp/digital/your-account/order-summary.html/*",
+    "https://www.amazon.co.jp/gp/digital/your-account/order-summary.html*",
   ],
 };
 
