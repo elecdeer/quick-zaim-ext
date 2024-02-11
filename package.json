@@ -7,7 +7,9 @@
 	"scripts": {
 		"dev": "plasmo dev",
 		"build": "plasmo build",
-		"test": "plasmo test"
+		"test": "plasmo test",
+		"check:lint": "biome check ./src",
+		"check:type": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@mantine/core": "^7.5.2",
@@ -39,11 +41,7 @@
 		"typescript": "5.3.3"
 	},
 	"manifest": {
-		"permissions": [
-			"tabs"
-		],
-		"host_permissions": [
-			"https://*/*"
-		]
+		"permissions": ["tabs"],
+		"host_permissions": ["https://*/*"]
 	}
 }
