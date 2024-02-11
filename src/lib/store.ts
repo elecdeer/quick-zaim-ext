@@ -8,6 +8,7 @@ import { getExtensionId } from "./runtime";
 
 export const jotaiStore = createJotaiStore();
 
+const keyPrefix = "quick-zaim-ext";
 export const extensionStorage = new Storage();
 export const extensionSecureStorage = new SecureStorage();
 
@@ -17,7 +18,7 @@ const waitSecureStorageReady = extensionSecureStorage.setPassword(
 
 export const atomWithExtensionStorage = <T>(key: string, initialValue: T) => {
 	return atomWithStorage(
-		key,
+		`${keyPrefix}-${key}`,
 		initialValue,
 		createJotaiStorageAdapter(extensionStorage),
 		{ getOnInit: true },
@@ -29,7 +30,7 @@ export const atomWithExtensionSecureStorage = <T>(
 	initialValue: T,
 ) => {
 	return atomWithStorage(
-		key,
+		`${keyPrefix}-${key}`,
 		initialValue,
 		createJotaiStorageAdapter(extensionSecureStorage),
 		{ getOnInit: true },
@@ -66,5 +67,3 @@ export const createJotaiStorageAdapter = <T>(
 		},
 	};
 };
-
-export const keyPrefix = "quick-zaim-ext";
