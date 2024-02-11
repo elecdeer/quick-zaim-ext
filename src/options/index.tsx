@@ -53,7 +53,11 @@ export const Options: FC = () => {
 				height: 48 + 36, // header + tabs
 			}}
 		>
-			<Tabs value={activeTab} onChange={handleChangeTab} color="green">
+			<Tabs
+				value={activeTab === "" ? "#authorize" : activeTab}
+				onChange={handleChangeTab}
+				color="green"
+			>
 				<AppShell.Header>
 					<Header />
 					<Tabs.List>
