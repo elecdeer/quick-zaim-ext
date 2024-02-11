@@ -20,12 +20,11 @@ import {
 } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
 import { loadable } from "jotai/utils";
-import { type FC, useCallback, useMemo, useState } from "react";
+import { type FC, useCallback, useMemo, useReducer, useState } from "react";
 import { oauthAccessTokenAtom } from "~features/authorize/authorizeAtoms";
 import type { ExtractedOrder } from "~lib/service/extract/extractTypes";
 import { type PaymentRecords, postPayments } from "~lib/service/payment";
 import {
-	type PaymentRecordFieldItem,
 	createPaymentRequestFromFields,
 	initialPaymentRecordFields,
 	paymentRecordFieldsReducer,
@@ -50,9 +49,10 @@ const PopupMainAuthorized: FC = () => {
 	// TODO: "ACT"の部分をハンバーガーアイコンにして、メニューをいくつか用意する
 	// 	今歯車アイコンになっている所をメニューにしても良いな
 
-	const [paymentRecords, setPaymentRecords] = useState<
-		PaymentRecordFieldItem[]
-	>(initialPaymentRecordFields);
+	const [paymentRecords, dispatchPaymentRecords] = useReducer(
+		paymentRecordFieldsReducer,
+		initialPaymentRecordFields,
+	);
 
 	const [selectedPaymentPlaceUid, setSelectedPaymentPlaceUid] = useState<
 		string | undefined
@@ -105,9 +105,7 @@ const PopupMainAuthorized: FC = () => {
 
 		postPayments(paymentRequest, true)
 			.then((res) => {
-				setPaymentRecords((prev) =>
-					paymentRecordFieldsReducer(prev, { type: "reset" }),
-				);
+				dispatchPaymentRecords({ type: "reset" });
 				showNotification({
 					title: "登録完了",
 					message: `${res.length}件の支出を登録しました`,
@@ -133,17 +131,15 @@ const PopupMainAuthorized: FC = () => {
 				setMemoText(res.orderNumber);
 
 				// TODO: 上書きの確認？
-				setPaymentRecords((prev) =>
-					paymentRecordFieldsReducer(prev, {
-						type: "bulkSet",
-						items: res.products.map((item) => ({
-							itemName: item.productName,
-							categoryAndGenre: undefined,
-							price: item.priceYen,
-							quantity: item.quantity,
-						})),
-					}),
-				);
+				dispatchPaymentRecords({
+					type: "bulkSet",
+					items: res.products.map((item) => ({
+						itemName: item.productName,
+						categoryAndGenre: undefined,
+						price: item.priceYen,
+						quantity: item.quantity,
+					})),
+				});
 			},
 		);
 	}, []);
@@ -169,13 +165,11 @@ const PopupMainAuthorized: FC = () => {
 										size="xs"
 										value={item.itemName}
 										onChange={(event) => {
-											setPaymentRecords((prev) =>
-												paymentRecordFieldsReducer(prev, {
-													type: "setItemName",
-													index,
-													itemName: event.currentTarget.value,
-												}),
-											);
+											dispatchPaymentRecords({
+												type: "setItemName",
+												index,
+												itemName: event.currentTarget.value,
+											});
 										}}
 									/>
 								</Table.Td>
@@ -183,14 +177,12 @@ const PopupMainAuthorized: FC = () => {
 									<CategorySelect
 										selectedGenreId={item.categoryAndGenre?.genreId}
 										onSelect={(categoryId, genreId) => {
-											setPaymentRecords((prev) =>
-												paymentRecordFieldsReducer(prev, {
-													type: "setCategory",
-													index,
-													categoryId,
-													genreId,
-												}),
-											);
+											dispatchPaymentRecords({
+												type: "setCategory",
+												index,
+												categoryId,
+												genreId,
+											});
 										}}
 									/>
 								</Table.Td>
@@ -201,13 +193,11 @@ const PopupMainAuthorized: FC = () => {
 										hideControls
 										value={item.price ?? ""}
 										onChange={(val) => {
-											setPaymentRecords((prev) =>
-												paymentRecordFieldsReducer(prev, {
-													type: "setPrice",
-													index,
-													price: val === "" ? undefined : Number(val),
-												}),
-											);
+											dispatchPaymentRecords({
+												type: "setPrice",
+												index,
+												price: val === "" ? undefined : Number(val),
+											});
 										}}
 									/>
 								</Table.Td>
@@ -216,13 +206,11 @@ const PopupMainAuthorized: FC = () => {
 										size="xs"
 										value={item.quantity}
 										onChange={(val) => {
-											setPaymentRecords((prev) =>
-												paymentRecordFieldsReducer(prev, {
-													type: "setQuantity",
-													index,
-													quantity: val === "" ? 0 : Number(val),
-												}),
-											);
+											dispatchPaymentRecords({
+												type: "setQuantity",
+												index,
+												quantity: val === "" ? 0 : Number(val),
+											});
 										}}
 									/>
 								</Table.Td>
@@ -231,12 +219,10 @@ const PopupMainAuthorized: FC = () => {
 										<IconSquareMinusFilled
 											size={20}
 											onClick={() => {
-												setPaymentRecords((prev) =>
-													paymentRecordFieldsReducer(prev, {
-														type: "delete",
-														index,
-													}),
-												);
+												dispatchPaymentRecords({
+													type: "delete",
+													index,
+												});
 											}}
 										/>
 									</ActionIcon>
