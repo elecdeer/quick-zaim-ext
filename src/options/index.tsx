@@ -12,7 +12,7 @@ import React, { Suspense, useCallback, type FC } from "react";
 import { useHash } from "@mantine/hooks";
 import { Notifications } from "@mantine/notifications";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AddPayment } from "~features/addPayment/AddPayment";
+import { AddPayment } from "~features/payment/AddPayment";
 import { appTheme } from "~lib/appTheme";
 
 import "@mantine/core/styles.css";

@@ -2,7 +2,7 @@ import { AppShell, Loader } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import { useAtom } from "jotai";
 import { type FC, Suspense } from "react";
-import { AddPayment } from "~features/addPayment/AddPayment";
+import { AddPayment } from "~features/payment/AddPayment";
 
 import { jotaiStore } from "~lib/store";
 import { PopupHeader } from "./components/PopupHeader";
