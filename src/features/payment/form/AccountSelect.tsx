@@ -14,11 +14,13 @@ import { fetchZaimAccount } from "~lib/zaimApi/fetchAccount";
 export type AccountSelectProps = {
 	selectedAccountId: string | undefined;
 	onSelect: (account: ZaimAccount) => void;
+	label?: string | undefined;
 };
 
 export const AccountSelect: React.FC<AccountSelectProps> = ({
 	selectedAccountId,
 	onSelect,
+	label,
 }) => {
 	const [searchText, setSearchText] = useState("");
 	const { data: accountsData } = useQuery({
@@ -96,6 +98,7 @@ export const AccountSelect: React.FC<AccountSelectProps> = ({
 					rightSectionPointerEvents="none"
 					rightSection={<Combobox.Chevron />}
 					onClick={() => combobox.toggleDropdown()}
+					label={label}
 				>
 					{selectedAccount ? (
 						<Text span lineClamp={1} size="xs">

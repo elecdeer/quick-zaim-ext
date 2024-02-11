@@ -1,6 +1,9 @@
-import { Accordion, Flex, Stack, Switch, Text } from "@mantine/core";
+import { Accordion, Flex, Input, Stack, Switch, Text } from "@mantine/core";
 import { useAtom } from "jotai";
 import type { FC } from "react";
+import { AccountSelect } from "~features/payment/form/AccountSelect";
+import { CategorySelect } from "~features/payment/form/CategorySelect";
+import { PaymentPlaceSelect } from "~features/payment/form/PaymentPlaceSelect";
 import type { ExtractSettingAtom } from "../extractSettingStore";
 
 export type ExtractPageSettingProps = {
@@ -24,7 +27,7 @@ export const ExtractPageSetting: FC<ExtractPageSettingProps> = ({
 				<AccordionLabel itemKey={itemKey} url={url} description={description} />
 			</Accordion.Control>
 			<Accordion.Panel>
-				<Stack>
+				<Stack py={8}>
 					<Switch
 						checked={extractSetting.enabled}
 						onChange={(checked) => {
@@ -36,9 +39,39 @@ export const ExtractPageSetting: FC<ExtractPageSettingProps> = ({
 						label="Enabled"
 					/>
 
-					<Text>Default Place: {extractSetting.defaultPlaceUid}</Text>
-					<Text>Default Category: {extractSetting.defaultCategoryId}</Text>
-					<Text>Default Genre: {extractSetting.defaultGenreId}</Text>
+					<PaymentPlaceSelect
+						selectedPlaceUid={extractSetting.defaultPlaceUid}
+						onSelect={(place) => {
+							setExtractSetting({
+								...extractSetting,
+								defaultPlaceUid: place.placeUid,
+							});
+						}}
+						label="デフォルトのお店"
+					/>
+
+					<AccountSelect
+						selectedAccountId={extractSetting.defaultAccountId}
+						onSelect={(account) => {
+							setExtractSetting({
+								...extractSetting,
+								defaultAccountId: account.accountId,
+							});
+						}}
+						label="デフォルトの出金元"
+					/>
+
+					<CategorySelect
+						selectedGenreId={extractSetting.defaultGenreId}
+						onSelect={(categoryId, genreId) => {
+							setExtractSetting({
+								...extractSetting,
+								defaultCategoryId: categoryId,
+								defaultGenreId: genreId,
+							});
+						}}
+						label="デフォルトのカテゴリ"
+					/>
 				</Stack>
 			</Accordion.Panel>
 		</Accordion.Item>

@@ -21,11 +21,13 @@ import { fetchZaimMoney } from "~lib/zaimApi/fetchMoney";
 type PaymentPlaceSelectProps = {
 	selectedPlaceUid: string | undefined;
 	onSelect: (value: ZaimPlace) => void;
+	label?: string | undefined;
 };
 
 export const PaymentPlaceSelect: FC<PaymentPlaceSelectProps> = ({
 	selectedPlaceUid,
 	onSelect,
+	label,
 }) => {
 	// TODO 最近登録したお店は拡張側で持つ様にする？
 
@@ -115,6 +117,7 @@ export const PaymentPlaceSelect: FC<PaymentPlaceSelectProps> = ({
 					rightSection={<Combobox.Chevron />}
 					onClick={() => combobox.toggleDropdown()}
 					rightSectionPointerEvents="none"
+					label={label}
 				>
 					{selectedOption ? (
 						<Text span lineClamp={1} size="xs">

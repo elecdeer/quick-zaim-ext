@@ -15,6 +15,7 @@ import { recentlyGenreAtom } from "./paymentFormAtoms";
 export type CategorySelectProps = {
 	selectedGenreId: string | undefined;
 	onSelect: (categoryId: string, genreId: string) => void;
+	label?: string | undefined;
 };
 
 const RECENTLY_USED_GENRE_LABEL = "最近選択したカテゴリ";
@@ -23,6 +24,7 @@ const RECENTLY_USED_GENRE_NUM = 5;
 export const CategorySelect: FC<CategorySelectProps> = ({
 	selectedGenreId,
 	onSelect,
+	label,
 }) => {
 	//TODO: 2行になってはみ出るやつの対処
 
@@ -162,6 +164,7 @@ export const CategorySelect: FC<CategorySelectProps> = ({
 					rightSectionPointerEvents="none"
 					rightSection={<Combobox.Chevron />}
 					onClick={() => combobox.toggleDropdown()}
+					label={label}
 				>
 					{selectedOptionLabel || (
 						<Input.Placeholder>カテゴリ</Input.Placeholder>

@@ -5,6 +5,7 @@ export type PageExtractSettingItem = {
 	defaultPlaceUid: string | undefined;
 	defaultCategoryId: string | undefined;
 	defaultGenreId: string | undefined;
+	defaultAccountId: string | undefined;
 };
 
 const defaultPageExtractSettingItem: Readonly<PageExtractSettingItem> = {
@@ -12,6 +13,7 @@ const defaultPageExtractSettingItem: Readonly<PageExtractSettingItem> = {
 	defaultPlaceUid: undefined,
 	defaultCategoryId: undefined,
 	defaultGenreId: undefined,
+	defaultAccountId: undefined,
 };
 
 const createPageSettingAtom = ({
