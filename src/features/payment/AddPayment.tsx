@@ -18,10 +18,12 @@ import {
 	IconSquareMinusFilled,
 	IconTextScan2,
 } from "@tabler/icons-react";
-import { useAtomValue } from "jotai";
+import { atom, useAtomValue } from "jotai";
 import { loadable } from "jotai/utils";
+import { minimatch } from "minimatch";
 import { type FC, useCallback, useMemo, useReducer, useState } from "react";
 import { oauthAccessTokenAtom } from "~features/authorize/authorizeAtoms";
+import { extractSettingAtoms } from "~features/extract/extractSettingStore";
 import type { ExtractedOrder } from "~features/extract/extractTypes";
 import { type PaymentRecords, postPayments } from "~features/payment/payment";
 import {
@@ -29,6 +31,8 @@ import {
 	initialPaymentRecordFields,
 	paymentRecordFieldsReducer,
 } from "~features/payment/paymentRecordFieldsState";
+import { getCurrentTabUrl } from "~lib/runtime";
+import { jotaiStore } from "~lib/store";
 import { Unauthorized } from "~popup/components/Unauthorized";
 import { AccountSelect, type ZaimAccount } from "./form/AccountSelect";
 import { CategorySelect } from "./form/CategorySelect";
@@ -43,6 +47,9 @@ export const AddPayment: FC = () => {
 
 	return <PopupMainAuthorized />;
 };
+
+// Popupを開いた時点でのタブ
+const currentTabAtom = atom(() => getCurrentTabUrl());
 
 const PopupMainAuthorized: FC = () => {
 	// TODO: 入力項目はstorageに保存するようにする？
@@ -85,7 +92,7 @@ const PopupMainAuthorized: FC = () => {
 		if (selectedAccountId === undefined) return undefined;
 
 		return {
-			...createPaymentRequestFromFields(paymentRecords),
+			...createPaymentRequestFromFields(paymentRecords, memoText),
 			date: selectedDate,
 			placeUid: selectedPaymentPlaceUid,
 			fromAccountId: Number(selectedAccountId),
@@ -95,6 +102,7 @@ const PopupMainAuthorized: FC = () => {
 		selectedAccountId,
 		selectedDate,
 		selectedPaymentPlaceUid,
+		memoText,
 	]);
 
 	const isRegisterButtonActive =
@@ -122,27 +130,50 @@ const PopupMainAuthorized: FC = () => {
 			});
 	}, [paymentRequest]);
 
-	const handleClickAutoInput = useCallback(() => {
-		console.log("extract from page");
-		void sendToContentScript({ name: "extract" }).then(
-			(res: ExtractedOrder) => {
-				console.log("extracted", res);
-				setSelectedDate(new Date(res.orderDate));
-				setMemoText(res.orderNumber);
+	const currentUrl = useAtomValue(currentTabAtom);
+	console.log("currentUrl", currentUrl);
+	const extractPage = useMemo(() => {
+		if (currentUrl === undefined) return undefined;
+		return extractSettingAtoms.find((item) => {
+			return minimatch(currentUrl, item.url);
+		});
+	}, [currentUrl]);
+	console.log(extractPage);
 
-				// TODO: 上書きの確認？
-				dispatchPaymentRecords({
-					type: "bulkSet",
-					items: res.products.map((item) => ({
-						itemName: item.productName,
-						categoryAndGenre: undefined,
-						price: item.priceYen,
-						quantity: item.quantity,
-					})),
-				});
-			},
-		);
-	}, []);
+	const handleClickAutoInput = useCallback(async () => {
+		if (extractPage === undefined) return;
+
+		console.log("extract from page");
+
+		const setting = await jotaiStore.get(extractPage.atom);
+		console.log("setting", setting);
+
+		// if(!setting.enabled) return;
+
+		const res: ExtractedOrder = await sendToContentScript({ name: "extract" });
+
+		console.log("extracted", res);
+		setSelectedDate(new Date(res.orderDate));
+		setMemoText(res.orderNumber);
+
+		// TODO: 上書きの確認？
+		dispatchPaymentRecords({
+			type: "bulkSet",
+			items: res.products.map((item) => ({
+				itemName: item.productName,
+				categoryAndGenre: setting.defaultGenreAndCategoryId,
+				price: item.priceYen,
+				quantity: item.quantity,
+			})),
+		});
+
+		if (setting.defaultAccountId !== undefined) {
+			setSelectedAccountId(setting.defaultAccountId);
+		}
+		if (setting.defaultPlaceUid !== undefined) {
+			setSelectedPaymentPlaceUid(setting.defaultPlaceUid);
+		}
+	}, [extractPage]);
 
 	return (
 		<Stack>
@@ -278,6 +309,7 @@ const PopupMainAuthorized: FC = () => {
 						variant="light"
 						onClick={handleClickAutoInput}
 						leftSection={<IconBarcode size={20} />}
+						disabled={extractPage === undefined}
 					>
 						ページから自動入力
 					</Button>

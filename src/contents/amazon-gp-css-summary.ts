@@ -1,9 +1,10 @@
+import { minimatch } from "minimatch";
 import type { PlasmoCSConfig } from "plasmo";
 import { extractDeliveryOrder } from "~features/extract/pages/amazon/extractDeliveryOrder";
 import { addMessageListener } from "~lib/runtime";
 
 export const config: PlasmoCSConfig = {
-	matches: ["https://www.amazon.co.jp/gp/css/summary/print.html*"],
+	matches: ["https://www.amazon.co.jp/gp/css/summary/print.html/*"],
 };
 
 addMessageListener((message, _, sendResponse) => {
@@ -12,3 +13,5 @@ addMessageListener((message, _, sendResponse) => {
 	const extractedOrder = extractDeliveryOrder(window.document);
 	sendResponse(extractedOrder);
 });
+
+console.log("amazon-gp-css-summary.ts loaded");

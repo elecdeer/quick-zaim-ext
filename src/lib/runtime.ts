@@ -35,6 +35,15 @@ export const openExtensionPage = async (path: string): Promise<void> => {
 };
 
 /**
+ * 現在開いているのURLを取得する
+ * @returns 現在のタブのURL
+ */
+export const getCurrentTabUrl = async (): Promise<string | undefined> => {
+	const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+	return tabs[0]?.url;
+};
+
+/**
  * sendToContentScriptによって送信されたメッセージへのリスナーを追加する
  * @param handler
  */

@@ -122,6 +122,7 @@ export const initialPaymentRecordFields: PaymentRecordFieldItem[] = [
 
 export const createPaymentRequestFromFields = (
 	fields: PaymentRecordFieldItem[],
+	comment: string,
 ): Pick<PaymentRecords, "items"> => {
 	return {
 		items: fields
@@ -138,6 +139,7 @@ export const createPaymentRequestFromFields = (
 				genreId: Number(record.categoryAndGenre.genreId),
 				pricePerItem: record.price,
 				quantity: record.quantity,
+				comment,
 			})),
 	};
 };

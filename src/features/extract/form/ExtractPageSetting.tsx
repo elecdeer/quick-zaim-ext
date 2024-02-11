@@ -62,12 +62,14 @@ export const ExtractPageSetting: FC<ExtractPageSettingProps> = ({
 					/>
 
 					<CategorySelect
-						selectedGenreId={extractSetting.defaultGenreId}
+						selectedGenreId={extractSetting.defaultGenreAndCategoryId?.genreId}
 						onSelect={(categoryId, genreId) => {
 							setExtractSetting({
 								...extractSetting,
-								defaultCategoryId: categoryId,
-								defaultGenreId: genreId,
+								defaultGenreAndCategoryId: {
+									categoryId,
+									genreId,
+								},
 							});
 						}}
 						label="デフォルトのカテゴリ"

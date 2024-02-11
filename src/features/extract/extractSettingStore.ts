@@ -3,16 +3,16 @@ import { atomWithExtensionStorage } from "~lib/store";
 export type PageExtractSettingItem = {
 	enabled: boolean;
 	defaultPlaceUid: string | undefined;
-	defaultCategoryId: string | undefined;
-	defaultGenreId: string | undefined;
+	defaultGenreAndCategoryId:
+		| { categoryId: string; genreId: string }
+		| undefined;
 	defaultAccountId: string | undefined;
 };
 
 const defaultPageExtractSettingItem: Readonly<PageExtractSettingItem> = {
 	enabled: true,
 	defaultPlaceUid: undefined,
-	defaultCategoryId: undefined,
-	defaultGenreId: undefined,
+	defaultGenreAndCategoryId: undefined,
 	defaultAccountId: undefined,
 };
 
@@ -39,12 +39,12 @@ const createPageSettingAtom = ({
 export const extractSettingAtoms = [
 	createPageSettingAtom({
 		key: "amazon-gp-css-summary",
-		url: "https://www.amazon.co.jp/gp/css/summary/print.html*",
+		url: "https://www.amazon.co.jp/gp/css/summary/print.html/*",
 		description: "Amazon.co.jp注文履歴の領収書/購入明細書",
 	}),
 	createPageSettingAtom({
 		key: "amazon-gp-digital",
-		url: "https://www.amazon.co.jp/gp/digital/your-account/order-summary.html*",
+		url: "https://www.amazon.co.jp/gp/digital/your-account/order-summary.html/*",
 		description: "Amazon.co.jpデジタル注文履歴の領収書/購入明細書",
 	}),
 ];
