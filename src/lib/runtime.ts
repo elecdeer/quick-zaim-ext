@@ -5,14 +5,14 @@ export const OptionsPageUrl = "options.html";
  * @returns 拡張機能のID
  */
 export const getExtensionId = (): string => {
-  return chrome.runtime.id;
+	return chrome.runtime.id;
 };
 
 /**
  * 拡張機能のURLを取得する
  */
 export const getExtensionUrl = (path: string): string => {
-  return chrome.runtime.getURL(path);
+	return chrome.runtime.getURL(path);
 };
 
 /**
@@ -20,18 +20,18 @@ export const getExtensionUrl = (path: string): string => {
  * 既に開いている場合はそのタブをアクティブにする
  */
 export const openExtensionPage = async (path: string): Promise<void> => {
-  const extensionUrl = getExtensionUrl(path);
+	const extensionUrl = getExtensionUrl(path);
 
-  const tabs = await chrome.tabs.query({
-    url: extensionUrl,
-    currentWindow: true,
-  });
+	const tabs = await chrome.tabs.query({
+		url: extensionUrl,
+		currentWindow: true,
+	});
 
-  if (tabs[0]?.id !== undefined) {
-    await chrome.tabs.update(tabs[0].id, { active: true, highlighted: true });
-  } else {
-    await chrome.tabs.create({ url: extensionUrl });
-  }
+	if (tabs[0]?.id !== undefined) {
+		await chrome.tabs.update(tabs[0].id, { active: true, highlighted: true });
+	} else {
+		await chrome.tabs.create({ url: extensionUrl });
+	}
 };
 
 /**
@@ -39,11 +39,11 @@ export const openExtensionPage = async (path: string): Promise<void> => {
  * @param handler
  */
 export const addMessageListener = (
-  handler: (
-    message: { name: string },
-    sender: chrome.runtime.MessageSender,
-    sendResponse: (response: unknown) => void
-  ) => void
+	handler: (
+		message: { name: string },
+		sender: chrome.runtime.MessageSender,
+		sendResponse: (response: unknown) => void,
+	) => void,
 ): void => {
-  chrome.runtime.onMessage.addListener(handler);
+	chrome.runtime.onMessage.addListener(handler);
 };

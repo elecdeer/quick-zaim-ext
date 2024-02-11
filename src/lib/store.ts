@@ -12,59 +12,59 @@ export const extensionStorage = new Storage();
 export const extensionSecureStorage = new SecureStorage();
 
 const waitSecureStorageReady = extensionSecureStorage.setPassword(
-  getExtensionId()
+	getExtensionId(),
 );
 
 export const atomWithExtensionStorage = <T>(key: string, initialValue: T) => {
-  return atomWithStorage(
-    key,
-    initialValue,
-    createJotaiStorageAdapter(extensionStorage),
-    { getOnInit: true }
-  );
+	return atomWithStorage(
+		key,
+		initialValue,
+		createJotaiStorageAdapter(extensionStorage),
+		{ getOnInit: true },
+	);
 };
 
 export const atomWithExtensionSecureStorage = <T>(
-  key: string,
-  initialValue: T
+	key: string,
+	initialValue: T,
 ) => {
-  return atomWithStorage(
-    key,
-    initialValue,
-    createJotaiStorageAdapter(extensionSecureStorage),
-    { getOnInit: true }
-  );
+	return atomWithStorage(
+		key,
+		initialValue,
+		createJotaiStorageAdapter(extensionSecureStorage),
+		{ getOnInit: true },
+	);
 };
 
 export const createJotaiStorageAdapter = <T>(
-  storage: BaseStorage
+	storage: BaseStorage,
 ): AsyncStorage<T> => {
-  return {
-    getItem: async (key: string, initialValue: T) => {
-      await waitSecureStorageReady;
+	return {
+		getItem: async (key: string, initialValue: T) => {
+			await waitSecureStorageReady;
 
-      const value = await storage.get<T>(key);
-      return value ?? initialValue;
-    },
-    setItem: async (key: string, newValue: T) => {
-      await waitSecureStorageReady;
-      await storage.set(key, newValue);
-    },
-    removeItem: async (key: string) => {
-      await waitSecureStorageReady;
-      await storage.remove(key);
-    },
-    subscribe: (key: string, callback: (value: T) => void, initialValue: T) => {
-      const callbackMap: StorageCallbackMap = {
-        [key]: (value) => callback(value.newValue ?? initialValue),
-      };
+			const value = await storage.get<T>(key);
+			return value ?? initialValue;
+		},
+		setItem: async (key: string, newValue: T) => {
+			await waitSecureStorageReady;
+			await storage.set(key, newValue);
+		},
+		removeItem: async (key: string) => {
+			await waitSecureStorageReady;
+			await storage.remove(key);
+		},
+		subscribe: (key: string, callback: (value: T) => void, initialValue: T) => {
+			const callbackMap: StorageCallbackMap = {
+				[key]: (value) => callback(value.newValue ?? initialValue),
+			};
 
-      storage.watch(callbackMap);
-      return () => {
-        storage.unwatch(callbackMap);
-      };
-    },
-  };
+			storage.watch(callbackMap);
+			return () => {
+				storage.unwatch(callbackMap);
+			};
+		},
+	};
 };
 
 export const keyPrefix = "quick-zaim-ext";

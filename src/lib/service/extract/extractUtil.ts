@@ -3,6 +3,6 @@
  * @param priceStr
  */
 export const parsePriceYen = (priceStr: string): number => {
-  const price = priceStr.replace("￥", "").replace(",", "");
-  return parseInt(price, 10);
+	const price = priceStr.replace("￥", "").replace(",", "");
+	return parseInt(price, 10);
 };
