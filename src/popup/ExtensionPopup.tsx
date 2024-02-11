@@ -1,10 +1,19 @@
 import { AppShell, Loader } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
+import { useAtom } from "jotai";
 import { type FC, Suspense } from "react";
 import { AddPayment } from "~features/addPayment/AddPayment";
+import { extractSettingStore } from "~features/extract/extractSettingStore";
+import { jotaiStore } from "~lib/store";
 import { PopupHeader } from "./components/PopupHeader";
 
 export const ExtensionPopup: FC = () => {
+	console.log(
+		Promise.resolve(jotaiStore.get(extractSettingStore)).then(console.log),
+	);
+	// const [extractSetting] = useAtom(extractSettingStore);
+	// console
+
 	return (
 		<AppShell
 			mih={500}

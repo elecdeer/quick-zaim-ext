@@ -7,7 +7,7 @@ import {
 	Title,
 } from "@mantine/core";
 import "@mantine/core/styles.css";
-import React, { Suspense, type FC, useCallback } from "react";
+import React, { Suspense, useCallback, type FC } from "react";
 
 import { useHash } from "@mantine/hooks";
 import { Notifications } from "@mantine/notifications";
@@ -19,7 +19,10 @@ import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
+import { Provider as JotaiProvider } from "jotai";
 import { AuthorizeSetting } from "~features/authorizeSetting/AuthorizeSetting";
+import { ExtractSetting } from "~features/extract/ExtractSetting";
+import { jotaiStore } from "~lib/store";
 
 dayjs.extend(customParseFormat);
 
@@ -27,11 +30,13 @@ const queryClient = new QueryClient();
 
 export default function Index() {
 	return (
-		<MantineProvider theme={appTheme}>
-			<QueryClientProvider client={queryClient}>
-				<Options />
-			</QueryClientProvider>
-		</MantineProvider>
+		<JotaiProvider store={jotaiStore}>
+			<MantineProvider theme={appTheme}>
+				<QueryClientProvider client={queryClient}>
+					<Options />
+				</QueryClientProvider>
+			</MantineProvider>
+		</JotaiProvider>
 	);
 }
 
@@ -63,6 +68,7 @@ export const Options: FC = () => {
 					<Tabs.List>
 						<Tabs.Tab value={"#authorize"}>Authorize</Tabs.Tab>
 						<Tabs.Tab value={"#payment"}>Payment</Tabs.Tab>
+						<Tabs.Tab value={"#extract"}>Extract</Tabs.Tab>
 					</Tabs.List>
 				</AppShell.Header>
 				<AppShell.Main mih="initial">
@@ -71,11 +77,19 @@ export const Options: FC = () => {
 							<AuthorizeSetting />
 						</Suspense>
 					</Tabs.Panel>
+
 					<Tabs.Panel value={"#payment"}>
 						<Suspense fallback={<Loader color="green" />}>
 							<AddPayment />
 						</Suspense>
 					</Tabs.Panel>
+
+					<Tabs.Panel value={"#extract"}>
+						<Suspense fallback={<Loader color="green" />}>
+							<ExtractSetting />
+						</Suspense>
+					</Tabs.Panel>
+
 					<Notifications position="bottom-right" m={16} />
 				</AppShell.Main>
 			</Tabs>

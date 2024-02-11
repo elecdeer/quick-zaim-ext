@@ -2,15 +2,57 @@ import type { BaseStorage, StorageCallbackMap } from "@plasmohq/storage";
 import { Storage } from "@plasmohq/storage";
 import { useStorage } from "@plasmohq/storage/hook";
 import { SecureStorage } from "@plasmohq/storage/secure";
+import { createStore as createJotaiStore } from "jotai";
+import { atomWithStorage } from "jotai/utils";
+import type {
+  AsyncStorage,
+  SyncStorage,
+} from "jotai/vanilla/utils/atomWithStorage";
 import type { AccessTokenPair } from "./oauth";
 import { getExtensionId } from "./runtime";
 import { createLoadable } from "./suspenseUtil";
 
-const storage = new Storage();
-const secureStorage = new SecureStorage();
+export const jotaiStore = createJotaiStore();
 
-const waitSecureStorageReady = secureStorage.setPassword(getExtensionId());
+export const extensionStorage = new Storage();
+export const extensionSecureStorage = new SecureStorage();
+
+const waitSecureStorageReady = extensionSecureStorage.setPassword(
+  getExtensionId()
+);
 const waitSecureStorageReadyLoadable = createLoadable(waitSecureStorageReady);
+
+export const createJotaiStorageAdapter = <T>(
+  storage: BaseStorage
+): AsyncStorage<T> => {
+  return {
+    getItem: async (key: string, initialValue: T) => {
+      await waitSecureStorageReady;
+
+      const value = await storage.get<T>(key);
+      console.log("getItem", key, value);
+      return value ?? initialValue;
+    },
+    setItem: async (key: string, newValue: T) => {
+      await waitSecureStorageReady;
+      await storage.set(key, newValue);
+    },
+    removeItem: async (key: string) => {
+      await waitSecureStorageReady;
+      await storage.remove(key);
+    },
+    subscribe: (key: string, callback: (value: T) => void, initialValue: T) => {
+      const callbackMap: StorageCallbackMap = {
+        [key]: (value) => callback(value.newValue ?? initialValue),
+      };
+
+      storage.watch(callbackMap);
+      return () => {
+        storage.unwatch(callbackMap);
+      };
+    },
+  };
+};
 
 export type Store<T> = {
   get: () => Promise<T>;
@@ -87,31 +129,31 @@ export const createStore = <T>(
 const keyPrefix = "quick-zaim-ext";
 
 export const oauthConsumerKeyStore = createStore<string | undefined>(
-  secureStorage,
+  extensionSecureStorage,
   `${keyPrefix}-oauth-consumer-key`,
   undefined
 );
 
 export const oauthConsumerSecretStore = createStore<string | undefined>(
-  secureStorage,
+  extensionSecureStorage,
   `${keyPrefix}-oauth-consumer-secret`,
   undefined
 );
 
 export const oauthAccessTokenStore = createStore<AccessTokenPair | undefined>(
-  secureStorage,
+  extensionSecureStorage,
   `${keyPrefix}-oauth-access-token`,
   undefined
 );
 
 export const recentlyGenreStore = createStore<string[]>(
-  storage,
+  extensionStorage,
   `${keyPrefix}-recently-select-genre`,
   []
 );
 
 export const paymentPlacesStore = createStore<string[]>(
-  storage,
+  extensionStorage,
   `${keyPrefix}-payment-places`,
   []
 );
