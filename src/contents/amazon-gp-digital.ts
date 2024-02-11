@@ -1,6 +1,6 @@
 import type { PlasmoCSConfig } from "plasmo";
+import { extractDigitalOrder } from "~features/extract/pages/amazon/extractDigitalOrder";
 import { addMessageListener } from "~lib/runtime";
-import { extractDigitalOrder } from "~lib/service/extract/amazon/extractDigitalOrder";
 
 export const config: PlasmoCSConfig = {
 	matches: [

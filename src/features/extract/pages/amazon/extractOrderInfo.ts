@@ -1,4 +1,4 @@
-import { ExtractError } from "../extractError";
+import { ExtractError } from "../../extractError";
 
 /**
  * 注文番号を抽出する

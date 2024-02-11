@@ -22,13 +22,13 @@ import { useAtomValue } from "jotai";
 import { loadable } from "jotai/utils";
 import { type FC, useCallback, useMemo, useReducer, useState } from "react";
 import { oauthAccessTokenAtom } from "~features/authorize/authorizeAtoms";
-import type { ExtractedOrder } from "~lib/service/extract/extractTypes";
-import { type PaymentRecords, postPayments } from "~lib/service/payment";
+import type { ExtractedOrder } from "~features/extract/extractTypes";
+import { type PaymentRecords, postPayments } from "~features/payment/payment";
 import {
 	createPaymentRequestFromFields,
 	initialPaymentRecordFields,
 	paymentRecordFieldsReducer,
-} from "~lib/service/paymentRecordFieldsState";
+} from "~features/payment/paymentRecordFieldsState";
 import { Unauthorized } from "~popup/components/Unauthorized";
 import { AccountSelect, type ZaimAccount } from "./form/AccountSelect";
 import { CategorySelect } from "./form/CategorySelect";

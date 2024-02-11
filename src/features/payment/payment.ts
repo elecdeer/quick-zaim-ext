@@ -1,9 +1,9 @@
-import { formatToYYYYMMDD } from "../dateUtil";
+import { formatToYYYYMMDD } from "../../lib/dateUtil";
 import {
 	type ZaimPaymentReq,
 	type ZaimPaymentRes,
 	postZaimPayment,
-} from "../zaimApi/postPayment";
+} from "../../lib/zaimApi/postPayment";
 
 export type PaymentRecords = {
 	items: {

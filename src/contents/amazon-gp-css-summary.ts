@@ -1,6 +1,6 @@
 import type { PlasmoCSConfig } from "plasmo";
+import { extractDeliveryOrder } from "~features/extract/pages/amazon/extractDeliveryOrder";
 import { addMessageListener } from "~lib/runtime";
-import { extractDeliveryOrder } from "~lib/service/extract/amazon/extractDeliveryOrder";
 
 export const config: PlasmoCSConfig = {
 	matches: ["https://www.amazon.co.jp/gp/css/summary/print.html*"],
