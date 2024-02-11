@@ -20,6 +20,7 @@
 		"@tanstack/react-query": "^5.18.1",
 		"dayjs": "^1.11.10",
 		"immer": "^10.0.3",
+		"jotai": "^2.6.4",
 		"ky": "^1.2.0",
 		"plasmo": "^0.84.2",
 		"react": "18.2.0",
@@ -38,7 +39,11 @@
 		"typescript": "5.3.3"
 	},
 	"manifest": {
-		"permissions": ["tabs"],
-		"host_permissions": ["https://*/*"]
+		"permissions": [
+			"tabs"
+		],
+		"host_permissions": [
+			"https://*/*"
+		]
 	}
 }
