@@ -11,7 +11,6 @@ import {
 import { DateInput } from "@mantine/dates";
 import { showNotification } from "@mantine/notifications";
 import { sendToContentScript } from "@plasmohq/messaging";
-import { useStorage } from "@plasmohq/storage/hook";
 import {
 	IconBarcode,
 	IconCalendar,
@@ -19,8 +18,10 @@ import {
 	IconSquareMinusFilled,
 	IconTextScan2,
 } from "@tabler/icons-react";
+import { useAtomValue } from "jotai";
+import { loadable } from "jotai/utils";
 import { type FC, useCallback, useMemo, useState } from "react";
-import type { AccessTokenPair } from "~lib/oauth";
+import { oauthAccessTokenAtom } from "~features/authorize/authorizeAtoms";
 import type { ExtractedOrder } from "~lib/service/extract/extractTypes";
 import { type PaymentRecords, postPayments } from "~lib/service/payment";
 import {
@@ -29,23 +30,22 @@ import {
 	initialPaymentRecordFields,
 	paymentRecordFieldsReducer,
 } from "~lib/service/paymentRecordFieldsState";
-import { oauthAccessTokenStore } from "~lib/store";
 import { Unauthorized } from "~popup/components/Unauthorized";
 import { AccountSelect, type ZaimAccount } from "./form/AccountSelect";
 import { CategorySelect } from "./form/CategorySelect";
 import { PaymentPlaceSelect, type ZaimPlace } from "./form/PaymentPlaceSelect";
 
+const oauthAccessTokenLoadableAtom = loadable(oauthAccessTokenAtom);
+
 export const AddPayment: FC = () => {
-	const [accessToken] = useStorage<AccessTokenPair | undefined>(
-		oauthAccessTokenStore.hookAccessor(true),
-	);
+	const oauthAccessToken = useAtomValue(oauthAccessTokenLoadableAtom);
 
-	if (accessToken === undefined) return <Unauthorized />;
+	if (oauthAccessToken.state !== "hasData") return <Unauthorized />;
 
-	return <AddPaymentAuthorized />;
+	return <PopupMainAuthorized />;
 };
 
-const AddPaymentAuthorized: FC = () => {
+const PopupMainAuthorized: FC = () => {
 	// TODO: 入力項目はstorageに保存するようにする？
 	// TODO: "ACT"の部分をハンバーガーアイコンにして、メニューをいくつか用意する
 	// 	今歯車アイコンになっている所をメニューにしても良いな

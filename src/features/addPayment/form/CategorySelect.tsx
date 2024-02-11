@@ -5,12 +5,12 @@ import {
 	ScrollArea,
 	useCombobox,
 } from "@mantine/core";
-import { useStorage } from "@plasmohq/storage/hook";
 import { useQuery } from "@tanstack/react-query";
+import { useAtom } from "jotai";
 import { type FC, useCallback, useMemo, useState } from "react";
-import { recentlyGenreStore } from "~lib/store";
 import { fetchZaimCategory } from "~lib/zaimApi/fetchCategory";
 import { fetchZaimGenre } from "~lib/zaimApi/fetchGenre";
+import { recentlyGenreAtom } from "./paymentFormAtoms";
 
 export type CategorySelectProps = {
 	selectedGenreId: string | undefined;
@@ -260,9 +260,8 @@ const fetchActivePaymentGenres = async (): Promise<ZaimGenre[]> => {
 };
 
 const useRecentlyUsedGenreIds = () => {
-	const [recentlyUsedGenreIds = [], setRecentlyUsedGenreIds] = useStorage<
-		string[]
-	>(recentlyGenreStore.hookAccessor(), []);
+	const [recentlyUsedGenreIds, setRecentlyUsedGenreIds] =
+		useAtom(recentlyGenreAtom);
 
 	const addRecentlyUsedGenre = (genreId: string) => {
 		const newRecentlyUsedGenreIds = [

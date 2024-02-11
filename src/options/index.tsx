@@ -20,7 +20,7 @@ import "@mantine/dates/styles.css";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import { Provider as JotaiProvider } from "jotai";
-import { AuthorizeSetting } from "~features/authorizeSetting/AuthorizeSetting";
+import { AuthorizeSetting } from "~features/authorize/AuthorizeSetting";
 import { ExtractSetting } from "~features/extract/ExtractSetting";
 import { jotaiStore } from "~lib/store";
 

@@ -1,19 +1,20 @@
 import { Button, Modal, PasswordInput, Stack } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
-import { useStorage } from "@plasmohq/storage/hook";
 import { IconExternalLink } from "@tabler/icons-react";
+import { useAtom } from "jotai";
 import { type FC, useCallback, useRef, useState } from "react";
-import { createOAuthApplicant } from "~lib/oauth";
-import {
-	oauthAccessTokenStore,
-	oauthConsumerKeyStore,
-	oauthConsumerSecretStore,
-} from "~lib/store";
+import { type AccessTokenPair, createOAuthApplicant } from "~lib/oauth";
+
 import { usePromiseResolvers } from "~lib/usePromiseResolvers";
 import { zaimApi } from "~lib/zaimApi/api";
 import { fetchZaimAccount } from "~lib/zaimApi/fetchAccount";
 import { postZaimPayment } from "~lib/zaimApi/postPayment";
+import {
+	oauthAccessTokenAtom,
+	oauthConsumerKeyAtom,
+	oauthConsumerSecretAtom,
+} from "./authorizeAtoms";
 
 const zaimOAuthEndpoints = {
 	accessTokenEndpoint: {
@@ -31,16 +32,9 @@ const zaimOAuthEndpoints = {
 
 export const AuthorizeSetting: FC = () => {
 	// ready前はsuspendする
-	const [consumerKey, setConsumerKey] = useStorage(
-		oauthConsumerKeyStore.hookAccessor(true),
-	);
-	const [consumerSecret, setConsumerSecret] = useStorage(
-		oauthConsumerSecretStore.hookAccessor(true),
-	);
-
-	const [accessToken, setAccessToken] = useStorage(
-		oauthAccessTokenStore.hookAccessor(true),
-	);
+	const [consumerKey, setConsumerKey] = useAtom(oauthConsumerKeyAtom);
+	const [consumerSecret, setConsumerSecret] = useAtom(oauthConsumerSecretAtom);
+	const [accessToken, setAccessToken] = useAtom(oauthAccessTokenAtom);
 
 	const { openAuthorizeModal, modalElement } = useVerifyProcess({
 		consumerKey,
@@ -144,18 +138,20 @@ const useVerifyProcess = ({
 		wait: waitAuthorize,
 		done: doneAuthorize,
 		abort: abortAuthorize,
-	} = usePromiseResolvers();
+	} = usePromiseResolvers<AccessTokenPair>();
 
 	const { wait: waitVerifyInput, done: doneVerifyInput } =
 		usePromiseResolvers<string>();
 
-	const openAuthorizeModal = useCallback(() => {
-		if (consumerKey === "" || consumerSecret === "") return;
+	const openAuthorizeModal = useCallback(async (): Promise<
+		AccessTokenPair | undefined
+	> => {
+		if (consumerKey === "" || consumerSecret === "") return undefined;
 
 		setAuthorizeStarted(false);
 		setVerifier("");
 		open();
-		return waitAuthorize();
+		return await waitAuthorize();
 	}, [open, consumerKey, consumerSecret, waitAuthorize]);
 
 	const verifyCodeInputRef = useRef<HTMLInputElement>(null);

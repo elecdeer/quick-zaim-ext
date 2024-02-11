@@ -1,10 +1,11 @@
 import ky from "ky";
-import { createOAuthSigner } from "~lib/oauth";
 import {
-  oauthAccessTokenStore,
-  oauthConsumerKeyStore,
-  oauthConsumerSecretStore,
-} from "~lib/store";
+  oauthAccessTokenAtom,
+  oauthConsumerKeyAtom,
+  oauthConsumerSecretAtom,
+} from "~features/authorize/authorizeAtoms";
+import { createOAuthSigner } from "~lib/oauth";
+import { jotaiStore } from "~lib/store";
 
 export const zaimApi = ky.extend({
   prefixUrl: "https://api.zaim.net/v2",
@@ -12,9 +13,9 @@ export const zaimApi = ky.extend({
     beforeRequest: [
       async (request) => {
         const [consumerKey, consumerSecret, accessToken] = await Promise.all([
-          oauthConsumerKeyStore.get(),
-          oauthConsumerSecretStore.get(),
-          oauthAccessTokenStore.get(),
+          jotaiStore.get(oauthConsumerKeyAtom),
+          jotaiStore.get(oauthConsumerSecretAtom),
+          jotaiStore.get(oauthAccessTokenAtom),
         ]);
 
         if (!consumerKey || !consumerSecret || !accessToken) {
@@ -32,9 +33,9 @@ export const zaimApi = ky.extend({
       },
     ],
     afterResponse: [
-      async (request, options, response) => {
+      (request, options, response) => {
         if (response.status === 401) {
-          await oauthAccessTokenStore.remove();
+          jotaiStore.set(oauthAccessTokenAtom, undefined);
           throw new Error("認証情報が無効です。");
         }
       },
