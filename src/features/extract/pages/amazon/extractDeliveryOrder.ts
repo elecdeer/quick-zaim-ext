@@ -3,6 +3,9 @@ import type { ExtractedOrder, ExtractedProduct } from "../../extractTypes";
 import { parsePriceYen } from "../../extractUtil";
 import { extractOrderDate, extractOrderNumber } from "./extractOrderInfo";
 
+//TODO: ギフト券に対応する
+//TODO: 支払方法を紐付けを追加し、自動で入力するようにする
+
 export const extractDeliveryOrder = (document: Document): ExtractedOrder => {
 	const products = extractProducts(document);
 	const expenses = extractExpenses(document);

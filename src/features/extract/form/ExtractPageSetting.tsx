@@ -1,9 +1,9 @@
 import { Accordion, Flex, Input, Stack, Switch, Text } from "@mantine/core";
 import { useAtom } from "jotai";
 import type { FC } from "react";
-import { AccountSelect } from "~features/payment/form/AccountSelect";
-import { CategorySelect } from "~features/payment/form/CategorySelect";
-import { PaymentPlaceSelect } from "~features/payment/form/PaymentPlaceSelect";
+import { AccountSelect } from "~features/payment/form/account/AccountSelect";
+import { CategorySelect } from "~features/payment/form/category/CategorySelect";
+import { PaymentPlaceSelect } from "~features/payment/form/paymentPlace/PaymentPlaceSelect";
 import type { ExtractSettingAtom } from "../extractSettingStore";
 
 export type ExtractPageSettingProps = {

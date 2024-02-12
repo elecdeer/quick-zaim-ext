@@ -34,16 +34,25 @@ import {
 import { getCurrentTabUrl } from "~lib/runtime";
 import { jotaiStore } from "~lib/store";
 import { Unauthorized } from "~popup/components/Unauthorized";
-import { AccountSelect, type ZaimAccount } from "./form/AccountSelect";
-import { CategorySelect } from "./form/CategorySelect";
-import { PaymentPlaceSelect, type ZaimPlace } from "./form/PaymentPlaceSelect";
+
+import { AccountSelect } from "./form/account/AccountSelect";
+import { type ZaimAccount } from "./form/account/useAccountOptions";
+import { CategorySelect } from "./form/category/CategorySelect";
+import { PaymentPlaceSelect } from "./form/paymentPlace/PaymentPlaceSelect";
+import type { ZaimPlace } from "./form/paymentPlace/usePaymentPlaceOptions";
 
 const oauthAccessTokenLoadableAtom = loadable(oauthAccessTokenAtom);
 
 export const AddPayment: FC = () => {
 	const oauthAccessToken = useAtomValue(oauthAccessTokenLoadableAtom);
+	console.log(oauthAccessToken);
 
-	if (oauthAccessToken.state !== "hasData") return <Unauthorized />;
+	if (
+		oauthAccessToken.state !== "hasData" ||
+		oauthAccessToken.data === undefined
+	) {
+		return <Unauthorized />;
+	}
 
 	return <PopupMainAuthorized />;
 };
@@ -131,14 +140,12 @@ const PopupMainAuthorized: FC = () => {
 	}, [paymentRequest]);
 
 	const currentUrl = useAtomValue(currentTabAtom);
-	console.log("currentUrl", currentUrl);
 	const extractPage = useMemo(() => {
 		if (currentUrl === undefined) return undefined;
 		return extractSettingAtoms.find((item) => {
 			return minimatch(currentUrl, item.url);
 		});
 	}, [currentUrl]);
-	console.log(extractPage);
 
 	const handleClickAutoInput = useCallback(async () => {
 		if (extractPage === undefined) return;

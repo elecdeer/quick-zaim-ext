@@ -7,9 +7,9 @@ import {
 	useCombobox,
 } from "@mantine/core";
 import { IconWallet } from "@tabler/icons-react";
-import { useQuery } from "@tanstack/react-query";
-import { useCallback, useMemo, useState } from "react";
-import { fetchZaimAccount } from "~lib/zaimApi/fetchAccount";
+import { type ChangeEventHandler, useCallback, useMemo, useState } from "react";
+
+import { type ZaimAccount, useAccountOptions } from "./useAccountOptions";
 
 export type AccountSelectProps = {
 	selectedAccountId: string | undefined;
@@ -23,10 +23,8 @@ export const AccountSelect: React.FC<AccountSelectProps> = ({
 	label,
 }) => {
 	const [searchText, setSearchText] = useState("");
-	const { data: accountsData } = useQuery({
-		queryKey: ["accounts"],
-		queryFn: fetchAccounts,
-		throwOnError: true,
+	const { filteredOptions, findSelectedAccount } = useAccountOptions({
+		searchText,
 	});
 
 	const combobox = useCombobox({
@@ -42,15 +40,9 @@ export const AccountSelect: React.FC<AccountSelectProps> = ({
 	});
 
 	const optionsElem = useMemo<JSX.Element>(() => {
-		if (accountsData === undefined) {
+		if (filteredOptions === undefined) {
 			return <Combobox.Empty>Loading...</Combobox.Empty>;
 		}
-
-		const filteredOptions = accountsData
-			.filter((item) =>
-				item.name.toLowerCase().includes(searchText.toLowerCase().trim()),
-			)
-			.toSorted((a, b) => a.sort - b.sort);
 
 		return (
 			<>
@@ -61,24 +53,32 @@ export const AccountSelect: React.FC<AccountSelectProps> = ({
 				))}
 			</>
 		);
-	}, [accountsData, searchText]);
+	}, [filteredOptions]);
 
 	const selectedAccount = useMemo(() => {
-		if (accountsData === undefined) return undefined;
-		return accountsData.find((item) => item.accountId === selectedAccountId);
-	}, [accountsData, selectedAccountId]);
+		if (selectedAccountId === undefined) return undefined;
+		return findSelectedAccount(selectedAccountId);
+	}, [findSelectedAccount, selectedAccountId]);
 
 	const handleOptionSubmit = useCallback(
 		(selectedOptionId: string) => {
-			const account = accountsData?.find(
-				(item) => item.accountId === selectedOptionId,
-			);
+			const account = findSelectedAccount(selectedOptionId);
 			if (account === undefined) throw new Error("account not found");
 			onSelect(account);
 
 			combobox.closeDropdown();
 		},
-		[accountsData, onSelect, combobox],
+		[findSelectedAccount, onSelect, combobox],
+	);
+
+	const handleChangeSearchText = useCallback<
+		ChangeEventHandler<HTMLInputElement>
+	>(
+		(event) => {
+			setSearchText(event.currentTarget.value);
+			combobox.selectFirstOption();
+		},
+		[combobox],
 	);
 
 	return (
@@ -87,6 +87,7 @@ export const AccountSelect: React.FC<AccountSelectProps> = ({
 			withinPortal={false}
 			onOptionSubmit={handleOptionSubmit}
 			size="xs"
+			offset={2}
 		>
 			<Combobox.Target>
 				<InputBase
@@ -113,7 +114,7 @@ export const AccountSelect: React.FC<AccountSelectProps> = ({
 			<Combobox.Dropdown>
 				<Combobox.Search
 					value={searchText}
-					onChange={(event) => setSearchText(event.currentTarget.value)}
+					onChange={handleChangeSearchText}
 					placeholder="Search"
 				/>
 				<ScrollArea.Autosize type="scroll" mah={250}>
@@ -122,25 +123,4 @@ export const AccountSelect: React.FC<AccountSelectProps> = ({
 			</Combobox.Dropdown>
 		</Combobox>
 	);
-};
-
-export type ZaimAccount = {
-	accountId: string;
-	name: string;
-	sort: number;
-};
-
-const fetchAccounts = async (): Promise<ZaimAccount[]> => {
-	const zaimAccountRes = await fetchZaimAccount();
-
-	return zaimAccountRes.accounts
-		.filter((item) => item.active === 1)
-		.map(
-			(item) =>
-				({
-					accountId: String(item.id),
-					name: item.name,
-					sort: item.sort,
-				}) satisfies ZaimAccount,
-		);
 };
