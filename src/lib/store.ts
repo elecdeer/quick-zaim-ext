@@ -44,8 +44,12 @@ export const createJotaiStorageAdapter = <T>(
 		getItem: async (key: string, initialValue: T) => {
 			await waitSecureStorageReady;
 
-			const value = await storage.get<T>(key);
-			return value ?? initialValue;
+			try {
+				const value = await storage.get<T>(key);
+				return value ?? initialValue;
+			} catch {
+				return initialValue;
+			}
 		},
 		setItem: async (key: string, newValue: T) => {
 			await waitSecureStorageReady;
