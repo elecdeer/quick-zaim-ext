@@ -1,14 +1,8 @@
-import {
-	Combobox,
-	Input,
-	InputBase,
-	ScrollArea,
-	Text,
-	useCombobox,
-} from "@mantine/core";
+import { Combobox, Input, InputBase, ScrollArea, Text } from "@mantine/core";
 import { IconWallet } from "@tabler/icons-react";
-import { type ChangeEventHandler, useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 
+import { useComboboxWithFilterText } from "~lib/useComboboxWithFilterText";
 import { type ZaimAccount, useAccountOptions } from "./useAccountOptions";
 
 export type AccountSelectProps = {
@@ -22,21 +16,16 @@ export const AccountSelect: React.FC<AccountSelectProps> = ({
 	onSelect,
 	label,
 }) => {
-	const [searchText, setSearchText] = useState("");
+	const {
+		combobox,
+		filterText,
+		handleChange,
+		handleCompositionEnd,
+		handleCompositionStart,
+	} = useComboboxWithFilterText();
+
 	const { filteredOptions, findSelectedAccount } = useAccountOptions({
-		searchText,
-	});
-
-	const combobox = useCombobox({
-		onDropdownClose: () => {
-			combobox.resetSelectedOption();
-			combobox.focusTarget();
-			setSearchText("");
-		},
-
-		onDropdownOpen: () => {
-			combobox.focusSearchInput();
-		},
+		searchText: filterText,
 	});
 
 	const optionsElem = useMemo<JSX.Element>(() => {
@@ -71,16 +60,6 @@ export const AccountSelect: React.FC<AccountSelectProps> = ({
 		[findSelectedAccount, onSelect, combobox],
 	);
 
-	const handleChangeSearchText = useCallback<
-		ChangeEventHandler<HTMLInputElement>
-	>(
-		(event) => {
-			setSearchText(event.currentTarget.value);
-			combobox.selectFirstOption();
-		},
-		[combobox],
-	);
-
 	return (
 		<Combobox
 			store={combobox}
@@ -113,8 +92,10 @@ export const AccountSelect: React.FC<AccountSelectProps> = ({
 
 			<Combobox.Dropdown>
 				<Combobox.Search
-					value={searchText}
-					onChange={handleChangeSearchText}
+					value={filterText}
+					onChange={handleChange}
+					onCompositionStart={handleCompositionStart}
+					onCompositionEnd={handleCompositionEnd}
 					placeholder="Search"
 				/>
 				<ScrollArea.Autosize type="scroll" mah={250}>

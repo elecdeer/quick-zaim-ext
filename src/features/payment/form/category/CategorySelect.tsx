@@ -4,18 +4,10 @@ import {
 	Input,
 	InputBase,
 	ScrollArea,
-	useCombobox,
 } from "@mantine/core";
 import { useAtom } from "jotai";
-import {
-	type ChangeEventHandler,
-	type FC,
-	useCallback,
-	useEffect,
-	useMemo,
-	useState,
-} from "react";
-import { flushSync } from "react-dom";
+import { type FC, useCallback, useMemo } from "react";
+import { useComboboxWithFilterText } from "~lib/useComboboxWithFilterText";
 import { recentlyGenreAtom } from "../paymentFormAtoms";
 import { type ZaimGenre, useCategoryOptions } from "./useCategoryOptions";
 
@@ -35,12 +27,19 @@ export const CategorySelect: FC<CategorySelectProps> = ({
 }) => {
 	//TODO: 2行になってはみ出るやつの対処
 
-	const [searchText, setSearchText] = useState("");
+	const {
+		combobox,
+		filterText,
+		handleChange,
+		handleCompositionEnd,
+		handleCompositionStart,
+	} = useComboboxWithFilterText();
+
 	const { recentlyUsedGenreIds, addRecentlyUsedGenre } =
 		useRecentlyUsedGenreIds();
 
 	const { filteredGenreGroups, findSelectedCategory } = useCategoryOptions({
-		searchText,
+		searchText: filterText,
 	});
 
 	/**
@@ -72,7 +71,7 @@ export const CategorySelect: FC<CategorySelectProps> = ({
 
 		return (
 			<>
-				{searchText === "" && recentlySelectedGroup}
+				{filterText === "" && recentlySelectedGroup}
 				{filteredGenreGroups.map((group) => (
 					<Combobox.Group key={group.categoryId} label={group.categoryLabel}>
 						{group.genres.map((genre) => (
@@ -87,19 +86,7 @@ export const CategorySelect: FC<CategorySelectProps> = ({
 				))}
 			</>
 		);
-	}, [filteredGenreGroups, recentlyUsedGenres, searchText]);
-
-	const combobox = useCombobox({
-		onDropdownClose: () => {
-			combobox.resetSelectedOption();
-			combobox.focusTarget();
-			setSearchText("");
-		},
-
-		onDropdownOpen: () => {
-			combobox.focusSearchInput();
-		},
-	});
+	}, [filteredGenreGroups, recentlyUsedGenres, filterText]);
 
 	const handleOptionSubmit = useCallback(
 		(value: string, optionProps: ComboboxOptionProps) => {
@@ -123,27 +110,6 @@ export const CategorySelect: FC<CategorySelectProps> = ({
 
 		return genre.genreLabel;
 	}, [filteredGenreGroups, findSelectedCategory, selectedGenreId]);
-
-	const [isComposing, setIsComposing] = useState<boolean>(false);
-	const handleChangeSearchText = useCallback<
-		ChangeEventHandler<HTMLInputElement>
-	>(
-		(event) => {
-			flushSync(() => {
-				setSearchText(event.currentTarget.value);
-			});
-
-			console.log("onChange", event.currentTarget.value, isComposing);
-			if (isComposing) {
-				combobox.resetSelectedOption();
-			} else {
-				combobox.selectFirstOption();
-				console.log("handleChangeSearchText selectFirstOption");
-			}
-		},
-		[isComposing, combobox],
-	);
-	console.log(combobox.selectedOptionIndex);
 
 	return (
 		<Combobox
@@ -173,17 +139,11 @@ export const CategorySelect: FC<CategorySelectProps> = ({
 
 			<Combobox.Dropdown w={300}>
 				<Combobox.Search
-					value={searchText}
-					onChange={handleChangeSearchText}
+					value={filterText}
 					placeholder="Search"
-					onCompositionStart={() => {
-						setIsComposing(true);
-					}}
-					onCompositionEnd={() => {
-						setIsComposing(false);
-						combobox.selectFirstOption();
-						console.log("onCompositionEnd selectFirstOption");
-					}}
+					onChange={handleChange}
+					onCompositionStart={handleCompositionStart}
+					onCompositionEnd={handleCompositionEnd}
 				/>
 				<Combobox.Options>
 					<ScrollArea.Autosize type="scroll" mah={250}>

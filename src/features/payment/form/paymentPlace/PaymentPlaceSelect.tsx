@@ -15,6 +15,7 @@ import {
 	IconSortDescendingNumbers,
 } from "@tabler/icons-react";
 import { type FC, useCallback, useMemo, useState } from "react";
+import { useComboboxWithFilterText } from "~lib/useComboboxWithFilterText";
 import {
 	type ZaimPlace,
 	usePaymentPlaceOptions,
@@ -33,7 +34,14 @@ export const PaymentPlaceSelect: FC<PaymentPlaceSelectProps> = ({
 }) => {
 	// TODO: 最近登録したお店は拡張側で持つ様にする？
 
-	const [searchText, setSearchText] = useState("");
+	const {
+		combobox,
+		filterText,
+		handleChange,
+		handleCompositionEnd,
+		handleCompositionStart,
+	} = useComboboxWithFilterText();
+
 	const [today] = useState(new Date());
 
 	const [sortType, toggleSortType] = useToggle<"date" | "count">([
@@ -46,20 +54,8 @@ export const PaymentPlaceSelect: FC<PaymentPlaceSelectProps> = ({
 
 	const { filteredOptions, findSelectedPlace } = usePaymentPlaceOptions({
 		today,
-		searchText,
+		searchText: filterText,
 		sortType,
-	});
-
-	const combobox = useCombobox({
-		onDropdownClose: () => {
-			combobox.resetSelectedOption();
-			combobox.focusTarget();
-			setSearchText("");
-		},
-
-		onDropdownOpen: () => {
-			combobox.focusSearchInput();
-		},
 	});
 
 	const optionsElem = useMemo(() => {
@@ -125,8 +121,10 @@ export const PaymentPlaceSelect: FC<PaymentPlaceSelectProps> = ({
 
 			<Combobox.Dropdown>
 				<Combobox.Search
-					value={searchText}
-					onChange={(event) => setSearchText(event.currentTarget.value)}
+					value={filterText}
+					onChange={handleChange}
+					onCompositionStart={handleCompositionStart}
+					onCompositionEnd={handleCompositionEnd}
 					placeholder="Search"
 					rightSection={
 						<ActionIcon
