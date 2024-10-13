@@ -11,7 +11,7 @@
     "build:firefox": "wxt build -b firefox",
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
-		"check:lint": "biome check ./src",
+		"check:lint": "biome check ./entrypoints ./lib",
 		"check:type": "tsc --noEmit",
     "postinstall": "wxt prepare"
 	},
