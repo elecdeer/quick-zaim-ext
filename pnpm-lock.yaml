@@ -7,6 +7,18 @@ settings:
 importers:
 
   .:
+    devDependencies:
+      '@biomejs/biome':
+        specifier: ^1.9.3
+        version: 1.9.3
+      typescript:
+        specifier: ~5.6.2
+        version: 5.6.3
+      vitest:
+        specifier: ^2.1.2
+        version: 2.1.2(@types/node@20.11.17)(less@4.2.0)(lightningcss@1.27.0)(sass@1.79.5)(sugarss@4.0.1(postcss@8.4.47))
+
+  packages/extention:
     dependencies:
       react:
         specifier: ^18.3.1

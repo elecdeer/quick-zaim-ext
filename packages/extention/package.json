@@ -1,0 +1,30 @@
+{
+	"name": "extension",
+  "private": true,
+	"version": "0.0.1",
+	"author": "elecdeer",
+	"scripts": {
+		"dev": "wxt",
+		"dev:firefox": "wxt -b firefox",
+		"build": "wxt build",
+		"build:firefox": "wxt build -b firefox",
+		"zip": "wxt zip",
+		"zip:firefox": "wxt zip -b firefox",
+		"check:lint": "bniome check ./entrypoints ./lib",
+		"check:type": "tsc --noEmit",
+		"postinstall": "wxt prepare"
+	},
+	"dependencies": {
+		"react": "^18.3.1",
+		"react-dom": "^18.3.1"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^1.9.3",
+		"@types/react": "^18.3.11",
+		"@types/react-dom": "^18.3.0",
+		"@wxt-dev/module-react": "^1.1.1",
+		"typescript": "~5.6.2",
+		"vitest": "^2.1.2",
+		"wxt": "^0.19.11"
+	}
+}
