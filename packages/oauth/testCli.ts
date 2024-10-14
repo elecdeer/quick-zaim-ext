@@ -1,5 +1,5 @@
 import readline from "node:readline";
-import { createOAuthApplicant, createOAuthSigner } from "../oauthClient";
+import { createOAuthApplicant, createOAuthSigner } from "./src/oauthClient";
 
 const consumerKey = process.env.ZAIM_CONSUMER_KEY;
 const consumerSecret = process.env.ZAIM_CONSUMER_SECRET;
