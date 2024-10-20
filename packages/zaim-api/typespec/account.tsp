@@ -32,7 +32,7 @@ namespace ZaimAPI.Account {
     parent_account_id: int32;
   }
 
-  @route("/")
+  @route("")
   @get
   op getAccounts(
     /** Required. Set to 1 */

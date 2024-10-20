@@ -27,9 +27,12 @@ namespace ZaimAPI.Category {
 
     /** Last modified timestamp */
     modified: string;
+
+    /** (Undocumented) */
+    local_id: int32;
   }
 
-  @route("/")
+  @route("")
   @get
   op getCategories(
     /** Required. Set to 1 */

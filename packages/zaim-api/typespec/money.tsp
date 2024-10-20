@@ -49,6 +49,9 @@ namespace ZaimAPI.Money {
     /** Place name */
     place: string;
 
+    /** (Undocumented) Place unique ID */
+    place_uid: string;
+
     /** Creation timestamp */
     created: string;
 
@@ -56,7 +59,7 @@ namespace ZaimAPI.Money {
     currency_code: string;
   }
 
-  @route("/")
+  @route("")
   @get
   op getMoney(
     /** Required. Set to 1 */
@@ -167,6 +170,12 @@ namespace ZaimAPI.Money {
 
     /** Place name (within 100 characters) */
     @query place?: string;
+
+    /** (Undocumented) Place ID for payment */
+    @query place_uid?: string;
+
+    /** (Undocumented) Receipt ID for payment */
+    @query receipt_id?: int32;
   }
 
   @route("/payment")

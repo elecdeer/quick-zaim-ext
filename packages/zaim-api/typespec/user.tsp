@@ -45,6 +45,9 @@ namespace ZaimAPI.User {
 
     /** Last modified time of the user's profile */
     profile_modified: string;
+
+    /** (Undocumented) Createed time of user */
+    created: string;
   }
 
   @route("/verify")

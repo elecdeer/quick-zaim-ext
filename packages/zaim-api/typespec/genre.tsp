@@ -27,9 +27,12 @@ namespace ZaimAPI.Genre {
 
     /** Last modified timestamp */
     modified: string;
+
+    /** (Undocumented) */
+    local_id: int32;
   }
 
-  @route("/")
+  @route("")
   @get
   op getGenres(
     /** Required. Set to 1 */
