@@ -17,4 +17,7 @@
 		"editor.defaultFormatter": "biomejs.biome"
 	},
 	"editor.formatOnSave": true,
+	"[typespec]": {
+		"editor.defaultFormatter": "typespec.typespec-vscode"
+	},
 }
