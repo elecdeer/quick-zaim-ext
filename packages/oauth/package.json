@@ -12,6 +12,7 @@
 	},
 	"devDependencies": {
 		"@types/node": "~22.7.5",
+    "@repo/zaim-api": "workspace:*",
 		"tsx": "^4.19.1"
 	}
 }
