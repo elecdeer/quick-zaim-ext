@@ -2,11 +2,27 @@ import reactLogo from "@/assets/react.svg";
 import { useCallback, useState } from "react";
 import wxtLogo from "/wxt.svg";
 import "./App.css";
+import { browser } from "wxt/browser";
 
 function App() {
 	const [count, setCount] = useState(0);
 
-	const handleClick = useCallback(() => setCount((count) => count + 1), []);
+	const handleClick = useCallback(async () => {
+		const tabs = await browser.tabs.query({
+			active: true,
+			currentWindow: true,
+		});
+		const tab = tabs[0];
+
+		console.log("activeTab", tab);
+		if (!tab || !tab.id) return;
+
+		const res = await browser.scripting.executeScript({
+			target: { tabId: tab.id },
+			files: ["content-scripts/extract.js"],
+		});
+		console.log(res);
+	}, []);
 
 	return (
 		<>

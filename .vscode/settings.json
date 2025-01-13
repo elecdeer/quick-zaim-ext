@@ -19,5 +19,8 @@
 	"editor.formatOnSave": true,
 	"[typespec]": {
 		"editor.defaultFormatter": "typespec.typespec-vscode"
-	},
+  },
+  "[html]": {
+    "editor.defaultFormatter": "vscode.html-language-features"
+  },
 }
