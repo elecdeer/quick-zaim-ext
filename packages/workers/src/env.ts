@@ -1,0 +1,13 @@
+import * as v from "valibot";
+
+const envSchema = v.object({
+	OPENAI_API_KEY: v.string(),
+});
+
+export const parseEnv = (env: unknown) => {
+	const result = v.safeParse(envSchema, env);
+	if (!result.success) {
+		throw new Error(result.issues.map((i) => i.message).join("\n"));
+	}
+	return result.output;
+};

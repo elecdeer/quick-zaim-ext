@@ -1,0 +1,13 @@
+{
+	"$schema": "https://json.schemastore.org/tsconfig",
+	"compilerOptions": {
+		"lib": ["es2023"],
+		"module": "ESNext",
+		"target": "es2022",
+		"strict": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"moduleResolution": "Bundler",
+		"types": ["@cloudflare/workers-types/2023-07-01"]
+	}
+}

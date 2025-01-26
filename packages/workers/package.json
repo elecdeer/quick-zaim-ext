@@ -1,0 +1,18 @@
+{
+  "name": "@repo/workers",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy --minify"
+  },
+  "dependencies": {
+    "@hono/oidc-auth": "^1.4.1",
+    "@hono/valibot-validator": "^0.5.2",
+    "hono": "^4.6.18",
+    "openai": "^4.78.1",
+    "valibot": "1.0.0-beta.14"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250109.0",
+    "wrangler": "^3.101.0"
+  }
+}
