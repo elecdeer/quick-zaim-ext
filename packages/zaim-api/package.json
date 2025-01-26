@@ -10,17 +10,17 @@
     "./client": "./src/client/index.ts"
   },
   "peerDependencies": {
-    "@typespec/compiler": "latest",
-    "@typespec/http": "latest",
-    "@typespec/openapi3": "latest",
-    "@typespec/rest": "latest"
+    "@typespec/compiler": "^0.64.0",
+    "@typespec/http": "^0.64.0",
+    "@typespec/openapi3": "^0.64.0",
+    "@typespec/rest": "^0.64.1"
   },
   "devDependencies": {
     "@hey-api/openapi-ts": "^0.53.11",
-    "@typespec/compiler": "latest",
-    "@typespec/http": "latest",
-    "@typespec/openapi3": "latest",
-    "@typespec/rest": "latest"
+    "@typespec/compiler": "^0.64.0",
+    "@typespec/http": "^0.64.0",
+    "@typespec/openapi3": "^0.64.0",
+    "@typespec/rest": "^0.64.1"
   },
   "private": true,
   "dependencies": {

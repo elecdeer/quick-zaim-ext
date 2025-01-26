@@ -23,4 +23,5 @@
   "[html]": {
     "editor.defaultFormatter": "vscode.html-language-features"
   },
+  "typespec.tsp-server.path": "${workspaceFolder}/node_modules/@typespec/compiler",
 }
