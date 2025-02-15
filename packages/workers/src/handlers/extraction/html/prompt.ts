@@ -1,6 +1,18 @@
 export const prompt = (html: string) => `
 Contentは請求書や領収書を表示するHTMLです。
-Contentより注文の情報を読み取りJSON形式で出力してください。
+Contentより注文の情報を読み取り、resultを呼び出す形で出力してください。
+
+## 関数
+
+### searchShop
+
+購入した店舗やサイトの検索を行います。
+searchShopを用いてContentの店舗やサイトを検索し、resultに渡さなければなりません。
+
+### result
+
+Contentより注文の情報を読み取った結果を出力します。
+必ず1度だけ呼び出さなければなりません。
 
 ## 注意点
 
