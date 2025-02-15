@@ -38,7 +38,17 @@ extractionHtmlRoute.post(
 		// });
 		// const model = openai("gpt-4o-mini");
 
-		const res = await aiExtractionFromHtml(html, model);
+		const res = await aiExtractionFromHtml(
+			{
+				html,
+				shops: [
+					{ id: "19285109", name: "Amazon.co.jp" },
+					{ id: "41917412", name: "Amazon.com" },
+					{ id: "1912410", name: "Yodobashi.com" },
+				],
+			},
+			model,
+		);
 
 		console.log(res);
 		return c.json(res);

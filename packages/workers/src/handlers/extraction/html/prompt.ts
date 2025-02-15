@@ -1,18 +1,20 @@
-export const prompt = (html: string) => `
+import type { Shop } from "./ai";
+
+export const prompt = ({
+	html,
+	shops,
+}: {
+	html: string;
+	shops: Shop[];
+}) => `
 Contentは請求書や領収書を表示するHTMLです。
-Contentより注文の情報を読み取り、resultを呼び出す形で出力してください。
+Contentより注文の情報を読み取り出力してください。
 
-## 関数
-
-### searchShop
-
-購入した店舗やサイトの検索を行います。
-searchShopを用いてContentの店舗やサイトを検索し、resultに渡さなければなりません。
-
-### result
-
-Contentより注文の情報を読み取った結果を出力します。
-必ず1度だけ呼び出さなければなりません。
+Shopsは商品を購入した場所のリストです。JSON形式です。
+descriptionには、その店舗に関する説明が記述されていることがあります。
+店舗が一致する場合、その店舗のdescriptionを以降の推論で考慮してください。
+一致しない店舗のdescriptionは無視する必要がしなければなりません。
+出力のshopIdにShopsに記載されているIdを設定する必要があります。
 
 ## 注意点
 
@@ -21,9 +23,16 @@ Contentより注文の情報を読み取った結果を出力します。
 normalizedNameは商品名からノイズを取り除いたものです。
 50文字以下になることが望ましいです。
 宣伝文句や重複しているキーワードなどがノイズとして扱われます。
-メーカーやブランド名はノイズではありません。
+メーカーやブランド名、個数や支払い種別に関する情報はノイズではありません。
 
 <Content>
 ${html}
 </Content>
+
+<Shops>
+${JSON.stringify(shops)}
+</Shops>
 `;
+
+// TODO: カテゴリ
+// TODo: 出金元

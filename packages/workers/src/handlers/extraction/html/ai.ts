@@ -1,71 +1,28 @@
 import { valibotSchema } from "@ai-sdk/valibot";
-import { type LanguageModel, generateObject, generateText, tool } from "ai";
+import { type LanguageModel, generateObject } from "ai";
 import * as v from "valibot";
 import { prompt } from "./prompt";
 
 export const aiExtractionFromHtml = async (
-	html: string,
+	{
+		html,
+		shops,
+	}: {
+		html: string;
+		shops: Shop[];
+	},
 	model: LanguageModel,
 ) => {
-	// const { object } = await generateObject({
-	// 	model,
-	// 	schema: valibotSchema(receiptSchema),
-	// 	prompt: prompt(html),
-	// });
-
-	// return object;
-
-	let result: v.InferOutput<typeof receiptSchema> | null = null;
-
-	const response = await generateText({
+	const { object } = await generateObject({
 		model,
-		prompt: prompt(html),
-		maxSteps: 5,
-		tools: {
-			searchShop: tool({
-				description: "購入した店舗やサイトの検索",
-				parameters: valibotSchema(
-					v.object({
-						searchText: v.string(),
-					}),
-				),
-				execute: async ({
-					searchText,
-				}): Promise<{ id: string; name: string }[]> => {
-					console.log("searchShop", searchText);
-					await new Promise((resolve) => setTimeout(resolve, 100));
-					return [
-						{
-							id: "19285109",
-							name: "Amazon.co.jp",
-						},
-						{
-							id: "41917412",
-							name: "Amazon.com",
-						},
-						{
-							id: "1912410",
-							name: "Yodobashi.com",
-						},
-					];
-				},
-			}),
-			result: tool({
-				description: "結果を出力する",
-				parameters: valibotSchema(receiptSchema),
-				// biome-ignore lint/suspicious/useAwait: <explanation>
-				execute: async (receipt) => {
-					result = receipt;
-					return "accepted";
-				},
-			}),
-		},
+		schema: valibotSchema(receiptSchema),
+		prompt: prompt({
+			html,
+			shops,
+		}),
 	});
 
-	console.warn(result);
-	console.log(response);
-
-	return response;
+	return object;
 };
 
 const receiptSchema = v.object({
@@ -82,11 +39,22 @@ const receiptSchema = v.object({
 			priceYen: v.pipe(v.number(), v.description("商品の金額")),
 		}),
 	),
-	shopName: v.pipe(v.string(), v.description("購入した店舗やサイトの名前")),
-	shopId: v.pipe(v.string(), v.description("searchShopによって得たId")),
+	shopName: v.pipe(v.string(), v.description("購入場所の名前")),
+	shopId: v.pipe(
+		v.nullable(v.string()),
+		v.description("購入場所のID 不明な場合はnull"),
+	),
 	sumPrice: v.pipe(v.number(), v.description("全てのitemの金額の合計")),
 	receiptId: v.pipe(
 		v.string(),
 		v.description("請求書を特定するためのユニークなID"),
 	),
 });
+
+export type Receipt = v.InferOutput<typeof receiptSchema>;
+
+export type Shop = {
+	id: string;
+	name: string;
+	description?: string | undefined;
+};
