@@ -63,6 +63,6 @@ app.get("/hello", async (c) => {
 	return c.text(`Hello <${auth?.email}>!`);
 });
 
-// app.route("/extraction/html", extractionHtmlRoute);
+app.route("/extraction/html", extractionHtmlRoute);
 
 export default app;

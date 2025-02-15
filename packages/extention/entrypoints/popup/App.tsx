@@ -22,8 +22,18 @@ function App() {
 		console.log(res);
 
 		if (res.result) {
-			const extractResult = await extractByOpenAI(res.result);
-			console.log(extractResult);
+			const url = new URL("http://localhost:8787/extraction/html");
+			const response = await fetch(url, {
+				method: "POST",
+				body: JSON.stringify({
+					html: res.result,
+				}),
+				headers: {
+					"Content-Type": "application/json",
+				},
+			});
+
+			console.log(response);
 		}
 	}, []);
 
@@ -98,116 +108,5 @@ function App() {
 		</div>
 	);
 }
-
-const extractByOpenAI = async (pageHtml: string) => {
-	const apiKey = localStorage.getItem("openai-api-key");
-	if (!apiKey) {
-		console.warn("OpenAI API key is not set");
-		return;
-	}
-
-	const openai = new OpenAI({
-		apiKey,
-		// TODO:; 後でサーバ側に移動してこれを外す
-		dangerouslyAllowBrowser: true,
-	});
-
-	const response = await openai.chat.completions.create({
-		model: "gpt-4o-mini",
-		messages: [
-			{
-				role: "system",
-				content: [
-					{
-						text: "入力の請求書の情報を読み取り出力してください。\n割引についてもitemの1つとして扱ってください。\nsumPriceが各itemのpriceYen x amountの合計になるように確認してください。",
-						type: "text",
-					},
-				],
-			},
-			{
-				role: "user",
-				content: [
-					{
-						text: pageHtml,
-						type: "text",
-					},
-				],
-			},
-		],
-		response_format: {
-			type: "json_schema",
-			json_schema: {
-				name: "receipt",
-				schema: {
-					type: "object",
-					required: ["shopName", "date", "sumPrice", "receiptId", "items"],
-					properties: {
-						date: {
-							type: "string",
-							description: "YYYY-MM-DD形式の購入日",
-						},
-						items: {
-							type: "array",
-							items: {
-								type: "object",
-								required: ["name", "category", "priceYen", "amount"],
-								properties: {
-									name: {
-										type: "string",
-										description: "商品名",
-									},
-									amount: {
-										type: "integer",
-										description: "商品の個数",
-									},
-									category: {
-										type: "string",
-										description: "商品のカテゴリ",
-									},
-									priceYen: {
-										type: "integer",
-										description: "商品の金額",
-									},
-								},
-								additionalProperties: false,
-							},
-							description: "A list of items purchased in the transaction.",
-						},
-						shopName: {
-							type: "string",
-							description: "購入した店舗やサイトの名前",
-						},
-						sumPrice: {
-							type: "integer",
-							description: "The total price of all items on the receipt.",
-						},
-						receiptId: {
-							type: "string",
-							description: "A unique identifier for the receipt.",
-						},
-					},
-					additionalProperties: false,
-				},
-				strict: true,
-			},
-		},
-		temperature: 1,
-		max_completion_tokens: 2048,
-		top_p: 1,
-		frequency_penalty: 0,
-		presence_penalty: 0,
-	});
-
-	console.log(response);
-
-	const resultRaw = response.choices[0].message.content;
-
-	console.log(resultRaw);
-	if (!resultRaw) {
-		return null;
-	}
-
-	return JSON.parse(resultRaw);
-};
 
 export default App;

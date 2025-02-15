@@ -1,3 +1,5 @@
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { getAuth } from "@hono/oidc-auth";
 import { vValidator } from "@hono/valibot-validator";
 import { Hono } from "hono";
 import * as v from "valibot";
@@ -15,11 +17,28 @@ extractionHtmlRoute.post(
 		}),
 	),
 	async (c) => {
+		const auth = await getAuth(c);
+		if (auth === null) {
+			return c.json({ error: "Unauthorized" }, 401);
+		}
+
 		const env = parseEnv(c.env);
 
 		const { html } = c.req.valid("json");
 
-		const res = await aiExtractionFromHtml(html, env);
+		const google = createGoogleGenerativeAI({
+			apiKey: env.GEMINI_API_KEY,
+			baseURL: env.GEMINI_BASE_URL,
+		});
+		const model = google("gemini-2.0-flash-001");
+
+		// const openai = createOpenAI({
+		// 	apiKey: env.OPENAI_API_KEY,
+		// 	baseURL: env.OPENAI_BASE_URL,
+		// });
+		// const model = openai("gpt-4o-mini");
+
+		const res = await aiExtractionFromHtml(html, model);
 
 		console.log(res);
 		return c.json(res);

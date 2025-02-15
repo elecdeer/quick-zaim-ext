@@ -4,11 +4,15 @@ const envSchema = v.object({
 	OPENAI_API_KEY: v.string(),
 	OPENAI_MODEL: v.string(),
 	OPENAI_BASE_URL: v.pipe(v.string(), v.url()),
+
+	GEMINI_API_KEY: v.string(),
+	GEMINI_BASE_URL: v.pipe(v.string(), v.url()),
+
 	OIDC_AUTH_SECRET: v.string(),
 	OIDC_ISSUER: v.string(),
 	OIDC_CLIENT_ID: v.string(),
 	OIDC_CLIENT_SECRET: v.string(),
-	CHROME_EXTENSION_ID: v.string(),
+	// CHROME_EXTENSION_ID: v.string(),
 });
 
 export type Env = v.InferOutput<typeof envSchema>;

@@ -1,123 +1,39 @@
-import OpenAI from "openai";
+import { valibotSchema } from "@ai-sdk/valibot";
+import { type LanguageModel, generateObject } from "ai";
 import * as v from "valibot";
-import type { Env } from "../../../env";
 import { prompt } from "./prompt";
 
 export const aiExtractionFromHtml = async (
 	html: string,
-	env: Pick<Env, "OPENAI_API_KEY" | "OPENAI_MODEL" | "OPENAI_BASE_URL">,
+	model: LanguageModel,
 ) => {
-	const { OPENAI_API_KEY, OPENAI_MODEL, OPENAI_BASE_URL } = env;
-	const openai = new OpenAI({
-		apiKey: OPENAI_API_KEY,
-		baseURL: OPENAI_BASE_URL,
+	const { object } = await generateObject({
+		model,
+		schema: valibotSchema(receiptSchema),
+		prompt: prompt(html),
 	});
 
-	const res = await openai.chat.completions.create({
-		model: OPENAI_MODEL,
-		messages: [
-			{
-				role: "system",
-				content: [
-					{
-						text: prompt,
-						type: "text",
-					},
-				],
-			},
-			{
-				role: "user",
-				content: [
-					{
-						text: html,
-						type: "text",
-					},
-				],
-			},
-		],
-		response_format: {
-			type: "json_schema",
-			json_schema: {
-				name: "receipt",
-				schema: responseJsonSchema,
-				strict: true,
-			},
-		},
-		temperature: 1,
-		max_completion_tokens: 2048,
-		top_p: 1,
-		frequency_penalty: 0,
-		presence_penalty: 0,
-	});
-
-	const result = res.choices[0].message.content;
-	const resultJson = result && JSON.parse(result);
-
-	return v.parse(receiptSchema, resultJson);
+	return object;
 };
 
 const receiptSchema = v.object({
-	date: v.string(),
+	date: v.pipe(v.string(), v.description("YYYY-MM-DD形式の購入日")),
 	items: v.array(
 		v.object({
-			name: v.string(),
-			amount: v.pipe(v.number(), v.integer()),
-			category: v.string(),
-			priceYen: v.number(),
+			name: v.pipe(v.string(), v.description("商品名")),
+			normalizedName: v.pipe(
+				v.string(),
+				v.description("ノイズを取り除いた商品名"),
+			),
+			amount: v.pipe(v.number(), v.integer(), v.description("商品の個数")),
+			category: v.pipe(v.string(), v.description("商品のカテゴリ")),
+			priceYen: v.pipe(v.number(), v.description("商品の金額")),
 		}),
 	),
-	shopName: v.string(),
-	sumPrice: v.number(),
-	receiptId: v.string(),
+	shopName: v.pipe(v.string(), v.description("購入した店舗やサイトの名前")),
+	sumPrice: v.pipe(v.number(), v.description("全てのitemの金額の合計")),
+	receiptId: v.pipe(
+		v.string(),
+		v.description("請求書を特定するためのユニークなID"),
+	),
 });
-
-const responseJsonSchema = {
-	type: "object",
-	required: ["shopName", "date", "sumPrice", "receiptId", "items"],
-	properties: {
-		date: {
-			type: "string",
-			description: "YYYY-MM-DD形式の購入日",
-		},
-		items: {
-			type: "array",
-			items: {
-				type: "object",
-				required: ["name", "category", "priceYen", "amount"],
-				properties: {
-					name: {
-						type: "string",
-						description: "商品名",
-					},
-					amount: {
-						type: "integer",
-						description: "商品の個数",
-					},
-					category: {
-						type: "string",
-						description: "商品のカテゴリ",
-					},
-					priceYen: {
-						type: "integer",
-						description: "商品の金額",
-					},
-				},
-				additionalProperties: false,
-			},
-			description: "A list of items purchased in the transaction.",
-		},
-		shopName: {
-			type: "string",
-			description: "購入した店舗やサイトの名前",
-		},
-		sumPrice: {
-			type: "integer",
-			description: "The total price of all items on the receipt.",
-		},
-		receiptId: {
-			type: "string",
-			description: "A unique identifier for the receipt.",
-		},
-	},
-	additionalProperties: false,
-};
