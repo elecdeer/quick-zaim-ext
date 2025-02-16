@@ -241,35 +241,6 @@ function matchesName(text: string, template: AriaTemplateRoleNode) {
 	return matchesText(text, template.name);
 }
 
-export type MatcherReceived = {
-	raw: string;
-	regex: string;
-};
-
-export function matchesAriaTree(
-	rootElement: Element,
-	template: AriaTemplateNode,
-): { matches: AriaNode[]; received: MatcherReceived } {
-	const root = generateAriaTree(rootElement).root;
-	const matches = matchesNodeDeep(root, template, false);
-	return {
-		matches,
-		received: {
-			raw: renderAriaTree(root, { mode: "raw" }),
-			regex: renderAriaTree(root, { mode: "regex" }),
-		},
-	};
-}
-
-export function getAllByAria(
-	rootElement: Element,
-	template: AriaTemplateNode,
-): Element[] {
-	const root = generateAriaTree(rootElement).root;
-	const matches = matchesNodeDeep(root, template, true);
-	return matches.map((n) => n.element);
-}
-
 function matchesNode(
 	node: AriaNode | string,
 	template: AriaTemplateNode,
@@ -320,28 +291,6 @@ function containsList(
 	return true;
 }
 
-function matchesNodeDeep(
-	root: AriaNode,
-	template: AriaTemplateNode,
-	collectAll: boolean,
-): AriaNode[] {
-	const results: AriaNode[] = [];
-	const visit = (node: AriaNode | string, parent: AriaNode | null): boolean => {
-		if (matchesNode(node, template, 0)) {
-			const result = typeof node === "string" ? parent : node;
-			if (result) results.push(result);
-			return !collectAll;
-		}
-		if (typeof node === "string") return false;
-		for (const child of node.children || []) {
-			if (visit(child, node)) return true;
-		}
-		return false;
-	};
-	visit(root, null);
-	return results;
-}
-
 export function renderAriaTree(
 	ariaNode: AriaNode,
 	options?: { mode?: "raw" | "regex"; ids?: Map<Element, number> },
@@ -367,8 +316,9 @@ export function renderAriaTree(
 		// Yaml has a limit of 1024 characters per key, and we leave some space for role and attributes.
 		if (ariaNode.name && ariaNode.name.length <= 900) {
 			const name = renderString(ariaNode.name);
-      
-			if (name) {
+
+			// 葉以外のノードでは子のnameと重複するので追加しない
+			if (name && ariaNode.children.length === 0) {
 				const stringifiedName =
 					name.startsWith("/") && name.endsWith("/")
 						? name

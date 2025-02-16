@@ -14,25 +14,6 @@
  * limitations under the License.
  */
 
-let browserNameForWorkarounds = '';
-export function setBrowserName(name: string) {
-  browserNameForWorkarounds = name;
-}
-
-export function isInsideScope(scope: Node, element: Element | undefined): boolean {
-  while (element) {
-    if (scope.contains(element))
-      return true;
-    element = enclosingShadowHost(element);
-  }
-  return false;
-}
-
-export function enclosingElement(node: Node) {
-  if (node.nodeType === 1 /* Node.ELEMENT_NODE */)
-    return node as Element;
-  return node.parentElement ?? undefined;
-}
 
 export function parentElementOrShadowHost(element: Element): Element | undefined {
   if (element.parentElement)

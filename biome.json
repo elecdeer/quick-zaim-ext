@@ -1,8 +1,5 @@
 {
   "$schema": "https://biomejs.dev/schemas/1.9.3/schema.json",
-  "files": {
-    "ignore": ["packages/extention/entrypoints/playwright/**/*.ts"]
-  },
   "formatter": {
     "enabled": true
   },
@@ -16,6 +13,7 @@
   },
   "linter": {
     "enabled": true,
+    "ignore": ["packages/extention/entrypoints/playwright/**/*.ts"],
     "rules": {
       "recommended": true,
       "correctness": {

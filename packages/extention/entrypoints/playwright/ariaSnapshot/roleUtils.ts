@@ -678,140 +678,6 @@ export function getElementAccessibleName(
 	return accessibleName;
 }
 
-export function getElementAccessibleDescription(
-	element: Element,
-	includeHidden: boolean,
-): string {
-	const cache = includeHidden
-		? cacheAccessibleDescriptionHidden
-		: cacheAccessibleDescription;
-	let accessibleDescription = cache?.get(element);
-
-	if (accessibleDescription === undefined) {
-		// https://w3c.github.io/accname/#mapping_additional_nd_description
-		// https://www.w3.org/TR/html-aam-1.0/#accdesc-computation
-		accessibleDescription = "";
-
-		if (element.hasAttribute("aria-describedby")) {
-			// precedence 1
-			const describedBy = getIdRefs(
-				element,
-				element.getAttribute("aria-describedby"),
-			);
-			accessibleDescription = asFlatString(
-				describedBy
-					.map((ref) =>
-						getTextAlternativeInternal(ref, {
-							includeHidden,
-							visitedElements: new Set(),
-							embeddedInDescribedBy: {
-								element: ref,
-								hidden: isElementHiddenForAria(ref),
-							},
-						}),
-					)
-					.join(" "),
-			);
-		} else if (element.hasAttribute("aria-description")) {
-			// precedence 2
-			accessibleDescription = asFlatString(
-				element.getAttribute("aria-description") || "",
-			);
-		} else {
-			// TODO: handle precedence 3 - html-aam-specific cases like table>caption.
-			// https://www.w3.org/TR/html-aam-1.0/#accdesc-computation
-			// precedence 4
-			accessibleDescription = asFlatString(element.getAttribute("title") || "");
-		}
-
-		cache?.set(element, accessibleDescription);
-	}
-	return accessibleDescription;
-}
-
-// https://www.w3.org/TR/wai-aria-1.2/#aria-invalid
-const kAriaInvalidRoles = [
-	"application",
-	"checkbox",
-	"combobox",
-	"gridcell",
-	"listbox",
-	"radiogroup",
-	"slider",
-	"spinbutton",
-	"textbox",
-	"tree",
-	"columnheader",
-	"rowheader",
-	"searchbox",
-	"switch",
-	"treegrid",
-];
-
-function getAriaInvalid(
-	element: Element,
-): "false" | "true" | "grammar" | "spelling" {
-	const role = getAriaRole(element) || "";
-	if (!role || !kAriaInvalidRoles.includes(role)) return "false";
-	const ariaInvalid = element.getAttribute("aria-invalid");
-	if (
-		!ariaInvalid ||
-		ariaInvalid.trim() === "" ||
-		ariaInvalid.toLocaleLowerCase() === "false"
-	)
-		return "false";
-	if (
-		ariaInvalid === "true" ||
-		ariaInvalid === "grammar" ||
-		ariaInvalid === "spelling"
-	)
-		return ariaInvalid;
-	return "true";
-}
-
-function getValidityInvalid(element: Element) {
-	if ("validity" in element) {
-		const validity = element.validity as ValidityState | undefined;
-		return validity?.valid === false;
-	}
-	return false;
-}
-
-export function getElementAccessibleErrorMessage(element: Element): string {
-	// SPEC: https://w3c.github.io/aria/#aria-errormessage
-	//
-	// TODO: support https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/validationMessage
-	const cache = cacheAccessibleErrorMessage;
-	let accessibleErrorMessage = cacheAccessibleErrorMessage?.get(element);
-
-	if (accessibleErrorMessage === undefined) {
-		accessibleErrorMessage = "";
-
-		const isAriaInvalid = getAriaInvalid(element) !== "false";
-		const isValidityInvalid = getValidityInvalid(element);
-		if (isAriaInvalid || isValidityInvalid) {
-			const errorMessageId = element.getAttribute("aria-errormessage");
-			const errorMessages = getIdRefs(element, errorMessageId);
-			// Ideally, this should be a separate "embeddedInErrorMessage", but it would follow the exact same rules.
-			// Relevant vague spec: https://w3c.github.io/core-aam/#ariaErrorMessage.
-			const parts = errorMessages.map((errorMessage) =>
-				asFlatString(
-					getTextAlternativeInternal(errorMessage, {
-						visitedElements: new Set(),
-						embeddedInDescribedBy: {
-							element: errorMessage,
-							hidden: isElementHiddenForAria(errorMessage),
-						},
-					}),
-				),
-			);
-			accessibleErrorMessage = parts.join(" ").trim();
-		}
-		cache?.set(element, accessibleErrorMessage);
-	}
-	return accessibleErrorMessage;
-}
-
 type AccessibleNameOptions = {
 	visitedElements: Set<Element>;
 	includeHidden?: boolean;
@@ -1263,13 +1129,6 @@ function innerAccumulatedElementText(
 	return tokens.join("");
 }
 
-export function accumulatedElementText(element: Element): string {
-	const visitedElements = new Set<Element>();
-	return asFlatString(
-		innerAccumulatedElementText(element, { visitedElements }),
-	).trim();
-}
-
 export const kAriaSelectedRoles = [
 	"gridcell",
 	"option",
@@ -1303,17 +1162,6 @@ export function getAriaChecked(element: Element): boolean | "mixed" {
 	return result === "error" ? false : result;
 }
 
-export function getCheckedAllowMixed(
-	element: Element,
-): boolean | "mixed" | "error" {
-	return getChecked(element, true);
-}
-
-export function getCheckedWithoutMixed(element: Element): boolean | "error" {
-	const result = getChecked(element, false);
-	return result as boolean | "error";
-}
-
 function getChecked(
 	element: Element,
 	allowMixed: boolean,
@@ -1338,35 +1186,6 @@ function getChecked(
 		if (allowMixed && checked === "mixed") return "mixed";
 		return false;
 	}
-	return "error";
-}
-
-// https://w3c.github.io/aria/#aria-readonly
-const kAriaReadonlyRoles = [
-	"checkbox",
-	"combobox",
-	"grid",
-	"gridcell",
-	"listbox",
-	"radiogroup",
-	"slider",
-	"spinbutton",
-	"textbox",
-	"columnheader",
-	"rowheader",
-	"searchbox",
-	"switch",
-	"treegrid",
-];
-export function getReadonly(element: Element): boolean | "error" {
-	const tagName = elementSafeTagName(element);
-	// https://www.w3.org/TR/wai-aria-1.2/#aria-checked
-	// https://www.w3.org/TR/html-aam-1.0/#html-attribute-state-and-property-mappings
-	if (["INPUT", "TEXTAREA", "SELECT"].includes(tagName))
-		return element.hasAttribute("readonly");
-	if (kAriaReadonlyRoles.includes(getAriaRole(element) || ""))
-		return element.getAttribute("aria-readonly") === "true";
-	if ((element as HTMLElement).isContentEditable) return false;
 	return "error";
 }
 
