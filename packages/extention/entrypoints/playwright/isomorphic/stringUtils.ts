@@ -27,37 +27,3 @@ export function normalizeWhiteSpace(text: string): string {
 	}
 	return result;
 }
-
-export function escapeRegExp(s: string) {
-	// From https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#escaping
-	return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); // $& means the whole matched string
-}
-
-export function longestCommonSubstring(s1: string, s2: string): string {
-	const n = s1.length;
-	const m = s2.length;
-	let maxLen = 0;
-	let endingIndex = 0;
-
-	// Initialize a 2D array with zeros
-	const dp = Array(n + 1)
-		.fill(null)
-		.map(() => Array(m + 1).fill(0));
-
-	// Build the dp table
-	for (let i = 1; i <= n; i++) {
-		for (let j = 1; j <= m; j++) {
-			if (s1[i - 1] === s2[j - 1]) {
-				dp[i][j] = dp[i - 1][j - 1] + 1;
-
-				if (dp[i][j] > maxLen) {
-					maxLen = dp[i][j];
-					endingIndex = i;
-				}
-			}
-		}
-	}
-
-	// Extract the longest common substring
-	return s1.slice(endingIndex - maxLen, endingIndex);
-}

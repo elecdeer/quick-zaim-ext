@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-import {
-	escapeRegExp,
-	longestCommonSubstring,
-	normalizeWhiteSpace,
-} from "../isomorphic/stringUtils";
+import { normalizeWhiteSpace } from "../isomorphic/stringUtils";
 
 import { getElementComputedStyle } from "./domUtils";
 import * as roleUtils from "./roleUtils";
@@ -291,22 +287,15 @@ function containsList(
 	return true;
 }
 
-export function renderAriaTree(
-	ariaNode: AriaNode,
-	options?: { mode?: "raw" | "regex"; ids?: Map<Element, number> },
-): string {
+export function renderAriaTree(ariaNode: AriaNode): string {
 	const lines: string[] = [];
-	const includeText =
-		options?.mode === "regex" ? textContributesInfo : () => true;
-	const renderString =
-		options?.mode === "regex" ? convertToBestGuessRegex : (str: string) => str;
+	const renderString = (str: string) => str;
 	const visit = (
 		ariaNode: AriaNode | string,
 		parentAriaNode: AriaNode | null,
 		indent: string,
 	) => {
 		if (typeof ariaNode === "string") {
-			if (parentAriaNode && !includeText(parentAriaNode, ariaNode)) return;
 			const text = yamlEscapeValueIfNeeded(renderString(ariaNode));
 			if (text) lines.push(indent + "- text: " + text);
 			return;
@@ -334,10 +323,6 @@ export function renderAriaTree(
 		if (ariaNode.pressed === "mixed") key += ` [pressed=mixed]`;
 		if (ariaNode.pressed === true) key += ` [pressed]`;
 		if (ariaNode.selected === true) key += ` [selected]`;
-		if (options?.ids) {
-			const id = options?.ids.get(ariaNode.element);
-			if (id) key += ` [id=${id}]`;
-		}
 
 		const escapedKey = indent + "- " + yamlEscapeKeyIfNeeded(key);
 		if (!ariaNode.children.length) {
@@ -346,9 +331,7 @@ export function renderAriaTree(
 			ariaNode.children.length === 1 &&
 			typeof ariaNode.children[0] === "string"
 		) {
-			const text = includeText(ariaNode, ariaNode.children[0])
-				? renderString(ariaNode.children[0] as string)
-				: null;
+			const text = renderString(ariaNode.children[0] as string);
 			if (text) lines.push(escapedKey + ": " + yamlEscapeValueIfNeeded(text));
 			else lines.push(escapedKey);
 		} else {
@@ -365,64 +348,4 @@ export function renderAriaTree(
 		visit(ariaNode, null, "");
 	}
 	return lines.join("\n");
-}
-
-function convertToBestGuessRegex(text: string): string {
-	const dynamicContent = [
-		// 2mb
-		{ regex: /\b[\d,.]+[bkmBKM]+\b/, replacement: "[\\d,.]+[bkmBKM]+" },
-		// 2ms, 20s
-		{ regex: /\b\d+[hmsp]+\b/, replacement: "\\d+[hmsp]+" },
-		{ regex: /\b[\d,.]+[hmsp]+\b/, replacement: "[\\d,.]+[hmsp]+" },
-		// Do not replace single digits with regex by default.
-		// 2+ digits: [Issue 22, 22.3, 2.33, 2,333]
-		{ regex: /\b\d+,\d+\b/, replacement: "\\d+,\\d+" },
-		{ regex: /\b\d+\.\d{2,}\b/, replacement: "\\d+\\.\\d+" },
-		{ regex: /\b\d{2,}\.\d+\b/, replacement: "\\d+\\.\\d+" },
-		{ regex: /\b\d{2,}\b/, replacement: "\\d+" },
-	];
-
-	let pattern = "";
-	let lastIndex = 0;
-
-	const combinedRegex = new RegExp(
-		dynamicContent.map((r) => "(" + r.regex.source + ")").join("|"),
-		"g",
-	);
-	text.replace(combinedRegex, (match, ...args) => {
-		const offset = args[args.length - 2];
-		const groups = args.slice(0, -2);
-		pattern += escapeRegExp(text.slice(lastIndex, offset));
-		for (let i = 0; i < groups.length; i++) {
-			if (groups[i]) {
-				const { replacement } = dynamicContent[i];
-				pattern += replacement;
-				break;
-			}
-		}
-		lastIndex = offset + match.length;
-		return match;
-	});
-	if (!pattern) return text;
-
-	pattern += escapeRegExp(text.slice(lastIndex));
-	return String(new RegExp(pattern));
-}
-
-function textContributesInfo(node: AriaNode, text: string): boolean {
-	if (!text.length) return false;
-
-	if (!node.name) return true;
-
-	if (node.name.length > text.length) return false;
-
-	// Figure out if text adds any value. "longestCommonSubstring" is expensive, so limit strings length.
-	const substr =
-		text.length <= 200 && node.name.length <= 200
-			? longestCommonSubstring(text, node.name)
-			: "";
-	let filtered = text;
-	while (substr && filtered.includes(substr))
-		filtered = filtered.replace(substr, "");
-	return filtered.trim().length / text.length > 0.1;
 }
