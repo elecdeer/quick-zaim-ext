@@ -7,9 +7,11 @@ export const aiExtractionFromHtml = async (
 	{
 		html,
 		shops,
+		categories,
 	}: {
 		html: string;
 		shops: Shop[];
+		categories: Category[];
 	},
 	model: LanguageModel,
 ) => {
@@ -19,6 +21,7 @@ export const aiExtractionFromHtml = async (
 		prompt: prompt({
 			html,
 			shops,
+			categories,
 		}),
 	});
 
@@ -35,7 +38,8 @@ const receiptSchema = v.object({
 				v.description("ノイズを取り除いた商品名"),
 			),
 			amount: v.pipe(v.number(), v.integer(), v.description("商品の個数")),
-			category: v.pipe(v.string(), v.description("商品のカテゴリ")),
+			category: v.pipe(v.string(), v.description("商品のサブカテゴリ")),
+			categoryId: v.pipe(v.string(), v.description("商品のサブカテゴリID")),
 			priceYen: v.pipe(v.number(), v.description("商品の金額")),
 		}),
 	),
@@ -54,6 +58,19 @@ const receiptSchema = v.object({
 export type Receipt = v.InferOutput<typeof receiptSchema>;
 
 export type Shop = {
+	id: string;
+	name: string;
+	description?: string | undefined;
+};
+
+export type Category = {
+	id: string;
+	name: string;
+	description?: string | undefined;
+	subCategories: SubCategory[];
+};
+
+export type SubCategory = {
 	id: string;
 	name: string;
 	description?: string | undefined;
