@@ -37,6 +37,139 @@ function App() {
 		}
 	}, []);
 
+	const handleAT = useCallback(async () => {
+		// @ts-expect-error
+		console.log(chrome.debugger);
+
+		const tabs = await browser.tabs.query({
+			active: true,
+			currentWindow: true,
+		});
+		const tab = tabs[0];
+
+		console.log("activeTab", tab);
+		if (!tab || !tab.id) return;
+
+		console.log("tabId", tab.id);
+
+		// @ts-expect-error
+		chrome.debugger.attach({ tabId: tab.id }, "1.3", () => {
+			// @ts-expect-error
+			chrome.debugger.sendCommand(
+				{ tabId: tab.id },
+				"Accessibility.enable",
+				{},
+				(result) => {
+					console.log("done", result);
+
+					// @ts-expect-error
+					if (chrome.runtime.lastError) {
+						// @ts-expect-error
+						console.error(chrome.runtime.lastError);
+					}
+				},
+			);
+
+			type AXNode = {
+				nodeId: string;
+				parentId: string;
+				name:
+					| {
+							type: string;
+							value: string;
+					  }
+					| undefined;
+				role:
+					| {
+							type: string;
+							value: string;
+					  }
+					| undefined;
+			};
+
+			type AXNodeTree = {
+				nodeId: string;
+				parentId: string;
+				name: {
+					type: string | undefined;
+					value: string | undefined;
+				};
+				role: {
+					type: string | undefined;
+					value: string | undefined;
+				};
+				children: AXNodeTree[];
+			};
+
+			// @ts-expect-error
+			chrome.debugger.sendCommand(
+				{ tabId: tab.id },
+				"Accessibility.getFullAXTree",
+				{},
+				({
+					nodes,
+				}: {
+					nodes: AXNode[];
+				}) => {
+					console.log("done", nodes);
+
+					// make tree
+
+					const pickNode = (node: AXNode): AXNodeTree => {
+						return {
+							nodeId: node.nodeId,
+							parentId: node.parentId,
+							name: {
+								type: node.name?.type,
+								value: node.name?.value,
+							},
+							role: {
+								type: node.role?.type,
+								value: node.role?.value,
+							},
+							children: [],
+						};
+					};
+
+					const treeRoot = pickNode(nodes[0]);
+
+					const makeTree = (node: AXNodeTree, nodes: AXNode[]) => {
+						for (const n of nodes) {
+							if (n.parentId === node.nodeId) {
+								const child = pickNode(n);
+								node.children.push(child);
+								makeTree(child, nodes);
+							}
+						}
+						return node;
+					};
+
+					console.log(makeTree(treeRoot, nodes));
+
+					// @ts-expect-error
+					if (chrome.runtime.lastError) {
+						// @ts-expect-error
+						console.error(chrome.runtime.lastError);
+					}
+
+					// detach
+					// @ts-expect-error
+					chrome.debugger.detach({ tabId: tab.id }, () => {
+						console.log("detached");
+					});
+				},
+			);
+		});
+
+		// @ts-expect-error
+		chrome.debugger.onEvent.addListener((source, method, params) => {
+			if (method === "Network.responseReceived") {
+				console.log("Response received:", params.response);
+				// Perform your desired action with the response data
+			}
+		});
+	}, []);
+
 	return (
 		<div className="card">
 			<button type="button" onClick={handleClick}>
@@ -104,6 +237,10 @@ function App() {
 				}}
 			>
 				Logout
+			</button>
+
+			<button type="button" onClick={handleAT}>
+				cdp
 			</button>
 		</div>
 	);
