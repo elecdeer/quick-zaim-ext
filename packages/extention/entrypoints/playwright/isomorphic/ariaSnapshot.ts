@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+// original: https://github.com/microsoft/playwright/blob/f70f92d5cdecbebd01b18886fd7d45d1c9e7d980/packages/playwright-core/src/utils/isomorphic/ariaSnapshot.ts
+
 // https://www.w3.org/TR/wai-aria-1.2/#role_definitions
 
 export type AriaRole =

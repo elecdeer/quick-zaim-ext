@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+// original: https://github.com/microsoft/playwright/blob/f70f92d5cdecbebd01b18886fd7d45d1c9e7d980/packages/playwright-core/src/server/injected/domUtils.ts
+
 export function parentElementOrShadowHost(
 	element: Element,
 ): Element | undefined {

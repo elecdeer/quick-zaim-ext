@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+// https://github.com/microsoft/playwright/blob/f70f92d5cdecbebd01b18886fd7d45d1c9e7d980/packages/playwright-core/src/utils/isomorphic/stringUtils.ts
+
 let normalizedWhitespaceCache: Map<string, string> | undefined;
 
 export function normalizeWhiteSpace(text: string): string {
