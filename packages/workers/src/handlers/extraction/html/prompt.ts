@@ -7,7 +7,7 @@ export const prompt = ({
 	html: string;
 	shops: Shop[];
 }) => `
-Contentは請求書や領収書を表示するHTMLです。
+Contentは請求書や領収書を表示するHTMLを元にして生成されたAccessibility Treeです。
 Contentより注文の情報を読み取り出力してください。
 
 Shopsは商品を購入した場所のリストです。JSON形式です。

@@ -1,4 +1,8 @@
 import { defineContentScript } from "wxt/sandbox";
+import {
+	generateAriaTree,
+	renderAriaTree,
+} from "./playwright/ariaSnapshot/ariaSnapshot";
 
 export default defineContentScript({
 	matches: [],
@@ -6,47 +10,55 @@ export default defineContentScript({
 	main(ctx) {
 		console.log("Script was executed!");
 
-		const content = cleanHTML();
-		console.log(content);
+		const ariaTree = generateAriaTree(document.documentElement);
+		console.log(ariaTree);
 
-		const trans = transcript(document.documentElement, [
-			"html",
-			"head",
-			"body",
-			"div",
-			"p",
-			"a",
-			"br",
-			"hr",
-			"span",
-			"section",
-			"article",
-			"main",
-			"header",
-			"footer",
-			"nav",
-			"aside",
-			"ul",
-			"ol",
-			"table",
-			"tr",
-			"td",
-			"th",
-			"caption",
-			"thead",
-			"tbody",
-			"tfoot",
-			"h1",
-			"h2",
-			"h3",
-			"h4",
-			"h5",
-			"h6",
-		]);
+		const rendered = renderAriaTree(ariaTree.root);
+		console.warn(rendered);
 
-		console.log(trans);
+		return rendered;
 
-		return content;
+		// const content = cleanHTML();
+		// console.log(content);
+
+		// const trans = transcript(document.documentElement, [
+		// 	"html",
+		// 	"head",
+		// 	"body",
+		// 	"div",
+		// 	"p",
+		// 	"a",
+		// 	"br",
+		// 	"hr",
+		// 	"span",
+		// 	"section",
+		// 	"article",
+		// 	"main",
+		// 	"header",
+		// 	"footer",
+		// 	"nav",
+		// 	"aside",
+		// 	"ul",
+		// 	"ol",
+		// 	"table",
+		// 	"tr",
+		// 	"td",
+		// 	"th",
+		// 	"caption",
+		// 	"thead",
+		// 	"tbody",
+		// 	"tfoot",
+		// 	"h1",
+		// 	"h2",
+		// 	"h3",
+		// 	"h4",
+		// 	"h5",
+		// 	"h6",
+		// ]);
+
+		// console.log(trans);
+
+		// return content;
 	},
 });
 
