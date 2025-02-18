@@ -8,10 +8,12 @@ export const aiExtractionFromHtml = async (
 		html,
 		shops,
 		categories,
+		paymentMethods,
 	}: {
 		html: string;
 		shops: Shop[];
 		categories: Category[];
+		paymentMethods: PaymentMethod[];
 	},
 	model: LanguageModel,
 ) => {
@@ -22,6 +24,7 @@ export const aiExtractionFromHtml = async (
 			html,
 			shops,
 			categories,
+			paymentMethods,
 		}),
 	});
 
@@ -48,6 +51,8 @@ const receiptSchema = v.object({
 		v.nullable(v.string()),
 		v.description("購入場所のID 不明な場合はnull"),
 	),
+	paymentMethodName: v.pipe(v.string(), v.description("支払い方法の名前")),
+	paymentMethodId: v.pipe(v.string(), v.description("支払い方法のID")),
 	sumPrice: v.pipe(v.number(), v.description("全てのitemの金額の合計")),
 	receiptId: v.pipe(
 		v.string(),
@@ -56,6 +61,8 @@ const receiptSchema = v.object({
 });
 
 export type Receipt = v.InferOutput<typeof receiptSchema>;
+
+// idはnumberかも
 
 export type Shop = {
 	id: string;
@@ -71,6 +78,12 @@ export type Category = {
 };
 
 export type SubCategory = {
+	id: string;
+	name: string;
+	description?: string | undefined;
+};
+
+export type PaymentMethod = {
 	id: string;
 	name: string;
 	description?: string | undefined;

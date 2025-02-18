@@ -4,7 +4,7 @@ import { vValidator } from "@hono/valibot-validator";
 import { Hono } from "hono";
 import * as v from "valibot";
 import { parseEnv } from "../../../env";
-import { type Category, aiExtractionFromHtml } from "./ai";
+import { type Category, type PaymentMethod, aiExtractionFromHtml } from "./ai";
 
 export const extractionHtmlRoute = new Hono();
 
@@ -47,6 +47,7 @@ extractionHtmlRoute.post(
 					{ id: "1912410", name: "Yodobashi.com" },
 				],
 				categories: tempCategory,
+				paymentMethods: tempPaymentMethods,
 			},
 			model,
 		);
@@ -235,5 +236,24 @@ const tempCategory: Category[] = [
 			{ id: "19908", name: "電子マネーにチャージ", description: undefined },
 			{ id: "32857134", name: "投資信託", description: undefined },
 		],
+	},
+];
+
+const tempPaymentMethods: PaymentMethod[] = [
+	{
+		id: "0",
+		name: "現金",
+	},
+	{
+		id: "1",
+		name: "VISA",
+	},
+	{
+		id: "2",
+		name: "MasterCard",
+	},
+	{
+		id: "3",
+		name: "JCB",
 	},
 ];
