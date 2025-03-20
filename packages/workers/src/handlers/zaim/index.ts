@@ -9,9 +9,12 @@ import { Hono } from "hono";
 import * as v from "valibot";
 import { parseEnv } from "../../env";
 
+import { createDb, requestTokenRepository } from "../../db";
+
 export const zaimRoute = new Hono<{
 	Bindings: {
 		MY_KV_NAMESPACE: KVNamespace;
+		DB: D1Database;
 	};
 }>();
 
@@ -41,7 +44,14 @@ zaimRoute.get("/login", async (c) => {
 
 	const userAuthorizeUrl = `${zaimOAuthEndpoints.authorizeEndpoint.url}?oauth_token=${requestToken.oauthToken}`;
 
-	await c.env.MY_KV_NAMESPACE.put("requestToken", JSON.stringify(requestToken));
+	// D1データベースに接続
+	const db = createDb(c.env.DB);
+
+	// requestTokenを保存
+	await requestTokenRepository.saveRequestToken(db, {
+		oauthToken: requestToken.oauthToken,
+		oauthTokenSecret: requestToken.oauthTokenSecret,
+	});
 
 	return c.json({ userAuthorizeUrl });
 });
@@ -61,9 +71,18 @@ zaimRoute.get(
 		console.log(c.req.valid("query").oauth_token);
 		console.log(c.req.valid("query").oauth_verifier);
 
-		const requestToken = JSON.parse(
-			(await c.env.MY_KV_NAMESPACE.get("requestToken")) ?? "",
+		// D1データベースに接続
+		const db = createDb(c.env.DB);
+
+		// requestTokenを取得
+		const requestToken = await requestTokenRepository.getRequestToken(
+			db,
+			c.req.valid("query").oauth_token,
 		);
+
+		if (!requestToken) {
+			return c.json({ error: "Request token not found" }, 404);
+		}
 
 		const accessToken = await fetchAccessToken({
 			accessTokenEndpoint: zaimOAuthEndpoints.accessTokenEndpoint,
@@ -73,6 +92,12 @@ zaimRoute.get(
 			requestToken: requestToken,
 		});
 		console.log(accessToken);
+
+		// 使用済みのrequestTokenを削除
+		await requestTokenRepository.deleteRequestToken(
+			db,
+			c.req.valid("query").oauth_token,
+		);
 
 		const signer = createOAuthSigner({
 			accessToken: accessToken.accessToken,

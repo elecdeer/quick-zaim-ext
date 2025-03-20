@@ -15,10 +15,11 @@ id = "e4c9779d01724a70a19d88cc3d932e7b"
 # binding = "MY_BUCKET"
 # bucket_name = "my-bucket"
 
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "my-database"
-# database_id = ""
+[[d1_databases]]
+binding = "DB"
+database_name = "quick-zaim-db"
+database_id = "b1ce52a6-90b1-418d-990d-e1e0958a4868"
+migrations_dir = "drizzle/migrations"
 
 # [ai]
 # binding = "AI"
