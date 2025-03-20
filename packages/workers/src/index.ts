@@ -62,6 +62,7 @@ app.use(oidcAuthMiddleware());
 
 app.get("/hello", async (c) => {
 	const auth = await getAuth(c);
+  console.log("auth", auth);
 	return c.text(`Hello <${auth?.email}>!`);
 });
 
