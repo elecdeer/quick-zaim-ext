@@ -29,29 +29,22 @@ const zaimOAuthEndpoints = {
 	},
 } as const;
 
-zaimRoute.get(
-	"/login",
+zaimRoute.get("/login", async (c) => {
+	const env = parseEnv(c.env);
 
-	async (c) => {
-		const env = parseEnv(c.env);
+	const requestToken = await fetchRequestToken({
+		requestTokenEndpoint: zaimOAuthEndpoints.requestTokenEndpoint,
+		consumerKey: env.ZAIM_CONSUMER_KEY,
+		consumerSecret: env.ZAIM_CONSUMER_SECRET,
+		callbackUrl: env.ZAIM_CALLBACK_URL,
+	});
 
-		const requestToken = await fetchRequestToken({
-			requestTokenEndpoint: zaimOAuthEndpoints.requestTokenEndpoint,
-			consumerKey: env.ZAIM_CONSUMER_KEY,
-			consumerSecret: env.ZAIM_CONSUMER_SECRET,
-			callbackUrl: env.ZAIM_CALLBACK_URL,
-		});
+	const userAuthorizeUrl = `${zaimOAuthEndpoints.authorizeEndpoint.url}?oauth_token=${requestToken.oauthToken}`;
 
-		const userAuthorizeUrl = `${zaimOAuthEndpoints.authorizeEndpoint.url}?oauth_token=${requestToken.oauthToken}`;
+	await c.env.MY_KV_NAMESPACE.put("requestToken", JSON.stringify(requestToken));
 
-		await c.env.MY_KV_NAMESPACE.put(
-			"requestToken",
-			JSON.stringify(requestToken),
-		);
-
-		return c.json({ userAuthorizeUrl });
-	},
-);
+	return c.json({ userAuthorizeUrl });
+});
 
 zaimRoute.get(
 	"/callback",

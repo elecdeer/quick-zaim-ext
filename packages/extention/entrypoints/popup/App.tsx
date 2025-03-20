@@ -63,6 +63,33 @@ function App() {
 			<button
 				type="button"
 				onClick={async () => {
+					const url = new URL("http://localhost:8787/zaim/login");
+					url.searchParams.set(
+						"callback",
+						"http://localhost:8787/zaim/callback",
+					);
+
+					const res = await fetch(url, {
+						method: "GET",
+					});
+
+					const { userAuthorizeUrl } = await res.json();
+
+					console.log({ userAuthorizeUrl });
+
+					// http://localhost:8787/zaim/callbackからのリダイレクト先をhttps://efpgpbmleoemnhndmngfoinonbmbibed.chromiumapp.orgにしないといけない
+					const res2 = await browser.identity.launchWebAuthFlow({
+						interactive: true,
+						url: userAuthorizeUrl,
+					});
+					console.log(res2);
+				}}
+			>
+				Zaim Login
+			</button>
+			<button
+				type="button"
+				onClick={async () => {
 					const url = new URL("http://localhost:8787/hello");
 
 					try {

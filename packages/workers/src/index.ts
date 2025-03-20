@@ -49,7 +49,8 @@ app.get("/login", async (c, next) => {
 		return c.redirect(urlAfterLogin);
 	}
 
-	return c.text("Already logged in");
+	// return c.text("Already logged in");
+	await next();
 });
 
 app.get("/logout", async (c) => {
