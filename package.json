@@ -5,9 +5,9 @@
   "author": "elecdeer",
   "scripts": {},
   "devDependencies": {
-    "@biomejs/biome": "^1.9.3",
-    "typescript": "~5.6.2",
-    "vitest": "^2.1.2"
+    "@biomejs/biome": "^1.9.4",
+    "typescript": "~5.8.2",
+    "vitest": "^3.0.9"
   },
-  "packageManager": "pnpm@9.12.1+sha256.91452fdfa46234ae447d46d5c4fc4e7e0a7058f90495c4b6f77f8beebbb154e3"
+  "packageManager": "pnpm@10.6.5"
 }

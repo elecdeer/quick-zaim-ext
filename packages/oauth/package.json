@@ -14,8 +14,8 @@
     "test": "vitest"
   },
   "devDependencies": {
-    "@types/node": "~22.7.5",
     "@repo/zaim-api": "workspace:*",
-    "tsx": "^4.19.1"
+    "@types/node": "~22.13.10",
+    "tsx": "^4.19.3"
   }
 }

@@ -5,19 +5,19 @@
     "deploy": "wrangler deploy --minify"
   },
   "dependencies": {
-    "@ai-sdk/google": "^1.1.14",
-    "@ai-sdk/openai": "^1.1.11",
-    "@ai-sdk/valibot": "^0.0.7",
-    "@hono/oidc-auth": "^1.4.1",
+    "@ai-sdk/google": "^1.1.26",
+    "@ai-sdk/openai": "^1.2.6",
+    "@ai-sdk/valibot": "^0.0.30",
+    "@hono/oidc-auth": "^1.5.0",
     "@hono/valibot-validator": "^0.5.2",
     "@repo/oauth": "workspace:*",
     "@repo/zaim-api": "workspace:*",
-    "ai": "^4.1.40",
-    "hono": "^4.6.18",
-    "valibot": "1.0.0-rc.0"
+    "ai": "^4.1.63",
+    "hono": "^4.7.5",
+    "valibot": "^1.0.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250109.0",
-    "wrangler": "^3.101.0"
+    "@cloudflare/workers-types": "^4.20250319.0",
+    "wrangler": "^4.2.0"
   }
 }
