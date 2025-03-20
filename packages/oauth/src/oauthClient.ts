@@ -22,6 +22,7 @@ export type OAuthApplicant = {
 // TODO headerの計算に使ったparamsって実際に渡さなくていいんだっけ？
 // zaimは渡さなくても通っているように見える
 
+/** @deprecated */
 export const createOAuthApplicant = ({
 	consumerKey,
 	consumerSecret,
@@ -43,6 +44,7 @@ export const createOAuthApplicant = ({
 				requestTokenEndpoint,
 				consumerKey,
 				consumerSecret,
+				callbackUrl: "oob",
 			});
 
 			const oauthVerifier = await userAuthorize({
@@ -64,21 +66,23 @@ export const createOAuthApplicant = ({
 	};
 };
 
-const fetchRequestToken = async ({
+export const fetchRequestToken = async ({
 	requestTokenEndpoint,
 	consumerKey,
 	consumerSecret,
+	callbackUrl,
 }: {
 	requestTokenEndpoint: Endpoint;
 	consumerKey: string;
 	consumerSecret: string;
+	callbackUrl: string;
 }): Promise<RequestTokenPair> => {
 	const authorizedRequest = await authorizeRequest({
 		request: new Request(requestTokenEndpoint.url, {
 			method: requestTokenEndpoint.method,
 		}),
 		authorizationHeader: new OAuthHeader([
-			{ name: "oauth_callback", value: "oob" },
+			{ name: "oauth_callback", value: callbackUrl },
 		]),
 		consumerKey,
 		consumerSecret,
@@ -113,7 +117,7 @@ const userAuthorize = async ({
 	return oauthVerifier;
 };
 
-const fetchAccessToken = async ({
+export const fetchAccessToken = async ({
 	accessTokenEndpoint,
 	oauthVerifier,
 	consumerKey,

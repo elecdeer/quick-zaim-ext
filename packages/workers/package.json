@@ -10,6 +10,8 @@
     "@ai-sdk/valibot": "^0.0.7",
     "@hono/oidc-auth": "^1.4.1",
     "@hono/valibot-validator": "^0.5.2",
+    "@repo/oauth": "workspace:*",
+    "@repo/zaim-api": "workspace:*",
     "ai": "^4.1.40",
     "hono": "^4.6.18",
     "valibot": "1.0.0-rc.0"

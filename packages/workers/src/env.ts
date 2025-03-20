@@ -13,6 +13,9 @@ const envSchema = v.object({
 	OIDC_CLIENT_ID: v.string(),
 	OIDC_CLIENT_SECRET: v.string(),
 	// CHROME_EXTENSION_ID: v.string(),
+	ZAIM_CONSUMER_KEY: v.string(),
+	ZAIM_CONSUMER_SECRET: v.string(),
+	ZAIM_CALLBACK_URL: v.string(),
 });
 
 export type Env = v.InferOutput<typeof envSchema>;

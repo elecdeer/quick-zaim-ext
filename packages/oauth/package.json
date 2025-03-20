@@ -1,18 +1,21 @@
 {
-	"name": "@repo/oauth",
-	"private": true,
-	"version": "0.0.1",
-	"author": "elecdeer",
-	"type": "module",
-	"scripts": {
-		"check:lint": "biome check ./src",
-		"check:type": "tsc --noEmit",
-		"dev:test-cli": "tsx ./test-cli.ts",
+  "name": "@repo/oauth",
+  "private": true,
+  "version": "0.0.1",
+  "author": "elecdeer",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "check:lint": "biome check ./src",
+    "check:type": "tsc --noEmit",
+    "dev:test-cli": "tsx ./test-cli.ts",
     "test": "vitest"
-	},
-	"devDependencies": {
-		"@types/node": "~22.7.5",
+  },
+  "devDependencies": {
+    "@types/node": "~22.7.5",
     "@repo/zaim-api": "workspace:*",
-		"tsx": "^4.19.1"
-	}
+    "tsx": "^4.19.1"
+  }
 }

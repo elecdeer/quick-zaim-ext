@@ -4,12 +4,12 @@ compatibility_date = "2025-01-26"
 
 # compatibility_flags = [ "nodejs_compat" ]
 
-[vars]
-OPENAI_MODEL = "gpt-4o-mini"
+# [vars]
+# OPENAI_MODEL = "gpt-4o-mini"
 
-# [[kv_namespaces]]
-# binding = "MY_KV_NAMESPACE"
-# id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+[[kv_namespaces]]
+binding = "MY_KV_NAMESPACE"
+id = "e4c9779d01724a70a19d88cc3d932e7b"
 
 # [[r2_buckets]]
 # binding = "MY_BUCKET"
@@ -23,6 +23,6 @@ OPENAI_MODEL = "gpt-4o-mini"
 # [ai]
 # binding = "AI"
 
-# [observability]
-# enabled = true
-# head_sampling_rate = 1
+[observability]
+enabled = true
+head_sampling_rate = 1

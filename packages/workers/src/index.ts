@@ -9,6 +9,7 @@ import { Hono } from "hono";
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import { extractionHtmlRoute } from "./handlers/extraction/html";
+import { zaimRoute } from "./handlers/zaim";
 
 const app = new Hono();
 
@@ -48,7 +49,7 @@ app.get("/login", async (c, next) => {
 		return c.redirect(urlAfterLogin);
 	}
 
-	await next();
+	return c.text("Already logged in");
 });
 
 app.get("/logout", async (c) => {
@@ -64,5 +65,7 @@ app.get("/hello", async (c) => {
 });
 
 app.route("/extraction/html", extractionHtmlRoute);
+
+app.route("/zaim", zaimRoute);
 
 export default app;
