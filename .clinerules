@@ -1,0 +1,67 @@
+# リポジトリ構造と技術スタックの概要
+
+このリポジトリは、pnpm ワークスペースを利用したモノレポ構成になっており、複数のパッケージで構成されています。
+
+## パッケージ構成
+
+1.  **`packages/extention`**:
+    *   **役割**: ブラウザ拡張機能のフロントエンド部分。ユーザーインターフェースを提供し、バックエンド (workers) と通信します。
+    *   **主要技術**:
+        *   `wxt`: ブラウザ拡張機能開発フレームワーク
+        *   `react`, `react-dom`: UI ライブラリ
+        *   `openai`: OpenAI API を利用するためのライブラリ (おそらくコンテンツ抽出などで利用)
+        *   `typescript`: 開発言語
+        *   `biome`: フォーマッター/リンター
+        *   `vitest`: テストフレームワーク
+
+2.  **`packages/oauth`**:
+    *   **役割**: Zaim API に対する OAuth 1.0a 認証処理を担当するライブラリ。
+    *   **主要技術**:
+        *   `typescript`: 開発言語
+        *   `@repo/zaim-api`: Zaim API クライアント (ワークスペース内依存)
+        *   `vitest`: テストフレームワーク
+
+3.  **`packages/workers`**:
+    *   **役割**: Cloudflare Workers 上で動作するバックエンド API サーバー。拡張機能からのリクエストを受け付け、Zaim API との連携、データ処理、AI 機能などを提供します。
+    *   **主要技術**:
+        *   `hono`: Web フレームワーク
+        *   `wrangler`: Cloudflare Workers 開発・デプロイツール
+        *   `@ai-sdk/*`, `ai`: AI 機能 (Google Gemini, OpenAI) を利用するためのライブラリ
+        *   `drizzle-orm`: データベース (おそらく D1) 操作のための ORM
+        *   `valibot`: データバリデーションライブラリ
+        *   `@hono/oidc-auth`: OIDC 認証ミドルウェア (用途は要確認)
+        *   `@repo/oauth`, `@repo/zaim-api`: ワークスペース内依存
+        *   `typescript`: 開発言語
+
+4.  **`packages/zaim-api`**:
+    *   **役割**: Zaim API の型定義とクライアントコードを生成するパッケージ。
+    *   **主要技術**:
+        *   `typespec`: API 仕様記述言語
+        *   `openapi-ts`: OpenAPI 定義から TypeScript クライアントを生成するツール
+        *   `@hey-api/client-fetch`: 生成されたクライアントが利用する HTTP クライアント
+        *   `typescript`: 開発言語
+
+## パッケージ間の依存関係 (Mermaid 図)
+
+```mermaid
+graph TD
+    subgraph "quick-zaim-ext (pnpm workspace)"
+        Extension["packages/extention\n(Browser Extension - React, WXT, OpenAI)"]
+        Workers["packages/workers\n(CF Workers - Hono, AI SDK, Drizzle)"]
+        OAuth["packages/oauth\n(OAuth Client)"]
+        ZaimAPI["packages/zaim-api\n(Zaim API Client - TypeSpec)"]
+
+        Extension --> Workers;
+        Workers --> OAuth;
+        Workers --> ZaimAPI;
+        OAuth --> ZaimAPI;
+    end
+```
+
+## リポジトリ全体の開発ツール
+
+*   `pnpm`: パッケージマネージャー (ワークスペース管理)
+*   `typescript`: 主要開発言語
+*   `biome`: コードフォーマッター、リンター
+*   `vitest`: テストフレームワーク
+
