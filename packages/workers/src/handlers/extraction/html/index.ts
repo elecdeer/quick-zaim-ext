@@ -4,9 +4,15 @@ import { vValidator } from "@hono/valibot-validator";
 import { Hono } from "hono";
 import * as v from "valibot";
 import { parseEnv } from "../../../env";
+import { createDb, accessTokenRepository } from "../../../db";
 import { type Category, type PaymentMethod, aiExtractionFromHtml } from "./ai";
+import { getZaimData } from "../../zaim";
 
-export const extractionHtmlRoute = new Hono();
+export const extractionHtmlRoute = new Hono<{
+	Bindings: {
+		DB: D1Database;
+	};
+}>();
 
 extractionHtmlRoute.post(
 	"/",
@@ -23,8 +29,31 @@ extractionHtmlRoute.post(
 		}
 
 		const env = parseEnv(c.env);
+		const db = createDb(c.env.DB);
 
 		const { html } = c.req.valid("json");
+
+		// Zaimのアクセストークンを確認
+		const token = await accessTokenRepository.getAccessToken(db, auth.sub);
+		if (!token) {
+			return c.json({ error: "Zaim access token not found. Please connect to Zaim first." }, 400);
+		}
+
+		// カテゴリと支払い方法を取得
+		let categories: Category[] = [];
+		let paymentMethods: PaymentMethod[] = [];
+
+		try {
+			// ZaimのAPIからカテゴリと支払い方法を取得
+			const zaimData = await getZaimData(auth, env, db);
+			categories = zaimData.categories;
+			paymentMethods = zaimData.paymentMethods;
+		} catch (error) {
+			console.error("Error fetching Zaim data:", error);
+			// エラー時はハードコードされた値を使用
+			categories = tempCategory;
+			paymentMethods = tempPaymentMethods;
+		}
 
 		const google = createGoogleGenerativeAI({
 			apiKey: env.GEMINI_API_KEY,
@@ -46,8 +75,8 @@ extractionHtmlRoute.post(
 					{ id: "41917412", name: "Amazon.com" },
 					{ id: "1912410", name: "Yodobashi.com" },
 				],
-				categories: tempCategory,
-				paymentMethods: tempPaymentMethods,
+				categories: categories,
+				paymentMethods: paymentMethods,
 			},
 			model,
 		);

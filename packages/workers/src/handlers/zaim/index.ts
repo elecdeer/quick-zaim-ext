@@ -4,19 +4,32 @@ import {
 	fetchAccessToken,
 	fetchRequestToken,
 } from "@repo/oauth";
-import { client, userVerifyUser } from "@repo/zaim-api/client";
+import {
+	type AccountAccount,
+	type CategoryCategory,
+	type GenreGenre,
+	accountGetAccounts,
+	categoryGetCategories,
+	genreGetGenres,
+	userVerifyUser,
+} from "@repo/zaim-api";
+import { client } from "@repo/zaim-api/client";
 import { Hono } from "hono";
 import * as v from "valibot";
 import { parseEnv } from "../../env";
 
-import { createDb, accessTokenRepository, requestTokenRepository } from "../../db";
 import { getAuth } from "@hono/oidc-auth";
+import {
+	accessTokenRepository,
+	createDb,
+	requestTokenRepository,
+} from "../../db";
 
-declare module 'hono' {
-  interface OidcAuthClaims {
-    email: string
-    sub: string
-  }
+declare module "hono" {
+	interface OidcAuthClaims {
+		email: string;
+		sub: string;
+	}
 }
 
 export const zaimRoute = new Hono<{
@@ -126,7 +139,7 @@ zaimRoute.get(
 
 		// OIDCの認証情報を取得
 		const auth = await getAuth(c);
-    
+
 		if (auth?.sub) {
 			// OIDCのsubとZaimのaccessTokenを紐付けて保存
 			await accessTokenRepository.saveAccessToken(db, {
@@ -160,20 +173,235 @@ zaimRoute.get("/token", async (c) => {
 		return c.json({ error: "Zaim access token not found" }, 404);
 	}
 
-  console.log("token", token);
+	console.log("token", token);
 
 	return c.json({
 		status: "success",
 		message: "Zaim access token found",
 		// トークン自体は返さない（セキュリティ上の理由）
-		hasToken: true
+		hasToken: true,
 	});
 });
+
+// カテゴリとジャンル（サブカテゴリ）を取得するエンドポイント
+zaimRoute.get("/categories", async (c) => {
+	const env = parseEnv(c.env);
+
+	// OIDCの認証情報を取得
+	const auth = await getAuth(c);
+	if (!auth || !auth.sub || typeof auth.sub !== "string") {
+		return c.json({ error: "Unauthorized or invalid user" }, 401);
+	}
+
+	// D1データベースに接続
+	const db = createDb(c.env.DB);
+
+	// アクセストークンを取得
+	const token = await accessTokenRepository.getAccessToken(db, auth.sub);
+	if (!token) {
+		return c.json({ error: "Zaim access token not found" }, 404);
+	}
+
+	// Zaimクライアントの設定
+	const signer = createOAuthSigner({
+		accessToken: token.accessToken,
+		accessTokenSecret: token.accessTokenSecret,
+		consumerKey: env.ZAIM_CONSUMER_KEY,
+		consumerSecret: env.ZAIM_CONSUMER_SECRET,
+	});
+
+	client.setConfig({
+		baseUrl: "https://api.zaim.net/",
+	});
+	client.interceptors.request.use((req) => {
+		console.log(req.url);
+		return signer(req);
+	});
+
+	try {
+		// カテゴリとジャンル（サブカテゴリ）を取得
+		const categoriesResponse = await categoryGetCategories({
+			query: { mapping: 1 },
+			throwOnError: true,
+		});
+		const genresResponse = await genreGetGenres({
+			query: { mapping: 1 },
+			throwOnError: true,
+		});
+
+		// カテゴリとサブカテゴリを整形
+		const categories = categoriesResponse.data.categories.map(
+			(category: CategoryCategory) => {
+				// このカテゴリに属するジャンル（サブカテゴリ）を取得
+				const subCategories = genresResponse.data.genres
+					.filter((genre: GenreGenre) => genre.category_id === category.id)
+					.map((genre: GenreGenre) => ({
+						id: String(genre.id),
+						name: genre.name,
+						description: undefined,
+					}));
+
+				return {
+					id: String(category.id),
+					name: category.name,
+					description: undefined,
+					subCategories,
+				};
+			},
+		);
+
+		return c.json({ categories });
+	} catch (error) {
+		console.error("Zaim API error:", error);
+		return c.json({ error: "Failed to call Zaim API" }, 500);
+	}
+});
+
+// 支払い方法（アカウント）を取得するエンドポイント
+zaimRoute.get("/payment-methods", async (c) => {
+	const env = parseEnv(c.env);
+
+	// OIDCの認証情報を取得
+	const auth = await getAuth(c);
+	if (!auth || !auth.sub || typeof auth.sub !== "string") {
+		return c.json({ error: "Unauthorized or invalid user" }, 401);
+	}
+
+	// D1データベースに接続
+	const db = createDb(c.env.DB);
+
+	// アクセストークンを取得
+	const token = await accessTokenRepository.getAccessToken(db, auth.sub);
+	if (!token) {
+		return c.json({ error: "Zaim access token not found" }, 404);
+	}
+
+	// Zaimクライアントの設定
+	const signer = createOAuthSigner({
+		accessToken: token.accessToken,
+		accessTokenSecret: token.accessTokenSecret,
+		consumerKey: env.ZAIM_CONSUMER_KEY,
+		consumerSecret: env.ZAIM_CONSUMER_SECRET,
+	});
+
+	client.setConfig({
+		baseUrl: "https://api.zaim.net/",
+	});
+	client.interceptors.request.use((req) => {
+		console.log(req.url);
+		return signer(req);
+	});
+
+	try {
+		// アカウント（支払い方法）を取得
+		const accountsResponse = await accountGetAccounts({
+			query: { mapping: 1 },
+			throwOnError: true,
+		});
+
+		// 支払い方法を整形
+		const paymentMethods = accountsResponse.data.accounts.map(
+			(account: AccountAccount) => ({
+				id: String(account.id),
+				name: account.name,
+				description: undefined,
+			}),
+		);
+
+		return c.json({ paymentMethods });
+	} catch (error) {
+		console.error("Zaim API error:", error);
+		return c.json({ error: "Failed to call Zaim API" }, 500);
+	}
+});
+
+// カテゴリとジャンル（サブカテゴリ）と支払い方法を取得する関数
+export const getZaimData = async (auth: { sub: string }, env: any, db: any) => {
+	// アクセストークンを取得
+	const token = await accessTokenRepository.getAccessToken(db, auth.sub);
+	if (!token) {
+		throw new Error("Zaim access token not found");
+	}
+
+	// Zaimクライアントの設定
+	const signer = createOAuthSigner({
+		accessToken: token.accessToken,
+		accessTokenSecret: token.accessTokenSecret,
+		consumerKey: env.ZAIM_CONSUMER_KEY,
+		consumerSecret: env.ZAIM_CONSUMER_SECRET,
+	});
+
+	client.setConfig({
+		baseUrl: "https://api.zaim.net/",
+	});
+
+	client.interceptors.request.use((req) => {
+		console.log("req", req.url);
+		return signer(req);
+	});
+	client.interceptors.response.use((res) => {
+		// console.log("res", res);
+		res
+			.clone()
+			.json()
+			.then((data) => console.log("res", data));
+
+		return res;
+	});
+
+	// カテゴリとジャンル（サブカテゴリ）を取得
+	const categoriesResponse = await categoryGetCategories({
+		throwOnError: true,
+		query: { mapping: 1 },
+	});
+	const genresResponse = await genreGetGenres({
+		throwOnError: true,
+		query: { mapping: 1 },
+	});
+
+	// アカウント（支払い方法）を取得
+	const accountsResponse = await accountGetAccounts({
+		throwOnError: true,
+		query: { mapping: 1 },
+	});
+
+	// カテゴリとサブカテゴリを整形
+	const categories = categoriesResponse.data.categories.map(
+		(category: CategoryCategory) => {
+			// このカテゴリに属するジャンル（サブカテゴリ）を取得
+			const subCategories = genresResponse.data.genres
+				.filter((genre: GenreGenre) => genre.category_id === category.id)
+				.map((genre: GenreGenre) => ({
+					id: String(genre.id),
+					name: genre.name,
+					description: undefined,
+				}));
+
+			return {
+				id: String(category.id),
+				name: category.name,
+				description: undefined,
+				subCategories,
+			};
+		},
+	);
+
+	// 支払い方法を整形
+	const paymentMethods = accountsResponse.data.accounts.map(
+		(account: AccountAccount) => ({
+			id: String(account.id),
+			name: account.name,
+			description: undefined,
+		}),
+	);
+
+	return { categories, paymentMethods };
+};
 
 // OIDCのsubに紐づくZaimのアクセストークンを使用してAPIを呼び出すエンドポイント
 // zaimRoute.get("/api/*", async (c) => {
 // 	const env = parseEnv(c.env);
-	
+
 // 	// OIDCの認証情報を取得
 // 	const auth = await getAuth(c);
 // 	if (!auth || !auth.sub || typeof auth.sub !== "string") {
@@ -207,7 +435,7 @@ zaimRoute.get("/token", async (c) => {
 
 // 	// パスからAPIエンドポイントを取得
 // 	const path = c.req.path.replace(/^\/zaim\/api\//, "");
-	
+
 // 	try {
 // 		// Zaimクライアントを使用してAPIを呼び出す
 // 		// 例として、ユーザー情報を取得する

@@ -4,17 +4,18 @@
   "type": "module",
   "scripts": {
     "generate:openapi3": "tsp compile ./typespec",
-    "generate:ts-client": "openapi-ts ./tsp-output/@typespec/openapi3/openapi.yaml ./src/client.ts"
+    "generate:ts-client": "openapi-ts"
   },
   "exports": {
-    "./client": "./src/client/index.ts"
+    ".": "./src/client/index.ts",
+    "./client": "./src/client/client.gen.ts"
   },
   "devDependencies": {
     "@hey-api/openapi-ts": "^0.64.13",
-    "@typespec/compiler": "^0.67.1",
-    "@typespec/http": "^0.67.1",
-    "@typespec/openapi3": "^0.67.1",
-    "@typespec/rest": "^0.67.1"
+    "@typespec/compiler": "^0.61.0",
+    "@typespec/http": "^0.61.0",
+    "@typespec/openapi3": "^0.61.0",
+    "@typespec/rest": "^0.61.0"
   },
   "private": true,
   "dependencies": {
