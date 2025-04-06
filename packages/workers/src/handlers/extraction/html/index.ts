@@ -6,7 +6,7 @@ import * as v from "valibot";
 import { parseEnv } from "../../../env";
 import { createDb, accessTokenRepository } from "../../../db";
 import { type Category, type PaymentMethod, aiExtractionFromHtml } from "./ai";
-import { getZaimData } from "../../zaim";
+import * as zaimService from "../../../services/zaimService"; // パスを修正
 
 export const extractionHtmlRoute = new Hono<{
 	Bindings: {
@@ -45,7 +45,7 @@ extractionHtmlRoute.post(
 
 		try {
 			// ZaimのAPIからカテゴリと支払い方法を取得
-			const zaimData = await getZaimData(auth, env, db);
+			const zaimData = await zaimService.getZaimMasterData(db, env, auth.sub); // 関数名と引数を修正
 			categories = zaimData.categories;
 			paymentMethods = zaimData.paymentMethods;
 		} catch (error) {
