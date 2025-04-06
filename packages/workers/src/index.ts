@@ -10,8 +10,11 @@ import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import { extractionHtmlRoute } from "./handlers/extraction/html";
 import { zaimRoute } from "./handlers/zaim";
+import * as logger from "./logger";
 
 const app = new Hono();
+
+app.use(logger.middleware);
 
 app.get("/callback", (c) => {
 	return processOAuthCallback(c);
@@ -20,8 +23,6 @@ app.get("/callback", (c) => {
 // https://github.com/honojs/middleware/issues/760#issuecomment-2520606683
 app.use(
 	createMiddleware(async (c, next) => {
-		console.log("c.req.path", c.req.path);
-
 		// /login以外のパスでは認証されていない場合に401を返す
 		if (c.req.path !== "/login") {
 			const auth = await getAuth(c);
@@ -62,7 +63,7 @@ app.use(oidcAuthMiddleware());
 
 app.get("/hello", async (c) => {
 	const auth = await getAuth(c);
-  console.log("auth", auth);
+	console.log("auth", auth);
 	return c.text(`Hello <${auth?.email}>!`);
 });
 
