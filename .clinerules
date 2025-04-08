@@ -79,4 +79,5 @@ graph TD
   - named export を使用する
   - 必要な場合はimportする側で * as でインポートする
 - 3つ以上の引数を持つ関数は、オブジェクトを引数に取る
+- workersパッケージではconsole.logの代わりにlogger.tsの関数を使って構造化ログを出力する
 

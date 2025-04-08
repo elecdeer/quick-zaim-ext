@@ -13,11 +13,14 @@
   },
   "linter": {
     "enabled": true,
-    "ignore": ["packages/extention/entrypoints/playwright/**/*.ts"],
+    "ignore": [
+      "packages/extention/entrypoints/playwright/**/*.ts"
+    ],
     "rules": {
       "recommended": true,
       "correctness": {
-        "useHookAtTopLevel": "warn"
+        "useHookAtTopLevel": "warn",
+        "noUnusedImports": "warn"
       },
       "suspicious": {
         "useAwait": "warn"

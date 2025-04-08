@@ -3,6 +3,7 @@ import { getAuth } from "@hono/oidc-auth";
 import { vValidator } from "@hono/valibot-validator";
 import { Hono } from "hono";
 import * as v from "valibot";
+import * as logger from "../../../logger";
 import { getZaimMasterData } from "../../../services/zaim/getZaimMasterData"; // Import specific function
 import {
 	checkZaimTokenExists,
@@ -67,9 +68,15 @@ extractionHtmlRoute.post(
 			paymentMethods = tempPaymentMethods;
 		}
 
+		const gatewayUrl =
+			await c.env.AI.gateway("receipt-test").getUrl("google-ai-studio");
+		logger.debug({
+			message: "Gateway URL",
+			gatewayUrl,
+		});
 		const google = createGoogleGenerativeAI({
 			apiKey: c.env.GEMINI_API_KEY,
-			baseURL: c.env.GEMINI_BASE_URL,
+			baseURL: `${gatewayUrl}/v1beta`,
 		});
 		const model = google("gemini-2.0-flash-001");
 

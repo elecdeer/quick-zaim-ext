@@ -13,6 +13,7 @@ const createLeveledLogger = (level: string) => {
 	return logger;
 };
 
+export const debug = createLeveledLogger("DEBUG");
 export const info = createLeveledLogger("INFO");
 export const error = createLeveledLogger("ERROR");
 
@@ -35,11 +36,17 @@ export const middleware = factory.createMiddleware(async (c, next) => {
 	const end = Date.now();
 	const duration = end - start;
 
-	info({
-		type: "workers-response",
-		method,
-		path,
-		status: c.res.status,
-		timeMs: duration,
-	});
+	c.res
+		.clone()
+		.json()
+		.then((json) => {
+			info({
+				type: "workers-response",
+				method,
+				path,
+				status: c.res.status,
+				timeMs: duration,
+				res: json,
+			});
+		});
 });

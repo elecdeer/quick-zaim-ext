@@ -1,4 +1,3 @@
-import type { Context } from "hono";
 import { env } from "hono/adapter";
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
@@ -10,7 +9,6 @@ const envVarsSchema = v.object({
 	OPENAI_BASE_URL: v.pipe(v.string(), v.url()),
 
 	GEMINI_API_KEY: v.string(),
-	GEMINI_BASE_URL: v.pipe(v.string(), v.url()),
 
 	OIDC_AUTH_SECRET: v.string(),
 	OIDC_ISSUER: v.string(),
@@ -26,6 +24,7 @@ const bindingsSchema = v.object({
 	ZAIM_AGENT_ZAIM_TOKENS_KV: v.custom<KVNamespace>(
 		(value) => typeof value === "object" && value !== null,
 	),
+	AI: v.custom<Ai>((value) => typeof value === "object" && value !== null),
 });
 
 const envSchema = v.intersect([envVarsSchema, bindingsSchema]);

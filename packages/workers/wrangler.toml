@@ -22,8 +22,8 @@ id = "0622d6df2c7b479da4e3ac56eac1ced3" # 取得したIDを設定
 # migrations_dir = "drizzle/migrations"
 # migrations_dir = "drizzle/migrations" # この行も不要なので削除 (またはコメントアウト)
 
-# [ai]
-# binding = "AI"
+[ai]
+binding = "AI"
 
 [observability]
 enabled = true

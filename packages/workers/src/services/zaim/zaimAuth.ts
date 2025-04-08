@@ -106,33 +106,6 @@ export const configureZaimClient = ({
 	return client; // Return the configured client instance
 };
 
-// --- Helper Functions (Internal) ---
-// This helper might become less necessary if getZaimAccessToken is used externally
-/**
- * OIDC Sub に紐づくアクセストークンを取得し、認証済み Zaim クライアントを返す
- * @throws Error - アクセストークンが見つからない場合
- */
-const _getAuthenticatedZaimClient = async (
-	env: Env,
-	oidcSub: string,
-): Promise<Client> => {
-	// Return type Client
-	const { accessToken, accessTokenSecret } = await getZaimAccessToken(
-		env,
-		oidcSub,
-	);
-
-	// Configure and return the client instance
-	return configureZaimClient({
-		accessToken,
-		accessTokenSecret,
-		consumerKey: env.ZAIM_CONSUMER_KEY,
-		consumerSecret: env.ZAIM_CONSUMER_SECRET,
-	});
-};
-
-// --- Service Functions ---
-
 /**
  * Zaimログイン用の認証URLを取得する
  */
