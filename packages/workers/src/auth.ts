@@ -6,6 +6,7 @@ import {
 } from "@hono/oidc-auth";
 import { type Context, Hono, type Next } from "hono";
 import { HTTPException } from "hono/http-exception";
+import * as logger from "./logger";
 
 export const authMiddleware = oidcAuthMiddleware();
 
@@ -55,6 +56,9 @@ authRoute.get("/logout", async (c: Context) => {
 
 // TODO: そのうち消す
 authRoute.use(authMiddleware).get("/hello", async (c) => {
+	logger.info({
+		env: c.env,
+	});
 	const auth = await getAuth(c); // getAuth を直接使用
 	console.log("auth in /hello", auth);
 	return c.text(`Hello <${auth?.email}>!`);

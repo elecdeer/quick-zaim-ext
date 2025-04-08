@@ -1,13 +1,10 @@
 import { vValidator } from "@hono/valibot-validator";
 import { Hono } from "hono";
 import * as v from "valibot";
-import { parseEnv } from "../../env";
 
 import { getAuth } from "@hono/oidc-auth";
-import {
-	createDb,
-} from "../../db";
 import * as zaimService from "../../services/zaimService";
+import type { HonoApp } from "../../workers";
 
 declare module "hono" {
 	interface OidcAuthClaims {
@@ -16,26 +13,20 @@ declare module "hono" {
 	}
 }
 
-export const zaimRoute = new Hono<{
-	Bindings: {
-		MY_KV_NAMESPACE: KVNamespace;
-		DB: D1Database;
-	};
-}>();
+export const zaimRoute = new Hono<HonoApp>();
 
 zaimRoute.get("/login", async (c) => {
-	const env = parseEnv(c.env);
-	const db = createDb(c.env.DB);
+	// const env = parseEnv(c.env);
+	// const db = createDb(c.env.DB); // dbは不要になった
 
 	try {
-		const { userAuthorizeUrl } = await zaimService.getZaimLoginUrl(db, env);
+		const { userAuthorizeUrl } = await zaimService.getZaimLoginUrl(c.env); // db引数を削除
 		return c.json({ userAuthorizeUrl });
 	} catch (error) {
 		console.error("Failed to get Zaim login URL:", error);
 		// エラーの種類に応じて適切なステータスコードを返す
 		return c.json({ error: "Failed to initiate Zaim login" }, 500);
 	}
-
 });
 
 zaimRoute.get(
@@ -48,18 +39,15 @@ zaimRoute.get(
 		}),
 	),
 	async (c) => {
-		const env = parseEnv(c.env);
-		const db = createDb(c.env.DB);
 		const { oauth_token, oauth_verifier } = c.req.valid("query");
 
 		try {
 			// OIDCの認証情報を取得
 			const auth = await getAuth(c);
-			const oidcSub = auth?.sub; // subが存在しない場合は undefined
+			const oidcSub = auth?.sub;
 
 			const { user } = await zaimService.handleZaimCallback(
-				db,
-				env,
+				c.env,
 				oauth_token,
 				oauth_verifier,
 				oidcSub,
@@ -71,10 +59,16 @@ zaimRoute.get(
 		} catch (error) {
 			console.error("Failed to handle Zaim callback:", error);
 			// エラーの種類に応じて適切なステータスコードとメッセージを返す
-			if (error instanceof Error && error.message === "Request token not found") {
+			if (
+				error instanceof Error &&
+				error.message === "Request token not found"
+			) {
 				return c.json({ error: "Invalid or expired request token" }, 404);
 			}
-			if (error instanceof Error && error.message === "Failed to verify Zaim user") {
+			if (
+				error instanceof Error &&
+				error.message === "Failed to verify Zaim user"
+			) {
 				return c.json({ error: "Failed to verify Zaim user account" }, 502); // Bad Gateway or similar
 			}
 			return c.json({ error: "Failed to process Zaim callback" }, 500);
@@ -86,14 +80,15 @@ zaimRoute.get(
 zaimRoute.get("/token", async (c) => {
 	// OIDCの認証情報を取得
 	const auth = await getAuth(c);
-	if (!auth?.sub) { // sub の存在のみチェック
+	if (!auth?.sub) {
+		// sub の存在のみチェック
 		return c.json({ error: "Unauthorized" }, 401);
 	}
 
-	const db = createDb(c.env.DB);
+	// const db = createDb(c.env.DB); // dbは不要
 
 	try {
-		const hasToken = await zaimService.checkZaimTokenExists(db, auth.sub);
+		const hasToken = await zaimService.checkZaimTokenExists(c.env, auth.sub); // dbの代わりにc.envを渡す
 
 		if (hasToken) {
 			return c.json({
@@ -102,7 +97,10 @@ zaimRoute.get("/token", async (c) => {
 				hasToken: true,
 			});
 		}
-		return c.json({ error: "Zaim access token not found", hasToken: false }, 404);
+		return c.json(
+			{ error: "Zaim access token not found", hasToken: false },
+			404,
+		);
 	} catch (error) {
 		console.error("Failed to check Zaim token existence:", error);
 		return c.json({ error: "Failed to check Zaim token status" }, 500);
@@ -111,8 +109,8 @@ zaimRoute.get("/token", async (c) => {
 
 // カテゴリとジャンル（サブカテゴリ）を取得するエンドポイント
 zaimRoute.get("/categories", async (c) => {
-	const env = parseEnv(c.env);
-	const db = createDb(c.env.DB);
+	// const env = parseEnv(c.env); // zaimService内でパースするので不要
+	// const db = createDb(c.env.DB); // dbは不要
 
 	// OIDCの認証情報を取得
 	const auth = await getAuth(c);
@@ -121,14 +119,20 @@ zaimRoute.get("/categories", async (c) => {
 	}
 
 	try {
-		const categories = await zaimService.getZaimCategories(db, env, auth.sub);
+		const categories = await zaimService.getZaimCategories(c.env, auth.sub); // db, envの代わりにc.envを渡す
 		return c.json({ categories });
 	} catch (error) {
 		console.error("Failed to get Zaim categories:", error);
-		if (error instanceof Error && error.message.includes("Zaim access token not found")) {
+		if (
+			error instanceof Error &&
+			error.message.includes("Zaim access token not found")
+		) {
 			return c.json({ error: "Zaim access token not found" }, 404);
 		}
-		if (error instanceof Error && error.message.includes("Failed to call Zaim API")) {
+		if (
+			error instanceof Error &&
+			error.message.includes("Failed to call Zaim API")
+		) {
 			return c.json({ error: "Failed to call Zaim API" }, 502); // Bad Gateway or similar
 		}
 		return c.json({ error: "Failed to retrieve categories" }, 500);
@@ -137,8 +141,8 @@ zaimRoute.get("/categories", async (c) => {
 
 // 支払い方法（アカウント）を取得するエンドポイント
 zaimRoute.get("/payment-methods", async (c) => {
-	const env = parseEnv(c.env);
-	const db = createDb(c.env.DB);
+	// const env = parseEnv(c.env); // zaimService内でパースするので不要
+	// const db = createDb(c.env.DB); // dbは不要
 
 	// OIDCの認証情報を取得
 	const auth = await getAuth(c);
@@ -147,14 +151,23 @@ zaimRoute.get("/payment-methods", async (c) => {
 	}
 
 	try {
-		const paymentMethods = await zaimService.getZaimPaymentMethods(db, env, auth.sub);
+		const paymentMethods = await zaimService.getZaimPaymentMethods(
+			c.env,
+			auth.sub,
+		); // db, envの代わりにc.envを渡す
 		return c.json({ paymentMethods });
 	} catch (error) {
 		console.error("Failed to get Zaim payment methods:", error);
-		if (error instanceof Error && error.message.includes("Zaim access token not found")) {
+		if (
+			error instanceof Error &&
+			error.message.includes("Zaim access token not found")
+		) {
 			return c.json({ error: "Zaim access token not found" }, 404);
 		}
-		if (error instanceof Error && error.message.includes("Failed to call Zaim API")) {
+		if (
+			error instanceof Error &&
+			error.message.includes("Failed to call Zaim API")
+		) {
 			return c.json({ error: "Failed to call Zaim API" }, 502); // Bad Gateway or similar
 		}
 		return c.json({ error: "Failed to retrieve payment methods" }, 500);

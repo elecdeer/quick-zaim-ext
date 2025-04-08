@@ -8,18 +8,19 @@ compatibility_date = "2025-01-26"
 # OPENAI_MODEL = "gpt-4o-mini"
 
 [[kv_namespaces]]
-binding = "MY_KV_NAMESPACE"
-id = "e4c9779d01724a70a19d88cc3d932e7b"
+binding = "ZAIM_AGENT_ZAIM_TOKENS_KV" # Binding名を変更
+id = "0622d6df2c7b479da4e3ac56eac1ced3" # 取得したIDを設定
 
 # [[r2_buckets]]
 # binding = "MY_BUCKET"
 # bucket_name = "my-bucket"
 
-[[d1_databases]]
-binding = "DB"
-database_name = "quick-zaim-db"
-database_id = "b1ce52a6-90b1-418d-990d-e1e0958a4868"
-migrations_dir = "drizzle/migrations"
+# [[d1_databases]] # D1設定をコメントアウト
+# binding = "DB"
+# database_name = "quick-zaim-db"
+# database_id = "b1ce52a6-90b1-418d-990d-e1e0958a4868"
+# migrations_dir = "drizzle/migrations"
+# migrations_dir = "drizzle/migrations" # この行も不要なので削除 (またはコメントアウト)
 
 # [ai]
 # binding = "AI"

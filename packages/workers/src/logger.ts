@@ -25,7 +25,7 @@ export const middleware = factory.createMiddleware(async (c, next) => {
 	// https://を取る
 	const path = url.slice(url.indexOf("/", 8));
 	info({
-		type: "request",
+		type: "workers-request",
 		method,
 		path,
 	});
@@ -38,7 +38,7 @@ export const middleware = factory.createMiddleware(async (c, next) => {
 	const duration = end - start;
 
 	info({
-		type: "response",
+		type: "workers-response",
 		method,
 		path,
 		status: c.res.status,

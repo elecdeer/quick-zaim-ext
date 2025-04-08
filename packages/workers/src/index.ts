@@ -1,12 +1,14 @@
 import { Hono } from "hono";
 import { authMiddleware, authRoute } from "./auth"; // auth.ts から authApp をデフォルトインポート
+import { validateEnvMiddleware } from "./env";
 import { extractionHtmlRoute } from "./handlers/extraction/html";
 import { zaimRoute } from "./handlers/zaim";
 import * as logger from "./logger";
-// createMiddleware と HTTPException は auth.ts に移動したので削除
+import type { HonoApp } from "./workers";
 
-const app = new Hono();
+const app = new Hono<HonoApp>();
 
+app.use(validateEnvMiddleware);
 app.use(logger.middleware);
 
 app.use("*", authMiddleware);

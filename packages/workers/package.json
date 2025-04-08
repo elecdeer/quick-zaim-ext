@@ -13,7 +13,6 @@
     "@repo/oauth": "workspace:*",
     "@repo/zaim-api": "workspace:*",
     "ai": "^4.1.63",
-    "drizzle-orm": "^0.40.1",
     "hono": "^4.7.5",
     "valibot": "^1.0.0"
   },

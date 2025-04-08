@@ -3,16 +3,12 @@ import { getAuth } from "@hono/oidc-auth";
 import { vValidator } from "@hono/valibot-validator";
 import { Hono } from "hono";
 import * as v from "valibot";
-import { parseEnv } from "../../../env";
-import { createDb, accessTokenRepository } from "../../../db";
-import { type Category, type PaymentMethod, aiExtractionFromHtml } from "./ai";
 import * as zaimService from "../../../services/zaimService"; // パスを修正
+import type { HonoApp } from "../../../workers";
+import { type Category, type PaymentMethod, aiExtractionFromHtml } from "./ai";
 
-export const extractionHtmlRoute = new Hono<{
-	Bindings: {
-		DB: D1Database;
-	};
-}>();
+// HonoインスタンスのBindingsに完全なEnv型を使用
+export const extractionHtmlRoute = new Hono<HonoApp>();
 
 extractionHtmlRoute.post(
 	"/",
@@ -28,15 +24,17 @@ extractionHtmlRoute.post(
 			return c.json({ error: "Unauthorized" }, 401);
 		}
 
-		const env = parseEnv(c.env);
-		const db = createDb(c.env.DB);
-
 		const { html } = c.req.valid("json");
 
-		// Zaimのアクセストークンを確認
-		const token = await accessTokenRepository.getAccessToken(db, auth.sub);
-		if (!token) {
-			return c.json({ error: "Zaim access token not found. Please connect to Zaim first." }, 400);
+		const hasToken = await zaimService.checkZaimTokenExists(c.env, auth.sub);
+		if (!hasToken) {
+			return c.json(
+				{
+					error:
+						"Zaim access token not found. Please link your Zaim account first.",
+				},
+				400,
+			);
 		}
 
 		// カテゴリと支払い方法を取得
@@ -45,7 +43,8 @@ extractionHtmlRoute.post(
 
 		try {
 			// ZaimのAPIからカテゴリと支払い方法を取得
-			const zaimData = await zaimService.getZaimMasterData(db, env, auth.sub); // 関数名と引数を修正
+			// bindings を渡す (修正済み)
+			const zaimData = await zaimService.getZaimMasterData(c.env, auth.sub);
 			categories = zaimData.categories;
 			paymentMethods = zaimData.paymentMethods;
 		} catch (error) {
@@ -56,8 +55,8 @@ extractionHtmlRoute.post(
 		}
 
 		const google = createGoogleGenerativeAI({
-			apiKey: env.GEMINI_API_KEY,
-			baseURL: env.GEMINI_BASE_URL,
+			apiKey: c.env.GEMINI_API_KEY,
+			baseURL: c.env.GEMINI_BASE_URL,
 		});
 		const model = google("gemini-2.0-flash-001");
 
