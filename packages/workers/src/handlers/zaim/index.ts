@@ -3,7 +3,14 @@ import { Hono } from "hono";
 import * as v from "valibot";
 
 import { getAuth } from "@hono/oidc-auth";
-import * as zaimService from "../../services/zaimService";
+import { getZaimCategories } from "../../services/zaim/getZaimCategories";
+import { getZaimPaymentMethods } from "../../services/zaim/getZaimPaymentMethods";
+import {
+	checkZaimTokenExists,
+	getZaimAccessToken, // Import getZaimAccessToken
+	getZaimLoginUrl,
+	handleZaimCallback,
+} from "../../services/zaim/zaimAuth";
 import type { HonoApp } from "../../workers";
 
 declare module "hono" {
@@ -20,7 +27,7 @@ zaimRoute.get("/login", async (c) => {
 	// const db = createDb(c.env.DB); // dbは不要になった
 
 	try {
-		const { userAuthorizeUrl } = await zaimService.getZaimLoginUrl(c.env); // db引数を削除
+		const { userAuthorizeUrl } = await getZaimLoginUrl(c.env); // Use imported function
 		return c.json({ userAuthorizeUrl });
 	} catch (error) {
 		console.error("Failed to get Zaim login URL:", error);
@@ -46,7 +53,8 @@ zaimRoute.get(
 			const auth = await getAuth(c);
 			const oidcSub = auth?.sub;
 
-			const { user } = await zaimService.handleZaimCallback(
+			const { user } = await handleZaimCallback(
+				// Use imported function
 				c.env,
 				oauth_token,
 				oauth_verifier,
@@ -88,7 +96,7 @@ zaimRoute.get("/token", async (c) => {
 	// const db = createDb(c.env.DB); // dbは不要
 
 	try {
-		const hasToken = await zaimService.checkZaimTokenExists(c.env, auth.sub); // dbの代わりにc.envを渡す
+		const hasToken = await checkZaimTokenExists(c.env, auth.sub); // Use imported function
 
 		if (hasToken) {
 			return c.json({
@@ -119,7 +127,18 @@ zaimRoute.get("/categories", async (c) => {
 	}
 
 	try {
-		const categories = await zaimService.getZaimCategories(c.env, auth.sub); // db, envの代わりにc.envを渡す
+		// Get access token first
+		const { accessToken, accessTokenSecret } = await getZaimAccessToken(
+			c.env,
+			auth.sub,
+		);
+		const categories = await getZaimCategories({
+			// Use imported function and pass tokens
+			env: c.env,
+			oidcSub: auth.sub,
+			accessToken,
+			accessTokenSecret,
+		});
 		return c.json({ categories });
 	} catch (error) {
 		console.error("Failed to get Zaim categories:", error);
@@ -151,10 +170,18 @@ zaimRoute.get("/payment-methods", async (c) => {
 	}
 
 	try {
-		const paymentMethods = await zaimService.getZaimPaymentMethods(
+		// Get access token first
+		const { accessToken, accessTokenSecret } = await getZaimAccessToken(
 			c.env,
 			auth.sub,
-		); // db, envの代わりにc.envを渡す
+		);
+		const paymentMethods = await getZaimPaymentMethods({
+			// Use imported function and pass tokens
+			env: c.env,
+			oidcSub: auth.sub,
+			accessToken,
+			accessTokenSecret,
+		});
 		return c.json({ paymentMethods });
 	} catch (error) {
 		console.error("Failed to get Zaim payment methods:", error);

@@ -3,7 +3,11 @@ import { getAuth } from "@hono/oidc-auth";
 import { vValidator } from "@hono/valibot-validator";
 import { Hono } from "hono";
 import * as v from "valibot";
-import * as zaimService from "../../../services/zaimService"; // パスを修正
+import { getZaimMasterData } from "../../../services/zaim/getZaimMasterData"; // Import specific function
+import {
+	checkZaimTokenExists,
+	getZaimAccessToken,
+} from "../../../services/zaim/zaimAuth"; // Import specific functions
 import type { HonoApp } from "../../../workers";
 import { type Category, type PaymentMethod, aiExtractionFromHtml } from "./ai";
 
@@ -26,7 +30,7 @@ extractionHtmlRoute.post(
 
 		const { html } = c.req.valid("json");
 
-		const hasToken = await zaimService.checkZaimTokenExists(c.env, auth.sub);
+		const hasToken = await checkZaimTokenExists(c.env, auth.sub); // Use imported function
 		if (!hasToken) {
 			return c.json(
 				{
@@ -42,9 +46,18 @@ extractionHtmlRoute.post(
 		let paymentMethods: PaymentMethod[] = [];
 
 		try {
-			// ZaimのAPIからカテゴリと支払い方法を取得
-			// bindings を渡す (修正済み)
-			const zaimData = await zaimService.getZaimMasterData(c.env, auth.sub);
+			// Zaimアクセストークンを取得
+			const { accessToken, accessTokenSecret } = await getZaimAccessToken(
+				c.env,
+				auth.sub,
+			);
+			// ZaimのAPIからカテゴリと支払い方法を取得 (トークンを渡す)
+			const zaimData = await getZaimMasterData({
+				env: c.env,
+				oidcSub: auth.sub,
+				accessToken,
+				accessTokenSecret,
+			});
 			categories = zaimData.categories;
 			paymentMethods = zaimData.paymentMethods;
 		} catch (error) {

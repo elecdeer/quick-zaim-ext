@@ -32,11 +32,6 @@ const envSchema = v.intersect([envVarsSchema, bindingsSchema]);
 
 export type Env = v.InferOutput<typeof envSchema>;
 
-export const validatedEnv = (c: Context) => {
-	const envVars = env(c);
-	return v.parse(envVarsSchema, envVars);
-};
-
 export const validateEnvMiddleware = createMiddleware(async (c, next) => {
 	const envVars = env(c);
 	const result = v.safeParse(envVarsSchema, envVars);

@@ -3,9 +3,12 @@
   "displayName": "Quick zaim ext",
   "version": "0.0.1",
   "author": "elecdeer",
-  "scripts": {},
+  "scripts": {
+    "knip": "knip"
+  },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
+    "knip": "^5.47.0",
     "typescript": "~5.8.2",
     "vitest": "^3.0.9"
   },

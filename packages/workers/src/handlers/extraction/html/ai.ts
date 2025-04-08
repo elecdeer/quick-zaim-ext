@@ -60,8 +60,6 @@ const receiptSchema = v.object({
 	),
 });
 
-export type Receipt = v.InferOutput<typeof receiptSchema>;
-
 // idはnumberかも
 
 export type Shop = {

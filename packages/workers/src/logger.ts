@@ -13,9 +13,7 @@ const createLeveledLogger = (level: string) => {
 	return logger;
 };
 
-export const debug = createLeveledLogger("DEBUG");
 export const info = createLeveledLogger("INFO");
-export const warn = createLeveledLogger("WARN");
 export const error = createLeveledLogger("ERROR");
 
 const factory = createFactory();

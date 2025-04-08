@@ -10,10 +10,6 @@ export type Endpoint = {
 	url: string;
 };
 
-export type AuthorizationHeader = {
-	Authorization: string;
-};
-
 export const parseOAuthTokenFromResponse = (response: string) => {
 	const params = new URLSearchParams(response);
 	const oauthToken = params.get("oauth_token");
