@@ -1,26 +1,29 @@
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { getAuth } from "@hono/oidc-auth";
 import { vValidator } from "@hono/valibot-validator";
 import { Hono } from "hono";
 import * as v from "valibot";
-import * as logger from "../../../logger";
-import { getZaimMasterData } from "../../../services/zaim/getZaimMasterData"; // Import specific function
+import {
+	type Category,
+	type PaymentMethod,
+	extractFromAriaSnapshot,
+} from "../../services/agent/extraction/extractFromA11yTree";
+import { getLanguageModel } from "../../services/agent/model";
+import { getZaimMasterData } from "../../services/zaim/getZaimMasterData"; // Import specific function
 import {
 	checkZaimTokenExists,
 	getZaimAccessToken,
-} from "../../../services/zaim/zaimAuth"; // Import specific functions
-import type { HonoApp } from "../../../workers";
-import { type Category, type PaymentMethod, aiExtractionFromHtml } from "./ai";
+} from "../../services/zaim/zaimAuth"; // Import specific functions
+import type { HonoApp } from "../../workers";
 
 // HonoインスタンスのBindingsに完全なEnv型を使用
-export const extractionHtmlRoute = new Hono<HonoApp>();
+export const extractionRoute = new Hono<HonoApp>();
 
-extractionHtmlRoute.post(
+extractionRoute.post(
 	"/",
 	vValidator(
 		"json",
 		v.object({
-			html: v.string(),
+			ariaSnapshot: v.string(),
 		}),
 	),
 	async (c) => {
@@ -29,7 +32,7 @@ extractionHtmlRoute.post(
 			return c.json({ error: "Unauthorized" }, 401);
 		}
 
-		const { html } = c.req.valid("json");
+		const { ariaSnapshot } = c.req.valid("json");
 
 		const hasToken = await checkZaimTokenExists(c.env, auth.sub); // Use imported function
 		if (!hasToken) {
@@ -68,27 +71,11 @@ extractionHtmlRoute.post(
 			paymentMethods = tempPaymentMethods;
 		}
 
-		const gatewayUrl =
-			await c.env.AI.gateway("receipt-test").getUrl("google-ai-studio");
-		logger.debug({
-			message: "Gateway URL",
-			gatewayUrl,
-		});
-		const google = createGoogleGenerativeAI({
-			apiKey: c.env.GEMINI_API_KEY,
-			baseURL: `${gatewayUrl}/v1beta`,
-		});
-		const model = google("gemini-2.0-flash-001");
+		const model = await getLanguageModel(c.env);
 
-		// const openai = createOpenAI({
-		// 	apiKey: env.OPENAI_API_KEY,
-		// 	baseURL: env.OPENAI_BASE_URL,
-		// });
-		// const model = openai("gpt-4o-mini");
-
-		const res = await aiExtractionFromHtml(
+		const res = await extractFromAriaSnapshot(
 			{
-				html,
+				ariaSnapshot,
 				shops: [
 					{ id: "19285109", name: "Amazon.co.jp" },
 					{ id: "41917412", name: "Amazon.com" },

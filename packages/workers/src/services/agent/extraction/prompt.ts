@@ -1,12 +1,12 @@
-import type { Category, PaymentMethod, Shop } from "./ai";
+import type { Category, PaymentMethod, Shop } from "./extractFromA11yTree";
 
 export const prompt = ({
-	html,
+	ariaSnapshot,
 	shops,
 	categories,
 	paymentMethods,
 }: {
-	html: string;
+	ariaSnapshot: string;
 	shops: Shop[];
 	categories: Category[];
 	paymentMethods: PaymentMethod[];
@@ -46,7 +46,7 @@ normalizedNameは商品名からノイズを取り除いたものです。
 メーカーやブランド名、品番、個数、支払い種別に関する情報はノイズではありません。
 
 <Content>
-${html}
+${ariaSnapshot}
 </Content>
 
 <Shops>

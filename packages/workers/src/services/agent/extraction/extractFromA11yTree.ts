@@ -3,14 +3,14 @@ import { type LanguageModel, generateObject } from "ai";
 import * as v from "valibot";
 import { prompt } from "./prompt";
 
-export const aiExtractionFromHtml = async (
+export const extractFromAriaSnapshot = async (
 	{
-		html,
+		ariaSnapshot,
 		shops,
 		categories,
 		paymentMethods,
 	}: {
-		html: string;
+		ariaSnapshot: string;
 		shops: Shop[];
 		categories: Category[];
 		paymentMethods: PaymentMethod[];
@@ -21,7 +21,7 @@ export const aiExtractionFromHtml = async (
 		model,
 		schema: valibotSchema(receiptSchema),
 		prompt: prompt({
-			html,
+			ariaSnapshot,
 			shops,
 			categories,
 			paymentMethods,

@@ -22,11 +22,11 @@ function App() {
 		console.log(res);
 
 		if (res.result) {
-			const url = new URL("http://localhost:8787/extraction/html");
+			const url = new URL("http://localhost:8787/extraction");
 			const response = await fetch(url, {
 				method: "POST",
 				body: JSON.stringify({
-					html: res.result,
+					ariaSnapshot: res.result,
 				}),
 				headers: {
 					"Content-Type": "application/json",
