@@ -16,9 +16,7 @@ import {
 import type { HonoApp } from "../../workers";
 
 // HonoインスタンスのBindingsに完全なEnv型を使用
-export const extractionRoute = new Hono<HonoApp>();
-
-extractionRoute.post(
+export const extractionRoute = new Hono<HonoApp>().post(
 	"/",
 	vValidator(
 		"json",

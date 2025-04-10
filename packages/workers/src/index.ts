@@ -1,23 +1,20 @@
 import { Hono } from "hono";
-import { authMiddleware, authRoute } from "./auth"; // auth.ts から authApp をデフォルトインポート
+
+import { authMiddleware, authRoute } from "./auth";
 import { validateEnvMiddleware } from "./env";
 import { extractionRoute } from "./handlers/extraction";
 import { zaimRoute } from "./handlers/zaim";
 import * as logger from "./logger";
 import type { HonoApp } from "./workers";
 
-const app = new Hono<HonoApp>();
+export type AppType = typeof app;
 
-app.use(validateEnvMiddleware);
-app.use(logger.middleware);
+const app = new Hono<HonoApp>()
+	.use(validateEnvMiddleware)
+	.use(logger.middleware)
+	.use(authMiddleware)
+	.route("/", authRoute)
+	.route("/extraction", extractionRoute)
+	.route("/zaim", zaimRoute);
 
-app.use("*", authMiddleware);
-
-// authApp をルートにマウント
-app.route("/", authRoute);
-
-app.route("/extraction", extractionRoute);
-
-app.route("/zaim", zaimRoute);
-
-export default app;
+export default app; // Cloudflare Workers 用のデフォルトエクスポート
