@@ -8,17 +8,16 @@ import {
 	extractFromAriaSnapshot,
 } from "../../services/agent/extraction/extractFromA11yTree";
 import { getLanguageModel } from "../../services/agent/model";
-import { getZaimMasterData } from "../../services/zaim/getZaimMasterData"; // Import specific function
+import { getZaimMasterData } from "../../services/zaim/getZaimMasterData";
 import {
 	checkZaimTokenExists,
 	getZaimAccessToken,
-} from "../../services/zaim/zaimAuth"; // Import specific functions
+} from "../../services/zaim/zaimAuth";
 import type { HonoApp } from "../../workers";
 
-// HonoインスタンスのBindingsに完全なEnv型を使用
-export const extractionRoute = new Hono<HonoApp>();
+export type ExtractionRouteType = typeof extractionRoute;
 
-extractionRoute.post(
+export const extractionRoute = new Hono<HonoApp>().post(
 	"/",
 	vValidator(
 		"json",
@@ -34,7 +33,7 @@ extractionRoute.post(
 
 		const { ariaSnapshot } = c.req.valid("json");
 
-		const hasToken = await checkZaimTokenExists(c.env, auth.sub); // Use imported function
+		const hasToken = await checkZaimTokenExists(c.env, auth.sub);
 		if (!hasToken) {
 			return c.json(
 				{

@@ -1,8 +1,14 @@
-import OpenAI from "openai";
+import {
+	createExtractionApiClient,
+	createZaimApiClient,
+} from "@repo/workers/client";
 import { useCallback } from "react";
 import { browser } from "wxt/browser";
-
 import "./App.css";
+
+// TODO: 環境変数などからベース URL を取得するようにする
+const apiClient = createZaimApiClient("http://localhost:8787");
+const extractionClient = createExtractionApiClient("http://localhost:8787");
 
 function App() {
 	const handleClick = useCallback(async () => {
@@ -22,18 +28,29 @@ function App() {
 		console.log(res);
 
 		if (res.result) {
-			const url = new URL("http://localhost:8787/extraction");
-			const response = await fetch(url, {
-				method: "POST",
-				body: JSON.stringify({
-					ariaSnapshot: res.result,
-				}),
-				headers: {
-					"Content-Type": "application/json",
-				},
-			});
+			try {
+				// 生成した API クライアントを使用
+				const response = await extractionClient.index.$post({
+					json: {
+						ariaSnapshot: res.result as string,
+					},
+				});
 
-			console.log(response);
+				if (!response.ok) {
+					// エラーレスポンスの処理
+					console.error("Extraction failed:", await response.text());
+					// 必要に応じてユーザーにエラーを通知
+					return;
+				}
+
+				// 成功時の処理 (必要であればレスポンスボディを使用)
+				const data = await response.json();
+				console.log("Extraction successful:", data);
+			} catch (error) {
+				// ネットワークエラーなどの処理
+				console.error("Error during extraction request:", error);
+				// 必要に応じてユーザーにエラーを通知
+			}
 		}
 	}, []);
 
@@ -77,7 +94,7 @@ function App() {
 
 					console.log({ userAuthorizeUrl });
 
-					// http://localhost:8787/zaim/callbackからのリダイレクト先をhttps://efpgpbmleoemnhndmngfoinonbmbibed.chromiumapp.orgにしないといけない
+					// http://localhost:8787/zaim/callback からのリダイレクト先を https://efpgpbmleoemnhndmngfoinonbmbibed.chromiumapp.org にしないといけない
 					const res2 = await browser.identity.launchWebAuthFlow({
 						interactive: true,
 						url: userAuthorizeUrl,

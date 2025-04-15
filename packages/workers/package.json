@@ -4,6 +4,9 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy --minify"
   },
+  "exports": {
+    "./client": "./src/client.ts"
+  },
   "dependencies": {
     "@ai-sdk/google": "^1.1.26",
     "@ai-sdk/valibot": "^0.0.30",

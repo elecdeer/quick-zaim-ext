@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
+    "@repo/workers": "workspace:^",
     "@types/react": "^18.3.19",
     "@types/react-dom": "^19.0.4",
     "@wxt-dev/module-react": "^1.1.3",
