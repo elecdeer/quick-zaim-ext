@@ -1,10 +1,14 @@
-import { createApiClient } from "@repo/workers/client";
+import {
+	createExtractionApiClient,
+	createZaimApiClient,
+} from "@repo/workers/client";
 import { useCallback } from "react";
 import { browser } from "wxt/browser";
 import "./App.css";
 
 // TODO: 環境変数などからベース URL を取得するようにする
-const apiClient = createApiClient("http://localhost:8787");
+const apiClient = createZaimApiClient("http://localhost:8787");
+const extractionClient = createExtractionApiClient("http://localhost:8787");
 
 function App() {
 	const handleClick = useCallback(async () => {
@@ -26,7 +30,7 @@ function App() {
 		if (res.result) {
 			try {
 				// 生成した API クライアントを使用
-				const response = await apiClient.extraction.$post({
+				const response = await extractionClient.index.$post({
 					json: {
 						ariaSnapshot: res.result as string,
 					},
@@ -90,7 +94,7 @@ function App() {
 
 					console.log({ userAuthorizeUrl });
 
-					// http://localhost:8787/zaim/callbackからのリダイレクト先をhttps://efpgpbmleoemnhndmngfoinonbmbibed.chromiumapp.orgにしないといけない
+					// http://localhost:8787/zaim/callback からのリダイレクト先を https://efpgpbmleoemnhndmngfoinonbmbibed.chromiumapp.org にしないといけない
 					const res2 = await browser.identity.launchWebAuthFlow({
 						interactive: true,
 						url: userAuthorizeUrl,

@@ -20,11 +20,10 @@ declare module "hono" {
 	}
 }
 
+export type ZaimRouteType = typeof zaimRoute;
+
 export const zaimRoute = new Hono<HonoApp>()
 	.get("/login", async (c) => {
-		// const env = parseEnv(c.env);
-		// const db = createDb(c.env.DB); // dbは不要になった
-
 		try {
 			const { userAuthorizeUrl } = await getZaimLoginUrl(c.env); // Use imported function
 			return c.json({ userAuthorizeUrl });
@@ -128,7 +127,6 @@ export const zaimRoute = new Hono<HonoApp>()
 				auth.sub,
 			);
 			const categories = await getZaimCategories({
-				// Use imported function and pass tokens
 				env: c.env,
 				oidcSub: auth.sub,
 				accessToken,
@@ -154,8 +152,6 @@ export const zaimRoute = new Hono<HonoApp>()
 	})
 	.get("/payment-methods", async (c) => {
 		// 支払い方法（アカウント）を取得するエンドポイント
-		// const env = parseEnv(c.env); // zaimService内でパースするので不要
-		// const db = createDb(c.env.DB); // dbは不要
 
 		// OIDCの認証情報を取得
 		const auth = await getAuth(c);
@@ -164,7 +160,6 @@ export const zaimRoute = new Hono<HonoApp>()
 		}
 
 		try {
-			// Get access token first
 			const { accessToken, accessTokenSecret } = await getZaimAccessToken(
 				c.env,
 				auth.sub,

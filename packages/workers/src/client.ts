@@ -1,13 +1,14 @@
 import { hc } from "hono/client";
-import type { AppType as _AppType } from "./index";
 
-// index.ts からインポートした型を AppType として再エクスポート
-// これにより、クライアント側はこのファイルから AppType をインポートできる
-export type AppType = _AppType;
+import type { ExtractionRouteType } from "./handlers/extraction";
+import type { ZaimRouteType } from "./handlers/zaim";
 
-// RPC クライアントを生成する関数をエクスポート
-export const createApiClient = (baseUrl: string) => {
-	return hc<AppType>(baseUrl);
+export const createZaimApiClient = (baseUrl: string) => {
+	const url = new URL("/zaim", baseUrl);
+	return hc<ZaimRouteType>(url.toString());
 };
 
-const c = hc<AppType>("baseUrl");
+export const createExtractionApiClient = (baseUrl: string) => {
+	const url = new URL("/extraction", baseUrl);
+	return hc<ExtractionRouteType>(url.toString());
+};
