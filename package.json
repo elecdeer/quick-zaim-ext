@@ -4,7 +4,8 @@
   "version": "0.0.1",
   "author": "elecdeer",
   "scripts": {
-    "knip": "knip"
+    "knip": "knip",
+    "test": "vitest"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",

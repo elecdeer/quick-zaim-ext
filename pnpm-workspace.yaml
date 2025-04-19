@@ -1,5 +1,10 @@
 packages:
   - packages/*
 onlyBuiltDependencies:
+  - '@biomejs/biome'
+  - '@parcel/watcher'
+  - dtrace-provider
   - esbuild
+  - sharp
+  - spawn-sync
   - workerd
