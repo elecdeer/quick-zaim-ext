@@ -4,10 +4,17 @@ import {
 	processOAuthCallback,
 	revokeSession,
 } from "@hono/oidc-auth";
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import * as logger from "./logger";
 import { assertNonNullable } from "./utils";
+
+declare module "hono" {
+	interface OidcAuthClaims {
+		email: string;
+		sub: string;
+	}
+}
 
 export const authMiddleware = oidcAuthMiddleware();
 
@@ -71,3 +78,16 @@ authRoute.use(authMiddleware).get("/hello", async (c) => {
 	console.log("auth in /hello", auth);
 	return c.text(`Hello <${auth?.email}>!`);
 });
+
+/**
+ * ログイン済ユーザのIDを取得する
+ */
+export const getUserId = (c: Context): string => {
+	const auth = c.var.oidcAuth;
+	if (auth === null) {
+		throw new HTTPException(401, {
+			message: "Unauthorized",
+		});
+	}
+	return auth.sub;
+};
