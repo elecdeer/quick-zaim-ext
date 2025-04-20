@@ -38,7 +38,7 @@ export const validateEnvMiddleware = createMiddleware(async (c, next) => {
 		throw new HTTPException(500, {
 			message: "Invalid environment variables",
 			cause: {
-				issues: result.issues,
+				issues: JSON.stringify(result.issues),
 			},
 		});
 	}

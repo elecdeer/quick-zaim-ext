@@ -19,7 +19,8 @@ export type ZaimRouteType = typeof zaimRoute;
 export const zaimRoute = new Hono<HonoApp>()
 	.post("/login", async (c) => {
 		// ZaimのログインURLを取得するエンドポイント
-		const { userAuthorizeUrl } = await getZaimLoginUrl(c.env);
+		const userId = getUserId(c);
+		const { userAuthorizeUrl } = await getZaimLoginUrl(c.env, userId);
 		return c.json({ userAuthorizeUrl });
 	})
 	.get(
@@ -113,6 +114,10 @@ export const zaimRoute = new Hono<HonoApp>()
 		const userId = getUserId(c);
 		const clientResult = await getUserZaimClient(c.env, userId);
 		if (isErr(clientResult)) {
+			logger.info({
+				type: "zaim-client-error",
+				error: clientResult.error,
+			});
 			return c.json(
 				{
 					code: clientResult.error.code,

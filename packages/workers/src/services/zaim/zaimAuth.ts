@@ -27,6 +27,7 @@ const zaimOAuthEndpoints = {
  */
 export const getZaimLoginUrl = async (
 	env: Env,
+	userId: string,
 ): Promise<{ userAuthorizeUrl: string }> => {
 	const requestToken = await fetchRequestToken({
 		requestTokenEndpoint: zaimOAuthEndpoints.requestTokenEndpoint,
@@ -39,7 +40,7 @@ export const getZaimLoginUrl = async (
 	userAuthorizeUrl.searchParams.append("oauth_token", requestToken.oauthToken);
 
 	// requestTokenをKVに保存 (TTL: 10分 = 600秒)
-	const repository = getZaimRepository(env, requestToken.oauthToken);
+	const repository = getZaimRepository(env, userId);
 	await repository.saveTemporalRequestToken(
 		{
 			oauthToken: requestToken.oauthToken,
