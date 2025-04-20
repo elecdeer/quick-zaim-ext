@@ -25,10 +25,17 @@ const zaimOAuthEndpoints = {
 /**
  * Zaimログイン用の認証URLを取得する
  */
-export const getZaimLoginUrl = async (
-	env: Env,
-	userId: string,
-): Promise<{ userAuthorizeUrl: string }> => {
+export const getZaimLoginUrl = async ({
+	env,
+	userId,
+	returnTo,
+}: {
+	env: Env;
+	userId: string;
+	returnTo?: string | undefined;
+}): Promise<{
+	userAuthorizeUrl: string;
+}> => {
 	const requestToken = await fetchRequestToken({
 		requestTokenEndpoint: zaimOAuthEndpoints.requestTokenEndpoint,
 		consumerKey: env.ZAIM_CONSUMER_KEY,
@@ -45,6 +52,7 @@ export const getZaimLoginUrl = async (
 		{
 			oauthToken: requestToken.oauthToken,
 			oauthTokenSecret: requestToken.oauthTokenSecret,
+			returnTo: returnTo ?? null,
 		},
 		{ expirationSeconds: 600 },
 	);
@@ -68,7 +76,13 @@ export const handleZaimCallback = async ({
 	oauthVerifier: string;
 	userId: string;
 }): Promise<
-	Result<{ user: UserVerifyUserResponse["me"] }, ZaimServiceError>
+	Result<
+		{
+			user: UserVerifyUserResponse["me"];
+			returnTo: string | undefined;
+		},
+		ZaimServiceError
+	>
 > => {
 	const repository = getZaimRepository(env, userId);
 
@@ -122,6 +136,7 @@ export const handleZaimCallback = async ({
 
 	return ok({
 		user,
+		returnTo: requestTokenPairResult.value.returnTo ?? undefined,
 	});
 };
 

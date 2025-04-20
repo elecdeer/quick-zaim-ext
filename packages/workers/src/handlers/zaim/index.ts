@@ -17,12 +17,25 @@ import { getZaimPayments } from "../../services/zaim/zaimPayments";
 export type ZaimRouteType = typeof zaimRoute;
 
 export const zaimRoute = new Hono<HonoApp>()
-	.post("/login", async (c) => {
-		// ZaimのログインURLを取得するエンドポイント
-		const userId = getUserId(c);
-		const { userAuthorizeUrl } = await getZaimLoginUrl(c.env, userId);
-		return c.json({ userAuthorizeUrl });
-	})
+	.post(
+		"/login",
+		vValidator(
+			"query",
+			v.object({
+				"return-to": v.optional(v.string()),
+			}),
+		),
+		async (c) => {
+			// ZaimのログインURLを取得するエンドポイント
+			const userId = getUserId(c);
+			const { userAuthorizeUrl } = await getZaimLoginUrl({
+				env: c.env,
+				userId,
+				returnTo: c.req.valid("query")["return-to"],
+			});
+			return c.json({ userAuthorizeUrl });
+		},
+	)
 	.get(
 		"/callback",
 		vValidator(
@@ -57,6 +70,11 @@ export const zaimRoute = new Hono<HonoApp>()
 					},
 					result.error.statusCode,
 				);
+			}
+
+			if (result.value.returnTo !== undefined) {
+				// リダイレクト先がある場合はリダイレクトする
+				return c.redirect(result.value.returnTo, 302);
 			}
 
 			return c.json({

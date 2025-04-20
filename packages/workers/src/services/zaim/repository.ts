@@ -10,6 +10,7 @@ export type ZaimRepository = {
 		data: {
 			oauthToken: string;
 			oauthTokenSecret: string;
+			returnTo: string | null;
 		},
 		option: {
 			expirationSeconds: number;
@@ -23,7 +24,7 @@ export type ZaimRepository = {
 		oauthToken: string,
 	) => Promise<
 		Result<
-			{ oauthToken: string; oauthTokenSecret: string },
+			{ oauthToken: string; oauthTokenSecret: string; returnTo: string | null },
 			ZaimRepositoryError<"NOT_FOUND">
 		>
 	>;
@@ -60,6 +61,7 @@ export type ZaimRepositoryError<Code extends "NOT_FOUND"> = {
 
 const temporalRequestTokenValueSchema = v.object({
 	oauthTokenSecret: v.string(),
+	returnTo: v.nullable(v.pipe(v.string(), v.url())),
 });
 
 const accessTokenValueSchema = v.object({
@@ -77,17 +79,21 @@ export const getZaimRepository = (env: Env, userId: string): ZaimRepository => {
 	};
 
 	const saveTemporalRequestToken: ZaimRepository["saveTemporalRequestToken"] =
-		async ({ oauthToken, oauthTokenSecret }, { expirationSeconds }) => {
+		async (
+			{ oauthToken, oauthTokenSecret, returnTo },
+			{ expirationSeconds },
+		) => {
 			const kvKeyRequest = getTemporalRequestTokenKey(oauthToken);
-			await env.ZAIM_AGENT_ZAIM_TOKENS_KV.put(
-				kvKeyRequest,
-				JSON.stringify({
+
+			const serialized = JSON.stringify(
+				v.parse(temporalRequestTokenValueSchema, {
 					oauthTokenSecret,
+					returnTo,
 				}),
-				{
-					expirationTtl: expirationSeconds,
-				},
 			);
+			await env.ZAIM_AGENT_ZAIM_TOKENS_KV.put(kvKeyRequest, serialized, {
+				expirationTtl: expirationSeconds,
+			});
 		};
 
 	const readTemporalRequestToken: ZaimRepository["readTemporalRequestToken"] =
@@ -109,6 +115,7 @@ export const getZaimRepository = (env: Env, userId: string): ZaimRepository => {
 			return ok({
 				oauthToken,
 				oauthTokenSecret: parsed.oauthTokenSecret,
+				returnTo: parsed.returnTo,
 			});
 		};
 
@@ -129,17 +136,17 @@ export const getZaimRepository = (env: Env, userId: string): ZaimRepository => {
 	}) => {
 		const kvKeyAccess = getAccessTokenKey();
 		const updatedAt = new Date().toISOString();
-		await env.ZAIM_AGENT_ZAIM_TOKENS_KV.put(
-			kvKeyAccess,
-			JSON.stringify({
+
+		const serialized = JSON.stringify(
+			v.parse(accessTokenValueSchema, {
 				accessToken,
 				accessTokenSecret,
 				updatedAt,
 			}),
-			{
-				expirationTtl: 60 * 60 * 24 * 30, // 30 days
-			},
 		);
+		await env.ZAIM_AGENT_ZAIM_TOKENS_KV.put(kvKeyAccess, serialized, {
+			expirationTtl: 60 * 60 * 24 * 30, // 30 days
+		});
 	};
 
 	const readAccessToken: ZaimRepository["readAccessToken"] = async () => {

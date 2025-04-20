@@ -80,7 +80,12 @@ function App() {
 			<button
 				type="button"
 				onClick={async () => {
-					const res = await apiClient.login.$post();
+					const res = await apiClient.login.$post({
+						query: {
+							"return-to":
+								"https://efpgpbmleoemnhndmngfoinonbmbibed.chromiumapp.org",
+						},
+					});
 					const { userAuthorizeUrl } = await res.json();
 
 					console.log({ userAuthorizeUrl });
