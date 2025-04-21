@@ -113,35 +113,27 @@ function App() {
 					} else {
 						console.error("Error:", res.statusText);
 					}
-
-					// const url = new URL("http://localhost:8787/hello");
-
-					// try {
-					// 	const res = await fetch(url, {
-					// 		method: "GET",
-					// 	});
-
-					// 	if (res.ok) {
-					// 		const text = await res.text();
-					// 		console.log("res", text);
-					// 	} else {
-					// 		console.warn("res not ok", res);
-
-					// 		console.warn("redirected", res.redirected);
-					// 		console.warn("status", res.status);
-					// 		console.warn("statusText", res.statusText);
-					// 		console.warn("url", res.url);
-					// 	}
-					// } catch (e) {
-					// 	console.warn("catch", e);
-
-					// 	if (e instanceof TypeError) {
-					// 		console.warn("TypeError", e.message);
-					// 	}
-					// }
 				}}
 			>
 				Hello
+			</button>
+
+			<button
+				type="button"
+				onClick={async () => {
+					const res = await apiClient.places.$get();
+
+					console.log(res);
+
+					if (res.ok) {
+						const data = await res.json();
+						console.log(data);
+					} else {
+						console.error("Error:", res.statusText);
+					}
+				}}
+			>
+				Places
 			</button>
 
 			<button

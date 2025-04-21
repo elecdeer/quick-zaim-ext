@@ -14,6 +14,17 @@ export type ZaimPaymentMethod = {
 	name: string;
 };
 
+export type ZaimPlace = {
+	uid: string;
+	name: string;
+	recommend: {
+		categoryId: { id: number; count: number }[];
+		subCategoryId: { id: number; count: number }[];
+		paymentMethodId: { id: number; count: number }[];
+	};
+	count: number;
+};
+
 export type ZaimServiceError = {
 	code:
 		| "INVALID_REQUEST"

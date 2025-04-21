@@ -13,6 +13,7 @@ import type { HonoApp } from "../../workers";
 import * as logger from "../../logger";
 import { getZaimCategories } from "../../services/zaim/zaimCategories";
 import { getZaimPayments } from "../../services/zaim/zaimPayments";
+import { getZaimPlaces } from "../../services/zaim/zaimPlaces";
 
 export type ZaimRouteType = typeof zaimRoute;
 
@@ -165,6 +166,50 @@ export const zaimRoute = new Hono<HonoApp>()
 					{
 						code: "ZAIM_API_ERROR",
 						message: "Failed to get Zaim payment methods",
+					},
+					500,
+				);
+			},
+		);
+	})
+	.get("/places", async (c) => {
+		// 店舗の一覧を取得するエンドポイント
+		const userId = getUserId(c);
+		const clientResult = await getUserZaimClient(c.env, userId);
+		if (isErr(clientResult)) {
+			logger.info({
+				type: "zaim-client-error",
+				error: clientResult.error,
+			});
+			return c.json(
+				{
+					code: clientResult.error.code,
+					message: "Failed to access Zaim API",
+				},
+				clientResult.error.statusCode,
+			);
+		}
+
+		const client = clientResult.value;
+
+		return match(
+			await getZaimPlaces({
+				client,
+			}),
+			(result) => {
+				return c.json({
+					places: result,
+				});
+			},
+			(error) => {
+				logger.info({
+					type: "zaim-places-error",
+					error,
+				});
+				return c.json(
+					{
+						code: "ZAIM_API_ERROR",
+						message: "Failed to get Zaim places",
 					},
 					500,
 				);
