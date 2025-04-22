@@ -27,6 +27,6 @@
     "@wxt-dev/module-react": "^1.1.3",
     "typescript": "~5.8.2",
     "vitest": "^3.0.9",
-    "wxt": "^0.19.29"
+    "wxt": "^0.20.3"
   }
 }
