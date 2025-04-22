@@ -2,9 +2,10 @@ import {
 	createExtractionApiClient,
 	createZaimApiClient,
 } from "@repo/workers/client";
-import { useCallback } from "react";
+import clsx from "clsx";
+import type { ComponentPropsWithRef } from "react";
+import { type FC, useCallback } from "react";
 import { browser } from "wxt/browser";
-import "./App.css";
 
 // TODO: 環境変数などからベース URL を取得するようにする
 const apiClient = createZaimApiClient("http://localhost:8787");
@@ -55,11 +56,11 @@ function App() {
 	}, []);
 
 	return (
-		<div className="card">
-			<button type="button" onClick={handleClick}>
+		<div className="flex h-screen w-screen flex-col items-center justify-center gap-4 bg-gray-100">
+			<Button className="" onClick={handleClick}>
 				Extract
-			</button>
-			<button
+			</Button>
+			<Button
 				type="button"
 				onClick={async () => {
 					const url = new URL("http://localhost:8787/login");
@@ -76,8 +77,8 @@ function App() {
 				}}
 			>
 				Login
-			</button>
-			<button
+			</Button>
+			<Button
 				type="button"
 				onClick={async () => {
 					const res = await apiClient.login.$post({
@@ -99,8 +100,8 @@ function App() {
 				}}
 			>
 				Zaim Login
-			</button>
-			<button
+			</Button>
+			<Button
 				type="button"
 				onClick={async () => {
 					const res = await apiClient.categories.$get();
@@ -116,9 +117,9 @@ function App() {
 				}}
 			>
 				Hello
-			</button>
+			</Button>
 
-			<button
+			<Button
 				type="button"
 				onClick={async () => {
 					const res = await apiClient.places.$get();
@@ -134,9 +135,9 @@ function App() {
 				}}
 			>
 				Places
-			</button>
+			</Button>
 
-			<button
+			<Button
 				type="button"
 				onClick={async () => {
 					const url = new URL("http://localhost:8787/logout");
@@ -147,9 +148,25 @@ function App() {
 				}}
 			>
 				Logout
-			</button>
+			</Button>
 		</div>
 	);
 }
+
+const Button: FC<ComponentPropsWithRef<"button">> = ({
+	className,
+	...props
+}) => {
+	return (
+		<button
+			className={clsx(
+				"w-24 rounded bg-blue-500 px-4 py-2 text-white hover:cursor-pointer hover:bg-blue-900 active:translate-y-0.5",
+				className,
+			)}
+			type="button"
+			{...props}
+		/>
+	);
+};
 
 export default App;

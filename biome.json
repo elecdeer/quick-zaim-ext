@@ -1,7 +1,8 @@
 {
   "$schema": "https://biomejs.dev/schemas/1.9.3/schema.json",
   "formatter": {
-    "enabled": true
+    "enabled": true,
+    "formatWithErrors": true
   },
   "organizeImports": {
     "enabled": true
@@ -24,6 +25,9 @@
       },
       "suspicious": {
         "useAwait": "warn"
+      },
+      "nursery": {
+        "useSortedClasses": "warn"
       }
     }
   }
