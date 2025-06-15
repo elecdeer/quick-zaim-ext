@@ -8,19 +8,19 @@
     "./client": "./src/client.ts"
   },
   "dependencies": {
-    "@ai-sdk/google": "^1.1.26",
+    "@ai-sdk/google": "^1.2.19",
     "@ai-sdk/valibot": "^0.0.30",
-    "@hono/oidc-auth": "^1.5.0",
+    "@hono/oidc-auth": "^1.6.1",
     "@hono/valibot-validator": "^0.5.2",
     "@repo/oauth": "workspace:*",
     "@repo/zaim-api": "workspace:*",
-    "ai": "^4.1.63",
-    "hono": "^4.7.5",
-    "valibot": "^1.0.0"
+    "ai": "^4.3.16",
+    "hono": "^4.7.11",
+    "valibot": "^1.1.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250319.0",
-    "@hey-api/client-fetch": "^0.8.3",
-    "wrangler": "^4.2.0"
+    "@cloudflare/workers-types": "^4.20250614.0",
+    "@hey-api/client-fetch": "^0.8.4",
+    "wrangler": "^4.20.0"
   }
 }

@@ -11,14 +11,14 @@
     "./client": "./src/client/client.gen.ts"
   },
   "devDependencies": {
-    "@hey-api/openapi-ts": "^0.64.13",
-    "@typespec/compiler": "^0.61.0",
+    "@hey-api/openapi-ts": "^0.64.15",
+    "@typespec/compiler": "^0.61.2",
     "@typespec/http": "^0.61.0",
     "@typespec/openapi3": "^0.61.0",
     "@typespec/rest": "^0.61.0"
   },
   "private": true,
   "dependencies": {
-    "@hey-api/client-fetch": "^0.8.3"
+    "@hey-api/client-fetch": "^0.8.4"
   }
 }
