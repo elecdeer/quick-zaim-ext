@@ -1,5 +1,4 @@
 import "@typespec/http";
-import "@typespec/rest";
 import "@typespec/openapi3";
 import "./user.tsp";
 import "./money.tsp";
@@ -10,7 +9,7 @@ import "./other.tsp";
 
 using TypeSpec.Http;
 
-@service({
+@service(#{
   title: "Zaim API",
 })
 @route("/v2")
