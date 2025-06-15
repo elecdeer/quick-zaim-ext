@@ -15,7 +15,8 @@
   "linter": {
     "enabled": true,
     "ignore": [
-      "packages/extention/entrypoints/playwright/**/*.ts"
+      "packages/extention/entrypoints/playwright/**/*.ts",
+      "packages/zaim-api/src/client/**"
     ],
     "rules": {
       "recommended": true,

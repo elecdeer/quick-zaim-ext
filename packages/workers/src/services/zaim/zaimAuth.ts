@@ -1,7 +1,7 @@
-import type { Client } from "@hey-api/client-fetch";
 import { fetchAccessToken, fetchRequestToken } from "@repo/oauth";
 import { userVerifyUser } from "@repo/zaim-api";
 import type { UserVerifyUserResponse } from "@repo/zaim-api";
+import type { Client } from "@repo/zaim-api/client";
 import type { Env } from "../../env";
 import { type Result, err, isErr, ok } from "../../result";
 import { getZaimRepository } from "./repository";

@@ -1,5 +1,5 @@
-import type { Client } from "@hey-api/client-fetch";
 import { accountGetAccounts } from "@repo/zaim-api";
+import type { Client } from "@repo/zaim-api/client";
 import { type Result, err, ok } from "../../result";
 import type { ZaimPaymentMethod, ZaimServiceError } from "./types";
 

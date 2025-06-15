@@ -38,7 +38,7 @@
     *   **主要技術**:
         *   `typespec`: API 仕様記述言語
         *   `openapi-ts`: OpenAPI 定義から TypeScript クライアントを生成するツール
-        *   `@hey-api/client-fetch`: 生成されたクライアントが利用する HTTP クライアント
+        *   `@hey-api/openapi-ts`: 生成されたクライアントが利用する HTTP クライアント
         *   `typescript`: 開発言語
 
 ## パッケージ間の依存関係 (Mermaid 図)

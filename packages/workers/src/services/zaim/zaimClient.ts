@@ -1,5 +1,5 @@
-import { type Client, createClient } from "@hey-api/client-fetch";
 import { createOAuthSigner } from "@repo/oauth";
+import { type Client, createClient } from "@repo/zaim-api/client";
 import * as logger from "../../logger";
 
 /**
