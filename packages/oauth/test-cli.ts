@@ -2,12 +2,11 @@ import readline from "node:readline";
 import {
 	accountGetAccounts,
 	categoryGetCategories,
-	client,
 	genreGetGenres,
 	moneyGetMoney,
-	paymentOperationsCreate,
 	userVerifyUser,
-} from "@repo/zaim-api/client";
+} from "@repo/zaim-api";
+import { createClient } from "@repo/zaim-api/client";
 import { createOAuthApplicant, createOAuthSigner } from "./src/oauthClient";
 
 const consumerKey = process.env.ZAIM_CONSUMER_KEY;
@@ -64,6 +63,7 @@ const run = async () => {
 		consumerSecret,
 	});
 
+	const client = createClient({});
 	client.setConfig({
 		baseUrl: "https://api.zaim.net/",
 	});
@@ -95,7 +95,6 @@ const run = async () => {
 	const res3 = await categoryGetCategories({
 		query: {
 			mapping: 1,
-			page: 1,
 		},
 	});
 	console.log(res3.data ?? res3.error);
@@ -109,7 +108,6 @@ const run = async () => {
 	const res4 = await accountGetAccounts({
 		query: {
 			mapping: 1,
-			page: 1,
 		},
 	});
 	console.log(res4.data ?? res4.error);
@@ -117,7 +115,6 @@ const run = async () => {
 	const res5 = await genreGetGenres({
 		query: {
 			mapping: 1,
-			page: 1,
 		},
 	});
 	console.log(res5.data ?? res5.error);

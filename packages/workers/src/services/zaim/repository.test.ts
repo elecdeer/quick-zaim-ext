@@ -31,13 +31,13 @@ describe("getZaimRepository", () => {
 		const oauthToken = "test-token";
 		const oauthTokenSecret = "test-secret";
 		const expirationSeconds = 3600;
-		const kvValue = JSON.stringify({ oauthTokenSecret });
+		const kvValue = JSON.stringify({ oauthTokenSecret, returnTo: null });
 
 		test("トークンを正常に保存できる", async () => {
 			mockKV.put.mockResolvedValue(undefined); // putが成功するケース
 
 			const result = await repository.saveTemporalRequestToken(
-				{ oauthToken, oauthTokenSecret },
+				{ oauthToken, oauthTokenSecret, returnTo: null },
 				{ expirationSeconds },
 			);
 

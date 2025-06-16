@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^1.2.19",
-    "@ai-sdk/valibot": "^0.0.30",
+    "@ai-sdk/valibot": "^0.1.28",
     "@hono/oidc-auth": "^1.6.1",
     "@hono/valibot-validator": "^0.5.2",
     "@repo/oauth": "workspace:*",
