@@ -13,6 +13,7 @@ Zaim（家計簿サービス）との連携機能を持つブラウザ拡張機�
 # ルートレベル（全体）
 pnpm test                    # テスト実行
 pnpm knip                    # 未使用コードチェック
+pnpm typecheck               # TypeScript型チェック（Project References対応）
 
 # ブラウザ拡張機能 (packages/extention)
 pnpm dev                     # Chrome開発モード
@@ -25,6 +26,7 @@ pnpm zip:firefox             # Firefox用配布パッケージ作成
 # Cloudflare Workers (packages/workers)
 pnpm dev                     # ローカル開発サーバー
 pnpm deploy                  # Cloudflareにデプロイ
+pnpm wrangler:types          # Cloudflare Workers型定義生成
 
 # Zaim API型定義生成 (packages/zaim-api)
 pnpm generate:openapi3       # TypeSpecからOpenAPI仕様生成
@@ -37,7 +39,10 @@ pnpm generate:ts-client      # TypeScript型定義生成
 npx biome check .            # リント・フォーマット・インポート整理
 npx biome check . --write    # 自動修正付き
 
-# 個別パッケージでの型チェック
+# TypeScript型チェック
+pnpm typecheck               # Project References対応の高速型チェック
+
+# 個別パッケージでの型チェック（従来方式）
 cd packages/extention && pnpm check:type
 cd packages/oauth && pnpm check:type
 ```
@@ -72,7 +77,10 @@ TypeSpecでZaim APIの型定義を記述し、OpenAPI 3.0仕様とTypeScript型�
 ### ツール設定
 - **Biome**: リント・フォーマット・インポート整理
 - **Knip**: 未使用コード検出（knip.jsonで各パッケージの設定を管理）
-- **TypeScript**: 厳密な型チェック
+- **TypeScript**: Project References対応の型チェック専用設定
+  - `tsconfig.base.json`で共通設定を管理
+  - `emitDeclarationOnly: true`で型定義ファイルのみ生成
+  - 増分型チェックで高速化
 - **pnpm**: パッケージマネージャー（workspace設定済み）
 
 ### 権限とセキュリティ
