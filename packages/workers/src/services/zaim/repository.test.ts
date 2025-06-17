@@ -56,11 +56,11 @@ describe("getZaimRepository", () => {
 		const oauthTokenSecret = "test-secret-read";
 
 		test("トークンを正常に読み取れる", async () => {
-			mockKV.get.mockResolvedValue(JSON.stringify({ oauthTokenSecret })); // getが成功するケース
+			mockKV.get.mockResolvedValue(JSON.stringify({ oauthTokenSecret, returnTo: null })); // getが成功するケース
 
 			const result = await repository.readTemporalRequestToken(oauthToken);
 
-			expect(result).toEqual(ok({ oauthToken, oauthTokenSecret }));
+			expect(result).toEqual(ok({ oauthToken, oauthTokenSecret, returnTo: null }));
 			expect(mockKV.get).toHaveBeenCalledTimes(1);
 			expect(mockKV.get).toHaveBeenCalledWith(expect.stringContaining(userId));
 			expect(mockKV.get).toHaveBeenCalledWith(
