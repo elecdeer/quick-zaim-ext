@@ -5,7 +5,7 @@
     "jsx": "react-jsx",
     "composite": true,
     "declaration": true,
-    "declarationMap": true
+    "emitDeclarationOnly": true
   },
   "references": [
     { "path": "../zaim-api" },

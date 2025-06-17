@@ -1,20 +1,14 @@
 {
-	"$schema": "https://json.schemastore.org/tsconfig",
+	"extends": "../../tsconfig.base.json",
 	"compilerOptions": {
 		"lib": ["ESNext"],
-		"module": "ESNext",
 		"target": "ESNext",
-		"strict": true,
-		"esModuleInterop": true,
-		"skipLibCheck": true,
-		"moduleResolution": "Bundler",
-		"composite": true,
-		"outDir": "./dist",
-		"declaration": true,
-		"declarationMap": true,
-		"types": ["./worker-configuration.d.ts"]
+		"outDir": "./dist"
 	},
-	"include": ["src/**/*"],
+	"include": ["src/**/*", "worker-configuration.d.ts"],
 	"exclude": ["dist", "node_modules"],
-	"references": [{ "path": "../zaim-api" }, { "path": "../oauth" }]
+	"references": [
+		{ "path": "../zaim-api" },
+		{ "path": "../oauth" }
+	]
 }

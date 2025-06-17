@@ -14,7 +14,7 @@ stats-*.json
 .wxt
 web-ext.config.ts
 
-# TypeScript build outputs
+# TypeScript compilation outputs
 dist/
 *.tsbuildinfo
 

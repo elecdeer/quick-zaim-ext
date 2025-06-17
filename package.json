@@ -6,8 +6,7 @@
   "scripts": {
     "knip": "knip",
     "test": "vitest",
-    "build": "tsc --build",
-    "clean": "tsc --build --clean"
+    "typecheck": "tsc --build"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",

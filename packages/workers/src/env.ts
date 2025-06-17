@@ -1,3 +1,5 @@
+/// <reference path="../worker-configuration.d.ts" />
+
 import { env } from "hono/adapter";
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
