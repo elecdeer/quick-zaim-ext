@@ -11,7 +11,9 @@
     "check:lint": "biome check ./src",
     "check:type": "tsc --noEmit",
     "dev:test-cli": "tsx ./test-cli.ts",
-    "test": "vitest"
+    "test": "vitest",
+    "build": "tsc --build",
+    "clean": "tsc --build --clean"
   },
   "devDependencies": {
     "@repo/zaim-api": "workspace:*",

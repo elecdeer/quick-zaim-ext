@@ -4,7 +4,9 @@
   "type": "module",
   "scripts": {
     "generate:openapi3": "tsp compile ./typespec",
-    "generate:ts-client": "openapi-ts"
+    "generate:ts-client": "openapi-ts",
+    "build": "tsc --build",
+    "clean": "tsc --build --clean"
   },
   "exports": {
     ".": "./src/client/index.ts",

@@ -12,7 +12,9 @@
     "zip:firefox": "wxt zip -b firefox",
     "check:lint": "biome check ./entrypoints ./lib",
     "check:type": "tsc --noEmit",
-    "postinstall": "wxt prepare"
+    "postinstall": "wxt prepare",
+    "build:ts": "tsc --build",
+    "clean:ts": "tsc --build --clean"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.10",

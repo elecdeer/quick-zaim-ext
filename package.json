@@ -5,7 +5,9 @@
   "author": "elecdeer",
   "scripts": {
     "knip": "knip",
-    "test": "vitest"
+    "test": "vitest",
+    "build": "tsc --build",
+    "clean": "tsc --build --clean"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",

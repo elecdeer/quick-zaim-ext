@@ -1,9 +1,9 @@
 {
 	"$schema": "https://json.schemastore.org/tsconfig",
 	"compilerOptions": {
-		"lib": ["ESNext"],
+		"lib": ["ES2023", "DOM", "DOM.Iterable"],
 		"module": "ESNext",
-		"target": "ESNext",
+		"target": "ES2022",
 		"strict": true,
 		"esModuleInterop": true,
 		"skipLibCheck": true,
@@ -11,10 +11,8 @@
 		"composite": true,
 		"outDir": "./dist",
 		"declaration": true,
-		"declarationMap": true,
-		"types": ["./worker-configuration.d.ts"]
+		"declarationMap": true
 	},
 	"include": ["src/**/*"],
-	"exclude": ["dist", "node_modules"],
-	"references": [{ "path": "../zaim-api" }, { "path": "../oauth" }]
+	"exclude": ["dist", "node_modules"]
 }

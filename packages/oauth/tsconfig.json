@@ -7,6 +7,15 @@
 		"strict": true,
 		"esModuleInterop": true,
 		"skipLibCheck": true,
-		"moduleResolution": "Bundler"
-	}
+		"moduleResolution": "Bundler",
+		"composite": true,
+		"outDir": "./dist",
+		"declaration": true,
+		"declarationMap": true
+	},
+	"include": ["src/**/*"],
+	"exclude": ["dist", "node_modules"],
+	"references": [
+		{ "path": "../zaim-api" }
+	]
 }

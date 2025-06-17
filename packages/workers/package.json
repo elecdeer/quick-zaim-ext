@@ -2,7 +2,10 @@
   "name": "@repo/workers",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy --minify"
+    "deploy": "wrangler deploy --minify",
+    "build": "tsc --build",
+    "clean": "tsc --build --clean",
+    "wrangler:types": "wrangler types"
   },
   "exports": {
     "./client": "./src/client.ts"

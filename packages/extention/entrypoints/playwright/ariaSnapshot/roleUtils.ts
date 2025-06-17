@@ -202,7 +202,7 @@ const kImplicitRoleByTagName: {
 	PROGRESS: () => "progressbar",
 	SECTION: (e: Element) => (hasExplicitAccessibleName(e) ? "region" : null),
 	SELECT: (e: Element) =>
-		e.hasAttribute("multiple") || (e as HTMLSelectElement).size > 1
+		e.hasAttribute("multiple") || (e as unknown as HTMLSelectElement).size > 1
 			? "listbox"
 			: "combobox",
 	STRONG: () => "strong",
@@ -780,12 +780,12 @@ function getTextAlternativeInternal(
 				options.visitedElements.add(element);
 				let selectedOptions: Element[];
 				if (tagName === "SELECT") {
-					selectedOptions = [...(element as HTMLSelectElement).selectedOptions];
+					selectedOptions = [...(element as unknown as HTMLSelectElement).selectedOptions];
 					if (
 						!selectedOptions.length &&
-						(element as HTMLSelectElement).options.length
+						(element as unknown as HTMLSelectElement).options.length
 					)
-						selectedOptions.push((element as HTMLSelectElement).options[0]);
+						selectedOptions.push((element as unknown as HTMLSelectElement).options[0]);
 				} else {
 					const listbox =
 						role === "combobox"
