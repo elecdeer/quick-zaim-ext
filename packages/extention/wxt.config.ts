@@ -5,7 +5,16 @@ import { defineConfig } from "wxt";
 export default defineConfig({
 	modules: ["@wxt-dev/module-react"],
 	manifest: {
-		permissions: ["storage", "activeTab", "scripting", "identity", "debugger", "sidePanel"],
+		permissions: [
+			"storage",
+			"activeTab",
+			"scripting",
+			"identity",
+			"debugger",
+			"sidePanel",
+		],
+		// TODO: 開発中はこれでよいが、そのうち見直す必要がある
+		host_permissions: ["file:///*", "http://localhost/*", "https://*/*"],
 		action: {
 			default_title: "Quick Zaim Extension",
 		},
