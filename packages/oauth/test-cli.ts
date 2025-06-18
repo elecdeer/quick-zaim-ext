@@ -128,4 +128,4 @@ const run = async () => {
 	console.log(res6.data ?? res6.error);
 };
 
-run();
+void run();

@@ -16,6 +16,7 @@
 
 // original: https://github.com/microsoft/playwright/blob/f70f92d5cdecbebd01b18886fd7d45d1c9e7d980/packages/playwright-core/src/server/injected/roleUtils.ts
 
+import type { AriaRole } from "./../isomorphic/ariaSnapshot";
 import {
 	closestCrossShadow,
 	elementSafeTagName,
@@ -25,8 +26,6 @@ import {
 	isVisibleTextNode,
 	parentElementOrShadowHost,
 } from "./domUtils";
-
-import type { AriaRole } from "./../isomorphic/ariaSnapshot";
 
 function hasExplicitAccessibleName(e: Element) {
 	return e.hasAttribute("aria-label") || e.hasAttribute("aria-labelledby");
@@ -780,12 +779,16 @@ function getTextAlternativeInternal(
 				options.visitedElements.add(element);
 				let selectedOptions: Element[];
 				if (tagName === "SELECT") {
-					selectedOptions = [...(element as unknown as HTMLSelectElement).selectedOptions];
+					selectedOptions = [
+						...(element as unknown as HTMLSelectElement).selectedOptions,
+					];
 					if (
 						!selectedOptions.length &&
 						(element as unknown as HTMLSelectElement).options.length
 					)
-						selectedOptions.push((element as unknown as HTMLSelectElement).options[0]);
+						selectedOptions.push(
+							(element as unknown as HTMLSelectElement).options[0],
+						);
 				} else {
 					const listbox =
 						role === "combobox"

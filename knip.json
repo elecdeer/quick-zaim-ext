@@ -1,67 +1,36 @@
 {
-  "workspaces": {
-    ".": {
-      "ignoreDependencies": [
-        "knip"
-      ]
-    },
-    "packages/extention": {
-      "entry": [
-        "entrypoints/**/*.ts",
-        "entrypoints/**/*.tsx",
-        "wxt.config.ts"
-      ],
-      "project": [
-        "**/*.ts",
-        "**/*.tsx"
-      ],
-      "ignoreDependencies": [
-        "@wxt-dev/module-react",
-        "vitest"
-      ]
-    },
-    "packages/oauth": {
-      "entry": [
-        "src/index.ts"
-      ],
-      "project": [
-        "**/*.ts"
-      ],
-      "ignoreDependencies": []
-    },
-    "packages/workers": {
-      "entry": [
-        "src/index.ts",
-        "src/workers.ts"
-      ],
-      "project": [
-        "**/*.ts"
-      ],
-      "ignoreDependencies": [],
-      "ignoreExports": [
-        "debug",
-        "warn"
-      ]
-    },
-    "packages/zaim-api": {
-      "entry": [
-        "src/client/index.ts",
-        "openapi-ts.config.ts"
-      ],
-      "project": [
-        "**/*.ts"
-      ],
-      "ignoreDependencies": [
-        "@typespec/*"
-      ]
-    }
-  },
-  "ignore": [
-    "**/node_modules/**",
-    "**/*.test.ts",
-    "**/dist/**",
-    "**/tsp-output/**"
-  ],
-  "ignoreBinaries": [],
-  "ignoreExportsUsedInFile": true
+	"workspaces": {
+		".": {
+			"ignoreDependencies": ["knip"]
+		},
+		"packages/extention": {
+			"entry": ["entrypoints/**/*.ts", "entrypoints/**/*.tsx", "wxt.config.ts"],
+			"project": ["**/*.ts", "**/*.tsx"],
+			"ignoreDependencies": ["@wxt-dev/module-react", "vitest"]
+		},
+		"packages/oauth": {
+			"entry": ["src/index.ts"],
+			"project": ["**/*.ts"],
+			"ignoreDependencies": []
+		},
+		"packages/workers": {
+			"entry": ["src/index.ts", "src/workers.ts"],
+			"project": ["**/*.ts"],
+			"ignoreDependencies": [],
+			"ignoreExports": ["debug", "warn"]
+		},
+		"packages/zaim-api": {
+			"entry": ["src/client/index.ts", "openapi-ts.config.ts"],
+			"project": ["**/*.ts"],
+			"ignoreDependencies": ["@typespec/*"]
+		}
+	},
+	"ignore": [
+		"**/node_modules/**",
+		"**/*.test.ts",
+		"**/dist/**",
+		"**/tsp-output/**"
+	],
+	"ignoreBinaries": [],
+	"ignoreExportsUsedInFile": true
 }

@@ -2,18 +2,17 @@ import { vValidator } from "@hono/valibot-validator";
 import { Hono } from "hono";
 import * as v from "valibot";
 import { getUserId } from "../../auth";
+import * as logger from "../../logger";
 import { isErr, match } from "../../result";
 import {
 	getUserZaimClient,
 	getZaimLoginUrl,
 	handleZaimCallback,
 } from "../../services/zaim/zaimAuth";
-import type { HonoApp } from "../../workers";
-
-import * as logger from "../../logger";
 import { getZaimCategories } from "../../services/zaim/zaimCategories";
 import { getZaimPayments } from "../../services/zaim/zaimPayments";
 import { getZaimPlaces } from "../../services/zaim/zaimPlaces";
+import type { HonoApp } from "../../workers";
 
 export type ZaimRouteType = typeof zaimRoute;
 

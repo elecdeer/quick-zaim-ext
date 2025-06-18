@@ -16,12 +16,6 @@
 
 // original: https://github.com/microsoft/playwright/blob/f70f92d5cdecbebd01b18886fd7d45d1c9e7d980/packages/playwright-core/src/server/injected/ariaSnapshot.ts
 
-import { normalizeWhiteSpace } from "../isomorphic/stringUtils";
-
-import { getElementComputedStyle } from "./domUtils";
-import * as roleUtils from "./roleUtils";
-import { yamlEscapeKeyIfNeeded, yamlEscapeValueIfNeeded } from "./yaml";
-
 import type {
 	AriaProps,
 	AriaRegex,
@@ -30,6 +24,10 @@ import type {
 	AriaTemplateRoleNode,
 	AriaTemplateTextNode,
 } from "../isomorphic/ariaSnapshot";
+import { normalizeWhiteSpace } from "../isomorphic/stringUtils";
+import { getElementComputedStyle } from "./domUtils";
+import * as roleUtils from "./roleUtils";
+import { yamlEscapeKeyIfNeeded, yamlEscapeValueIfNeeded } from "./yaml";
 
 export type AriaNode = AriaProps & {
 	role: AriaRole | "fragment";

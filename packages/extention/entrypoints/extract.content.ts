@@ -7,7 +7,7 @@ import {
 export default defineContentScript({
 	matches: [],
 	registration: "runtime",
-	main(ctx) {
+	main(_ctx) {
 		console.log("Script was executed!");
 
 		const ariaTree = generateAriaTree(document.documentElement);

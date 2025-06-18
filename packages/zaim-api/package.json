@@ -1,22 +1,22 @@
 {
-  "name": "@repo/zaim-api",
-  "version": "0.1.0",
-  "type": "module",
-  "scripts": {
-    "generate:openapi3": "tsp compile ./typespec",
-    "generate:ts-client": "openapi-ts",
-    "typecheck": "tsc --build"
-  },
-  "exports": {
-    ".": "./src/client/index.ts",
-    "./client": "./src/client/client/index.ts"
-  },
-  "devDependencies": {
-    "@hey-api/openapi-ts": "^0.73.0",
-    "@typespec/compiler": "^1.1.0",
-    "@typespec/http": "^1.1.0",
-    "@typespec/openapi3": "^1.1.0"
-  },
-  "private": true,
-  "dependencies": {}
+	"name": "@repo/zaim-api",
+	"version": "0.1.0",
+	"type": "module",
+	"scripts": {
+		"generate:openapi3": "tsp compile ./typespec",
+		"generate:ts-client": "openapi-ts",
+		"typecheck": "tsc --build"
+	},
+	"exports": {
+		".": "./src/client/index.ts",
+		"./client": "./src/client/client/index.ts"
+	},
+	"devDependencies": {
+		"@hey-api/openapi-ts": "^0.73.0",
+		"@typespec/compiler": "^1.1.0",
+		"@typespec/http": "^1.1.0",
+		"@typespec/openapi3": "^1.1.0"
+	},
+	"private": true,
+	"dependencies": {}
 }

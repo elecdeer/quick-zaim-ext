@@ -1,6 +1,6 @@
 import * as v from "valibot";
 import type { Env } from "../../env";
-import { type Result, err, ok } from "../../result";
+import { err, ok, type Result } from "../../result";
 
 export type ZaimRepository = {
 	/**

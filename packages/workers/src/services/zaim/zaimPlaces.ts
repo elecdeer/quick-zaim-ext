@@ -1,6 +1,6 @@
 import { type MoneyMoney, moneyGetMoney } from "@repo/zaim-api";
 import type { Client } from "@repo/zaim-api/client";
-import { type Result, err, ok } from "../../result";
+import { err, ok, type Result } from "../../result";
 import type { ZaimPlace, ZaimServiceError } from "./types";
 
 /**

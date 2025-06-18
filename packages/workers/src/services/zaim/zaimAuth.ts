@@ -1,9 +1,9 @@
 import { fetchAccessToken, fetchRequestToken } from "@repo/oauth";
-import { userVerifyUser } from "@repo/zaim-api";
 import type { UserVerifyUserResponse } from "@repo/zaim-api";
+import { userVerifyUser } from "@repo/zaim-api";
 import type { Client } from "@repo/zaim-api/client";
 import type { Env } from "../../env";
-import { type Result, err, isErr, ok } from "../../result";
+import { err, isErr, ok, type Result } from "../../result";
 import { getZaimRepository } from "./repository";
 import type { ZaimServiceError } from "./types";
 import { createZaimClient } from "./zaimClient";

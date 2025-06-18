@@ -1,6 +1,5 @@
 import { assert, describe, expect, it } from "vitest";
 import {
-	type Result,
 	err,
 	flatMap,
 	getOrElse,
@@ -10,6 +9,7 @@ import {
 	mapErr,
 	match,
 	ok,
+	type Result,
 	safeTry,
 	safeTryAsync,
 } from "./result";
@@ -228,7 +228,7 @@ describe("Result型ユーティリティ関数", () => {
 
 		it("失敗した場合はErrリザルトを返す (非同期)", async () => {
 			const result = await safeTryAsync(
-				// biome-ignore lint/suspicious/useAwait: <explanation>
+				// biome-ignore lint/suspicious/useAwait: テストなのでasyncで渡す
 				async () => {
 					throw new Error("失敗");
 				},

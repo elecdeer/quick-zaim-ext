@@ -7,8 +7,5 @@
 	},
 	"include": ["src/**/*", "worker-configuration.d.ts"],
 	"exclude": ["dist", "node_modules"],
-	"references": [
-		{ "path": "../zaim-api" },
-		{ "path": "../oauth" }
-	]
+	"references": [{ "path": "../zaim-api" }, { "path": "../oauth" }]
 }

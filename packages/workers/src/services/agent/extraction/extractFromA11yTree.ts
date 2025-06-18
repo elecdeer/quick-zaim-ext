@@ -1,5 +1,5 @@
 import { valibotSchema } from "@ai-sdk/valibot";
-import { type LanguageModel, generateObject } from "ai";
+import { generateObject, type LanguageModel } from "ai";
 import * as v from "valibot";
 import { prompt } from "./prompt";
 

@@ -1,50 +1,50 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.0.0/schema.json",
-  "formatter": {
-    "enabled": true,
-    "formatWithErrors": true
-  },
-  "assist": { "actions": { "source": { "organizeImports": "on" } } },
-  "vcs": {
-    "enabled": true,
-    "clientKind": "git",
-    "useIgnoreFile": true
-  },
-  "linter": {
-    "enabled": true,
-    "includes": [
-      "**",
-      "!**/packages/extention/entrypoints/playwright/**/*.ts",
-      "!**/packages/zaim-api/src/client/**"
-    ],
-    "domains": {
-      "project": "recommended",
-      "test": "recommended"
-    },
-    "rules": {
-      "recommended": true,
-      "correctness": {
-        "useHookAtTopLevel": "warn",
-        "noUnusedImports": "warn"
-      },
-      "suspicious": {
-        "useAwait": "warn"
-      },
-      "nursery": {
-        "useSortedClasses": "warn"
-      },
-      "style": {
-        "noParameterAssign": "error",
-        "useAsConstAssertion": "error",
-        "useDefaultParameterLast": "error",
-        "useEnumInitializers": "error",
-        "useSelfClosingElements": "error",
-        "useSingleVarDeclarator": "error",
-        "noUnusedTemplateLiteral": "error",
-        "useNumberNamespace": "error",
-        "noInferrableTypes": "error",
-        "noUselessElse": "error"
-      }
-    }
-  }
+	"$schema": "https://biomejs.dev/schemas/2.0.0/schema.json",
+	"formatter": {
+		"enabled": true,
+		"formatWithErrors": true
+	},
+	"assist": { "actions": { "source": { "organizeImports": "on" } } },
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true
+	},
+	"linter": {
+		"enabled": true,
+		"includes": [
+			"**",
+			"!**/packages/extention/entrypoints/playwright/**/*.ts",
+			"!**/packages/zaim-api/src/client/**"
+		],
+		"domains": {
+			"project": "recommended",
+			"test": "recommended"
+		},
+		"rules": {
+			"recommended": true,
+			"correctness": {
+				"useHookAtTopLevel": "warn",
+				"noUnusedImports": "warn"
+			},
+			"suspicious": {
+				"useAwait": "warn"
+			},
+			"nursery": {
+				"useSortedClasses": "warn"
+			},
+			"style": {
+				"noParameterAssign": "error",
+				"useAsConstAssertion": "error",
+				"useDefaultParameterLast": "error",
+				"useEnumInitializers": "error",
+				"useSelfClosingElements": "error",
+				"useSingleVarDeclarator": "error",
+				"noUnusedTemplateLiteral": "error",
+				"useNumberNamespace": "error",
+				"noInferrableTypes": "error",
+				"noUselessElse": "error"
+			}
+		}
+	}
 }

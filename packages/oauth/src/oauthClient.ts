@@ -1,6 +1,6 @@
 import {
-	type Endpoint,
 	authorizeRequest,
+	type Endpoint,
 	parseOAuthTokenFromResponse,
 } from "./oauth";
 import { OAuthHeader } from "./oauthHeader";

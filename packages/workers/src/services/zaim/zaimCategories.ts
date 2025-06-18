@@ -1,6 +1,6 @@
 import { categoryGetCategories, genreGetGenres } from "@repo/zaim-api";
 import type { Client } from "@repo/zaim-api/client";
-import { type Result, err, ok } from "../../result";
+import { err, ok, type Result } from "../../result";
 import type { ZaimCategory, ZaimServiceError } from "./types";
 
 /**
