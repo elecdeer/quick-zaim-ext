@@ -5,7 +5,10 @@ import { defineConfig } from "wxt";
 export default defineConfig({
 	modules: ["@wxt-dev/module-react"],
 	manifest: {
-		permissions: ["storage", "activeTab", "scripting", "identity", "debugger"],
+		permissions: ["storage", "activeTab", "scripting", "identity", "debugger", "sidePanel"],
+		side_panel: {
+			default_path: "sidepanel.html",
+		},
 	},
 	imports: false,
 	vite: () => ({
