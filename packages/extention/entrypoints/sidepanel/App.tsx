@@ -57,7 +57,7 @@ function App() {
 
 	return (
 		<div className="flex h-screen w-full flex-col items-center justify-start gap-4 bg-gray-100 p-4">
-			<h1 className="text-xl font-bold">Quick Zaim Extension</h1>
+			<h1 className="font-bold text-xl">Quick Zaim Extension</h1>
 			<Button className="" onClick={handleClick}>
 				Extract
 			</Button>

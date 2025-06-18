@@ -7,7 +7,7 @@ export default defineBackground(() => {
 	// アクションボタンクリック時にサイドパネルを開く
 	browser.action.onClicked.addListener(async (tab) => {
 		console.log("Action button clicked", tab);
-		
+
 		try {
 			// サイドパネルを開く
 			await browser.sidePanel.open({
