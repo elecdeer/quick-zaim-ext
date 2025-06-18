@@ -6,6 +6,9 @@ export default defineConfig({
 	modules: ["@wxt-dev/module-react"],
 	manifest: {
 		permissions: ["storage", "activeTab", "scripting", "identity", "debugger", "sidePanel"],
+		action: {
+			default_title: "Quick Zaim Extension",
+		},
 		side_panel: {
 			default_path: "sidepanel.html",
 		},

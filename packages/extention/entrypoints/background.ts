@@ -8,9 +8,14 @@ export default defineBackground(() => {
 	browser.action.onClicked.addListener(async (tab) => {
 		console.log("Action button clicked", tab);
 		
-		// サイドパネルを開く
-		await browser.sidePanel.open({
-			windowId: tab.windowId,
-		});
+		try {
+			// サイドパネルを開く
+			await browser.sidePanel.open({
+				windowId: tab.windowId,
+			});
+			console.log("Side panel opened successfully");
+		} catch (error) {
+			console.error("Failed to open side panel:", error);
+		}
 	});
 });
