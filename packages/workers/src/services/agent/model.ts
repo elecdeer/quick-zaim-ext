@@ -15,5 +15,5 @@ export const getLanguageModel = async (env: Env): Promise<LanguageModel> => {
 		baseURL: `${gatewayUrl}/v1beta`,
 	});
 
-	return google("gemini-2.0-flash-001");
+	return google("gemini-2.5-flash-lite-preview-06-17");
 };
