@@ -31,7 +31,7 @@ export const extractFromAriaSnapshot = async (
 	return object;
 };
 
-const receiptSchema = v.object({
+export const receiptSchema = v.object({
 	date: v.pipe(v.string(), v.description("YYYY-MM-DD形式の購入日")),
 	items: v.array(
 		v.object({
@@ -59,6 +59,8 @@ const receiptSchema = v.object({
 		v.description("請求書を特定するためのユニークなID"),
 	),
 });
+
+export type Receipt = v.InferOutput<typeof receiptSchema>;
 
 // idはnumberかも
 
