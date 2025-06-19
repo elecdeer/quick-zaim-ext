@@ -396,11 +396,15 @@ const ExtractResultDisplay: FC<{
 			<div className="space-y-4">
 				<div className="grid grid-cols-2 gap-4">
 					<div>
-						<label className="mb-1 block font-medium text-gray-600 text-sm">
+						<label
+							htmlFor="date-input"
+							className="mb-1 block font-medium text-gray-600 text-sm"
+						>
 							購入日
 						</label>
 						{isEditing ? (
 							<input
+								id="date-input"
 								type="date"
 								value={editableResult.date}
 								onChange={(e) =>
@@ -413,11 +417,15 @@ const ExtractResultDisplay: FC<{
 						)}
 					</div>
 					<div>
-						<label className="mb-1 block font-medium text-gray-600 text-sm">
+						<label
+							htmlFor="shop-name-input"
+							className="mb-1 block font-medium text-gray-600 text-sm"
+						>
 							店舗名
 						</label>
 						{isEditing ? (
 							<input
+								id="shop-name-input"
 								type="text"
 								value={editableResult.shopName}
 								onChange={(e) =>
@@ -436,11 +444,15 @@ const ExtractResultDisplay: FC<{
 
 				<div className="grid grid-cols-2 gap-4">
 					<div>
-						<label className="mb-1 block font-medium text-gray-600 text-sm">
+						<label
+							htmlFor="payment-method-input"
+							className="mb-1 block font-medium text-gray-600 text-sm"
+						>
 							支払い方法
 						</label>
 						{isEditing ? (
 							<input
+								id="payment-method-input"
 								type="text"
 								value={editableResult.paymentMethodName}
 								onChange={(e) =>
@@ -456,11 +468,15 @@ const ExtractResultDisplay: FC<{
 						)}
 					</div>
 					<div>
-						<label className="mb-1 block font-medium text-gray-600 text-sm">
+						<label
+							htmlFor="sum-price-input"
+							className="mb-1 block font-medium text-gray-600 text-sm"
+						>
 							合計金額
 						</label>
 						{isEditing ? (
 							<input
+								id="sum-price-input"
 								type="number"
 								value={editableResult.sumPrice}
 								onChange={(e) =>
@@ -495,10 +511,14 @@ const ExtractResultDisplay: FC<{
 											<div className="flex items-center justify-between">
 												<div className="flex-1 space-y-2">
 													<div>
-														<label className="mb-1 block text-gray-600 text-xs">
+														<label
+															htmlFor={`item-name-${index}`}
+															className="mb-1 block text-gray-600 text-xs"
+														>
 															商品名
 														</label>
 														<input
+															id={`item-name-${index}`}
 															type="text"
 															value={item.normalizedName}
 															onChange={(e) =>
@@ -512,10 +532,14 @@ const ExtractResultDisplay: FC<{
 														/>
 													</div>
 													<div>
-														<label className="mb-1 block text-gray-600 text-xs">
+														<label
+															htmlFor={`item-category-${index}`}
+															className="mb-1 block text-gray-600 text-xs"
+														>
 															カテゴリ
 														</label>
 														<input
+															id={`item-category-${index}`}
 															type="text"
 															value={item.category}
 															onChange={(e) =>
@@ -527,10 +551,14 @@ const ExtractResultDisplay: FC<{
 												</div>
 												<div className="ml-4 space-y-2">
 													<div>
-														<label className="mb-1 block text-gray-600 text-xs">
+														<label
+															htmlFor={`item-price-${index}`}
+															className="mb-1 block text-gray-600 text-xs"
+														>
 															価格
 														</label>
 														<input
+															id={`item-price-${index}`}
 															type="number"
 															value={item.priceYen}
 															onChange={(e) =>
@@ -544,10 +572,14 @@ const ExtractResultDisplay: FC<{
 														/>
 													</div>
 													<div>
-														<label className="mb-1 block text-gray-600 text-xs">
+														<label
+															htmlFor={`item-amount-${index}`}
+															className="mb-1 block text-gray-600 text-xs"
+														>
 															数量
 														</label>
 														<input
+															id={`item-amount-${index}`}
 															type="number"
 															value={item.amount}
 															onChange={(e) =>
