@@ -15,11 +15,6 @@ Zaim（家計簿サービス）との連携機能を持つブラウザ拡張機�
 ### 開発とビルド
 
 ```bash
-# ルートレベル（全体）
-pnpm test                    # テスト実行
-pnpm knip                    # 未使用コードチェック
-pnpm typecheck               # TypeScript型チェック（Project References対応）
-
 # ブラウザ拡張機能 (packages/extention)
 pnpm dev                     # Chrome開発モード
 pnpm dev:firefox             # Firefox開発モード
@@ -42,15 +37,18 @@ pnpm generate:ts-client      # TypeScript型定義生成
 
 ```bash
 # Biome（ルートでの全体チェック）
-npx biome check .            # リント・フォーマット・インポート整理
-npx biome check . --write    # 自動修正付き
+pnpm run check            # リント・フォーマット・インポート整理
+pnpm run check:fix        # 自動修正
+pnpm run check:fix:unsafe # 自動修正付き（unsafeオプション）
 
 # TypeScript型チェック
-pnpm typecheck               # Project References対応の高速型チェック
+pnpm run typecheck        # 速型チェック
 
-# 個別パッケージでの型チェック（従来方式）
-cd packages/extention && pnpm check:type
-cd packages/oauth && pnpm check:type
+# テスト
+pnpm run test            # 全体テスト実行
+
+# その他ツール
+pnpm knip                    # 未使用コードチェック
 ```
 
 ## アーキテクチャ

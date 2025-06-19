@@ -13,9 +13,7 @@ const apiClient = createZaimApiClient("http://localhost:8787");
 const extractionClient = createExtractionApiClient("http://localhost:8787");
 
 function App() {
-	const [extractResult, setExtractResult] = useState<Receipt | null>(
-		null,
-	);
+	const [extractResult, setExtractResult] = useState<Receipt | null>(null);
 	const [isExtracting, setIsExtracting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
