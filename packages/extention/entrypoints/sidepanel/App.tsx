@@ -116,6 +116,7 @@ function MainContent() {
 				<ExtractResultDisplay
 					result={extractResult}
 					onClear={() => setExtractResult(null)}
+					onUpdate={(updatedResult) => setExtractResult(updatedResult)}
 				/>
 			)}
 			<LoginButton />
@@ -316,50 +317,165 @@ const LogoutButton: FC = () => {
 const ExtractResultDisplay: FC<{
 	result: Receipt;
 	onClear: () => void;
-}> = ({ result, onClear }) => {
+	onUpdate?: (updatedResult: Receipt) => void;
+}> = ({ result, onClear, onUpdate }) => {
+	const [isEditing, setIsEditing] = useState(false);
+	const [editableResult, setEditableResult] = useState<Receipt>(result);
+
+	// 編集内容を保存
+	const handleSave = () => {
+		if (onUpdate) {
+			onUpdate(editableResult);
+		}
+		setIsEditing(false);
+	};
+
+	// 編集をキャンセル
+	const handleCancel = () => {
+		setEditableResult(result);
+		setIsEditing(false);
+	};
+
+	// 商品項目の更新
+	const updateItem = (
+		index: number,
+		field: keyof Receipt["items"][0],
+		value: string | number,
+	) => {
+		const updatedItems = [...editableResult.items];
+		updatedItems[index] = { ...updatedItems[index], [field]: value };
+		setEditableResult({ ...editableResult, items: updatedItems });
+	};
+
+	// 商品項目の削除
+	const removeItem = (index: number) => {
+		const updatedItems = editableResult.items.filter((_, i) => i !== index);
+		setEditableResult({ ...editableResult, items: updatedItems });
+	};
 	return (
 		<div className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg">
 			<div className="mb-4 flex items-center justify-between">
 				<h2 className="font-bold text-gray-800 text-lg">抽出結果</h2>
-				<button
-					type="button"
-					onClick={onClear}
-					className="rounded bg-gray-200 px-3 py-1 text-gray-600 text-sm hover:bg-gray-300"
-				>
-					×
-				</button>
+				<div className="flex gap-2">
+					{isEditing ? (
+						<>
+							<button
+								type="button"
+								onClick={handleSave}
+								className="rounded bg-green-500 px-3 py-1 text-sm text-white hover:bg-green-600"
+							>
+								保存
+							</button>
+							<button
+								type="button"
+								onClick={handleCancel}
+								className="rounded bg-gray-500 px-3 py-1 text-sm text-white hover:bg-gray-600"
+							>
+								キャンセル
+							</button>
+						</>
+					) : (
+						<button
+							type="button"
+							onClick={() => setIsEditing(true)}
+							className="rounded bg-blue-500 px-3 py-1 text-sm text-white hover:bg-blue-600"
+						>
+							編集
+						</button>
+					)}
+					<button
+						type="button"
+						onClick={onClear}
+						className="rounded bg-gray-200 px-3 py-1 text-gray-600 text-sm hover:bg-gray-300"
+					>
+						×
+					</button>
+				</div>
 			</div>
 
 			<div className="space-y-4">
 				<div className="grid grid-cols-2 gap-4">
 					<div>
-						<div className="block font-medium text-gray-600 text-sm">
+						<label className="mb-1 block font-medium text-gray-600 text-sm">
 							購入日
-						</div>
-						<p className="text-gray-800">{result.date}</p>
+						</label>
+						{isEditing ? (
+							<input
+								type="date"
+								value={editableResult.date}
+								onChange={(e) =>
+									setEditableResult({ ...editableResult, date: e.target.value })
+								}
+								className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+							/>
+						) : (
+							<p className="text-gray-800">{result.date}</p>
+						)}
 					</div>
 					<div>
-						<div className="block font-medium text-gray-600 text-sm">
+						<label className="mb-1 block font-medium text-gray-600 text-sm">
 							店舗名
-						</div>
-						<p className="text-gray-800">{result.shopName}</p>
+						</label>
+						{isEditing ? (
+							<input
+								type="text"
+								value={editableResult.shopName}
+								onChange={(e) =>
+									setEditableResult({
+										...editableResult,
+										shopName: e.target.value,
+									})
+								}
+								className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+							/>
+						) : (
+							<p className="text-gray-800">{result.shopName}</p>
+						)}
 					</div>
 				</div>
 
 				<div className="grid grid-cols-2 gap-4">
 					<div>
-						<div className="block font-medium text-gray-600 text-sm">
+						<label className="mb-1 block font-medium text-gray-600 text-sm">
 							支払い方法
-						</div>
-						<p className="text-gray-800">{result.paymentMethodName}</p>
+						</label>
+						{isEditing ? (
+							<input
+								type="text"
+								value={editableResult.paymentMethodName}
+								onChange={(e) =>
+									setEditableResult({
+										...editableResult,
+										paymentMethodName: e.target.value,
+									})
+								}
+								className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+							/>
+						) : (
+							<p className="text-gray-800">{result.paymentMethodName}</p>
+						)}
 					</div>
 					<div>
-						<div className="block font-medium text-gray-600 text-sm">
+						<label className="mb-1 block font-medium text-gray-600 text-sm">
 							合計金額
-						</div>
-						<p className="font-bold text-gray-800 text-lg">
-							¥{result.sumPrice.toLocaleString()}
-						</p>
+						</label>
+						{isEditing ? (
+							<input
+								type="number"
+								value={editableResult.sumPrice}
+								onChange={(e) =>
+									setEditableResult({
+										...editableResult,
+										sumPrice: Number(e.target.value),
+									})
+								}
+								className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+							/>
+						) : (
+							<p className="font-bold text-gray-800 text-lg">
+								¥{result.sumPrice.toLocaleString()}
+							</p>
+						)}
 					</div>
 				</div>
 
@@ -368,32 +484,116 @@ const ExtractResultDisplay: FC<{
 						商品一覧
 					</div>
 					<div className="max-h-64 space-y-2 overflow-y-auto">
-						{result.items.map((item, index) => (
-							<div
-								key={`item-${index}-${item.name}`}
-								className="rounded-lg border bg-gray-50 p-3"
-							>
-								<div className="flex items-start justify-between">
-									<div className="flex-1">
-										<p className="font-medium text-gray-800">
-											{item.normalizedName}
-										</p>
-										<p className="text-gray-600 text-sm">{item.category}</p>
-										{item.name !== item.normalizedName && (
-											<p className="mt-1 text-gray-500 text-xs">
-												元の名前: {item.name}
-											</p>
-										)}
-									</div>
-									<div className="text-right">
-										<p className="font-medium text-gray-800">
-											¥{item.priceYen.toLocaleString()}
-										</p>
-										<p className="text-gray-600 text-sm">×{item.amount}</p>
-									</div>
+						{(isEditing ? editableResult.items : result.items).map(
+							(item, index) => (
+								<div
+									key={`item-${index}-${item.name}`}
+									className="rounded-lg border bg-gray-50 p-3"
+								>
+									{isEditing ? (
+										<div className="space-y-2">
+											<div className="flex items-center justify-between">
+												<div className="flex-1 space-y-2">
+													<div>
+														<label className="mb-1 block text-gray-600 text-xs">
+															商品名
+														</label>
+														<input
+															type="text"
+															value={item.normalizedName}
+															onChange={(e) =>
+																updateItem(
+																	index,
+																	"normalizedName",
+																	e.target.value,
+																)
+															}
+															className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+														/>
+													</div>
+													<div>
+														<label className="mb-1 block text-gray-600 text-xs">
+															カテゴリ
+														</label>
+														<input
+															type="text"
+															value={item.category}
+															onChange={(e) =>
+																updateItem(index, "category", e.target.value)
+															}
+															className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+														/>
+													</div>
+												</div>
+												<div className="ml-4 space-y-2">
+													<div>
+														<label className="mb-1 block text-gray-600 text-xs">
+															価格
+														</label>
+														<input
+															type="number"
+															value={item.priceYen}
+															onChange={(e) =>
+																updateItem(
+																	index,
+																	"priceYen",
+																	Number(e.target.value),
+																)
+															}
+															className="w-20 rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+														/>
+													</div>
+													<div>
+														<label className="mb-1 block text-gray-600 text-xs">
+															数量
+														</label>
+														<input
+															type="number"
+															value={item.amount}
+															onChange={(e) =>
+																updateItem(
+																	index,
+																	"amount",
+																	Number(e.target.value),
+																)
+															}
+															className="w-20 rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+														/>
+													</div>
+												</div>
+												<button
+													type="button"
+													onClick={() => removeItem(index)}
+													className="ml-2 rounded bg-red-500 px-2 py-1 text-white text-xs hover:bg-red-600"
+												>
+													削除
+												</button>
+											</div>
+										</div>
+									) : (
+										<div className="flex items-start justify-between">
+											<div className="flex-1">
+												<p className="font-medium text-gray-800">
+													{item.normalizedName}
+												</p>
+												<p className="text-gray-600 text-sm">{item.category}</p>
+												{item.name !== item.normalizedName && (
+													<p className="mt-1 text-gray-500 text-xs">
+														元の名前: {item.name}
+													</p>
+												)}
+											</div>
+											<div className="text-right">
+												<p className="font-medium text-gray-800">
+													¥{item.priceYen.toLocaleString()}
+												</p>
+												<p className="text-gray-600 text-sm">×{item.amount}</p>
+											</div>
+										</div>
+									)}
 								</div>
-							</div>
-						))}
+							),
+						)}
 					</div>
 				</div>
 			</div>
