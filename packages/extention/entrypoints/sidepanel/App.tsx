@@ -3,6 +3,11 @@ import {
 	createZaimApiClient,
 	type Receipt,
 } from "@repo/workers/client";
+import {
+	QueryClient,
+	QueryClientProvider,
+	useMutation,
+} from "@tanstack/react-query";
 import clsx from "clsx";
 import type { ComponentPropsWithRef } from "react";
 import { type FC, useCallback, useState } from "react";
@@ -12,73 +17,98 @@ import { browser } from "wxt/browser";
 const apiClient = createZaimApiClient("http://localhost:8787");
 const extractionClient = createExtractionApiClient("http://localhost:8787");
 
+// QueryClient を作成
+const queryClient = new QueryClient({
+	defaultOptions: {
+		queries: {
+			retry: 1,
+			refetchOnWindowFocus: false,
+		},
+		mutations: {
+			retry: 1,
+		},
+	},
+});
+
 function App() {
+	return (
+		<QueryClientProvider client={queryClient}>
+			<MainContent />
+		</QueryClientProvider>
+	);
+}
+
+function MainContent() {
 	const [extractResult, setExtractResult] = useState<Receipt | null>(null);
-	const [isExtracting, setIsExtracting] = useState(false);
-	const [error, setError] = useState<string | null>(null);
 
-	const handleClick = useCallback(async () => {
-		setIsExtracting(true);
-		setError(null);
-		const tabs = await browser.tabs.query({
-			active: true,
-			currentWindow: true,
-		});
-		const tab = tabs[0];
+	// Extract mutation を作成
+	const extractMutation = useMutation({
+		mutationFn: async (): Promise<Receipt> => {
+			// DOM情報を取得
+			const tabs = await browser.tabs.query({
+				active: true,
+				currentWindow: true,
+			});
+			const tab = tabs[0];
 
-		console.log("activeTab", tab);
-		if (!tab || !tab.id) return;
-
-		const [res] = await browser.scripting.executeScript({
-			target: { tabId: tab.id },
-			files: ["content-scripts/extract.js"],
-		});
-		console.log(res);
-
-		if (res.result) {
-			try {
-				// 生成した API クライアントを使用
-				const response = await extractionClient.index.$post({
-					json: {
-						ariaSnapshot: res.result as string,
-					},
-				});
-
-				if (!response.ok) {
-					// エラーレスポンスの処理
-					const errorText = await response.text();
-					console.error("Extraction failed:", errorText);
-					setError(`抽出に失敗しました: ${errorText}`);
-					return;
-				}
-
-				// 成功時の処理
-				const data = await response.json();
-				console.log("Extraction successful:", data);
-				setExtractResult(data as Receipt);
-			} catch (error) {
-				// ネットワークエラーなどの処理
-				console.error("Error during extraction request:", error);
-				setError(
-					`エラーが発生しました: ${error instanceof Error ? error.message : "Unknown error"}`,
-				);
+			console.log("activeTab", tab);
+			if (!tab || !tab.id) {
+				throw new Error("アクティブなタブが見つかりません");
 			}
-		} else {
-			setError("DOM情報の取得に失敗しました");
-		}
-		setIsExtracting(false);
-	}, []);
+
+			const [res] = await browser.scripting.executeScript({
+				target: { tabId: tab.id },
+				files: ["content-scripts/extract.js"],
+			});
+			console.log(res);
+
+			if (!res.result) {
+				throw new Error("DOM情報の取得に失敗しました");
+			}
+
+			// API にリクエスト送信
+			const response = await extractionClient.index.$post({
+				json: {
+					ariaSnapshot: res.result as string,
+				},
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				console.error("Extraction failed:", errorText);
+				throw new Error(`抽出に失敗しました: ${errorText}`);
+			}
+
+			const data = await response.json();
+			console.log("Extraction successful:", data);
+			return data as Receipt;
+		},
+		onSuccess: (data) => {
+			setExtractResult(data);
+		},
+		onError: (error) => {
+			console.error("Extract error:", error);
+		},
+	});
+
+	const handleClick = useCallback(() => {
+		extractMutation.mutate();
+	}, [extractMutation]);
 
 	return (
 		<div className="flex h-screen w-full flex-col items-center justify-start gap-4 bg-gray-100 p-4">
 			<h1 className="font-bold text-xl">Quick Zaim Extension</h1>
-			<Button className="" onClick={handleClick} disabled={isExtracting}>
-				{isExtracting ? "抽出中..." : "Extract"}
+			<Button
+				className=""
+				onClick={handleClick}
+				disabled={extractMutation.isPending}
+			>
+				{extractMutation.isPending ? "抽出中..." : "Extract"}
 			</Button>
 
-			{error && (
+			{extractMutation.isError && (
 				<div className="w-full max-w-md rounded bg-red-100 p-3 text-red-700">
-					{error}
+					{extractMutation.error?.message || "エラーが発生しました"}
 				</div>
 			)}
 
@@ -88,95 +118,13 @@ function App() {
 					onClear={() => setExtractResult(null)}
 				/>
 			)}
-			<Button
-				type="button"
-				onClick={async () => {
-					const url = new URL("http://localhost:8787/login");
-					url.searchParams.set(
-						"return-to",
-						"https://efpgpbmleoemnhndmngfoinonbmbibed.chromiumapp.org",
-					);
+			<LoginButton />
+			<ZaimLoginButton />
+			<CategoriesButton />
 
-					const res = await browser.identity.launchWebAuthFlow({
-						interactive: true,
-						url: url.toString(),
-					});
-					console.log(res);
-				}}
-			>
-				Login
-			</Button>
-			<Button
-				type="button"
-				onClick={async () => {
-					const res = await apiClient.login.$post({
-						query: {
-							"return-to":
-								"https://efpgpbmleoemnhndmngfoinonbmbibed.chromiumapp.org",
-						},
-					});
-					const { userAuthorizeUrl } = await res.json();
+			<PlacesButton />
 
-					console.log({ userAuthorizeUrl });
-
-					// http://localhost:8787/zaim/callback からのリダイレクト先を https://efpgpbmleoemnhndmngfoinonbmbibed.chromiumapp.org にしないといけない
-					const res2 = await browser.identity.launchWebAuthFlow({
-						interactive: true,
-						url: userAuthorizeUrl,
-					});
-					console.log(res2);
-				}}
-			>
-				Zaim Login
-			</Button>
-			<Button
-				type="button"
-				onClick={async () => {
-					const res = await apiClient.categories.$get();
-
-					console.log(res);
-
-					if (res.ok) {
-						const data = await res.json();
-						console.log(data);
-					} else {
-						console.error("Error:", res.statusText);
-					}
-				}}
-			>
-				Hello
-			</Button>
-
-			<Button
-				type="button"
-				onClick={async () => {
-					const res = await apiClient.places.$get();
-
-					console.log(res);
-
-					if (res.ok) {
-						const data = await res.json();
-						console.log(data);
-					} else {
-						console.error("Error:", res.statusText);
-					}
-				}}
-			>
-				Places
-			</Button>
-
-			<Button
-				type="button"
-				onClick={async () => {
-					const url = new URL("http://localhost:8787/logout");
-					const res = await fetch(url, {
-						method: "GET",
-					});
-					console.log(res);
-				}}
-			>
-				Logout
-			</Button>
+			<LogoutButton />
 		</div>
 	);
 }
@@ -194,6 +142,174 @@ const Button: FC<ComponentPropsWithRef<"button">> = ({
 			type="button"
 			{...props}
 		/>
+	);
+};
+
+// 各ボタンコンポーネント
+const LoginButton: FC = () => {
+	const loginMutation = useMutation({
+		mutationFn: async () => {
+			const url = new URL("http://localhost:8787/login");
+			url.searchParams.set(
+				"return-to",
+				"https://efpgpbmleoemnhndmngfoinonbmbibed.chromiumapp.org",
+			);
+
+			const res = await browser.identity.launchWebAuthFlow({
+				interactive: true,
+				url: url.toString(),
+			});
+			return res;
+		},
+		onSuccess: (data) => {
+			console.log("Login success:", data);
+		},
+		onError: (error) => {
+			console.error("Login error:", error);
+		},
+	});
+
+	return (
+		<Button
+			type="button"
+			onClick={() => loginMutation.mutate()}
+			disabled={loginMutation.isPending}
+		>
+			{loginMutation.isPending ? "ログイン中..." : "Login"}
+		</Button>
+	);
+};
+
+const ZaimLoginButton: FC = () => {
+	const zaimLoginMutation = useMutation({
+		mutationFn: async () => {
+			const res = await apiClient.login.$post({
+				query: {
+					"return-to":
+						"https://efpgpbmleoemnhndmngfoinonbmbibed.chromiumapp.org",
+				},
+			});
+			const { userAuthorizeUrl } = await res.json();
+
+			console.log({ userAuthorizeUrl });
+
+			const res2 = await browser.identity.launchWebAuthFlow({
+				interactive: true,
+				url: userAuthorizeUrl,
+			});
+			return res2;
+		},
+		onSuccess: (data) => {
+			console.log("Zaim login success:", data);
+		},
+		onError: (error) => {
+			console.error("Zaim login error:", error);
+		},
+	});
+
+	return (
+		<Button
+			type="button"
+			onClick={() => zaimLoginMutation.mutate()}
+			disabled={zaimLoginMutation.isPending}
+		>
+			{zaimLoginMutation.isPending ? "ログイン中..." : "Zaim Login"}
+		</Button>
+	);
+};
+
+const CategoriesButton: FC = () => {
+	const categoriesMutation = useMutation({
+		mutationFn: async () => {
+			const res = await apiClient.categories.$get();
+
+			console.log(res);
+
+			if (res.ok) {
+				const data = await res.json();
+				console.log(data);
+				return data;
+			}
+			throw new Error(res.statusText);
+		},
+		onSuccess: (data) => {
+			console.log("Categories success:", data);
+		},
+		onError: (error) => {
+			console.error("Categories error:", error);
+		},
+	});
+
+	return (
+		<Button
+			type="button"
+			onClick={() => categoriesMutation.mutate()}
+			disabled={categoriesMutation.isPending}
+		>
+			{categoriesMutation.isPending ? "取得中..." : "Hello"}
+		</Button>
+	);
+};
+
+const PlacesButton: FC = () => {
+	const placesMutation = useMutation({
+		mutationFn: async () => {
+			const res = await apiClient.places.$get();
+
+			console.log(res);
+
+			if (res.ok) {
+				const data = await res.json();
+				console.log(data);
+				return data;
+			}
+			throw new Error(res.statusText);
+		},
+		onSuccess: (data) => {
+			console.log("Places success:", data);
+		},
+		onError: (error) => {
+			console.error("Places error:", error);
+		},
+	});
+
+	return (
+		<Button
+			type="button"
+			onClick={() => placesMutation.mutate()}
+			disabled={placesMutation.isPending}
+		>
+			{placesMutation.isPending ? "取得中..." : "Places"}
+		</Button>
+	);
+};
+
+const LogoutButton: FC = () => {
+	const logoutMutation = useMutation({
+		mutationFn: async () => {
+			const url = new URL("http://localhost:8787/logout");
+			const res = await fetch(url, {
+				method: "GET",
+			});
+			console.log(res);
+			return res;
+		},
+		onSuccess: (data) => {
+			console.log("Logout success:", data);
+		},
+		onError: (error) => {
+			console.error("Logout error:", error);
+		},
+	});
+
+	return (
+		<Button
+			type="button"
+			onClick={() => logoutMutation.mutate()}
+			disabled={logoutMutation.isPending}
+		>
+			{logoutMutation.isPending ? "ログアウト中..." : "Logout"}
+		</Button>
 	);
 };
 
