@@ -58,12 +58,9 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 	const sortedPlaces = [...places].sort((a, b) => b.count - a.count);
 
 	// 店舗名のフィルタリング
-	const filteredPlaces =
-		shopNameQuery === ""
-			? sortedPlaces
-			: sortedPlaces.filter((place) =>
-					place.name.toLowerCase().includes(shopNameQuery.toLowerCase()),
-				);
+	const filteredPlaces = sortedPlaces.filter((place) =>
+		place.name.toLowerCase().includes(shopNameQuery.toLowerCase()),
+	);
 
 	// 選択された店舗名を取得
 	const selectedPlace = places.find(
@@ -167,44 +164,48 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 							}}
 						>
 							<div className="relative">
-								<ComboboxInput
-									className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
-									displayValue={(place: ZaimPlace | null) =>
-										place?.name ?? editableResult.shopName
-									}
-									onChange={(event) => setShopNameQuery(event.target.value)}
-									placeholder="店舗名を選択してください"
-								/>
-								<ComboboxButton className="absolute inset-y-0 right-0 flex items-center pr-2">
-									<ChevronDown className="h-4 w-4 text-gray-400" />
+								<ComboboxButton as="div" className="w-full">
+									<ComboboxInput
+										className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+										displayValue={(place: ZaimPlace | null) =>
+											place?.name ?? editableResult.shopName
+										}
+										onChange={(event) => setShopNameQuery(event.target.value)}
+										placeholder="店舗名を選択してください"
+									/>
+									<div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+										<ChevronDown className="h-4 w-4 text-gray-400" />
+									</div>
 								</ComboboxButton>
 								<ComboboxOptions className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded border border-gray-300 bg-white shadow-lg">
-									{filteredPlaces.map((place) => (
-										<ComboboxOption
-											key={place.uid}
-											value={place}
-											className="cursor-pointer select-none px-2 py-2 text-xs data-[focus]:bg-blue-100 data-[selected]:bg-blue-600 data-[selected]:text-white"
-										>
-											{({ selected }) => (
-												<div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
-													<div className="flex w-3 justify-center">
-														{selected && <Check className="h-3 w-3" />}
+									{(shopNameQuery === "" ? sortedPlaces : filteredPlaces).map(
+										(place) => (
+											<ComboboxOption
+												key={place.uid}
+												value={place}
+												className="cursor-pointer select-none px-2 py-2 text-xs data-[focus]:bg-blue-100 data-[selected]:bg-blue-600 data-[selected]:text-white"
+											>
+												{({ selected }) => (
+													<div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
+														<div className="flex w-3 justify-center">
+															{selected && <Check className="h-3 w-3" />}
+														</div>
+														<span
+															className={`truncate ${selected ? "font-medium" : "font-normal"}`}
+														>
+															{place.name}
+														</span>
+														<span
+															className={`text-right text-xs ${selected ? "text-blue-100" : "text-gray-500"}`}
+														>
+															{place.count}
+														</span>
 													</div>
-													<span
-														className={`truncate ${selected ? "font-medium" : "font-normal"}`}
-													>
-														{place.name}
-													</span>
-													<span
-														className={`text-right text-xs ${selected ? "text-blue-100" : "text-gray-500"}`}
-													>
-														{place.count}
-													</span>
-												</div>
-											)}
-										</ComboboxOption>
-									))}
-									{filteredPlaces.length === 0 && shopNameQuery !== "" && (
+												)}
+											</ComboboxOption>
+										),
+									)}
+									{shopNameQuery !== "" && filteredPlaces.length === 0 && (
 										<div className="px-4 py-2 text-gray-500 text-sm">
 											候補が見つかりません
 										</div>
