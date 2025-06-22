@@ -1,5 +1,10 @@
 import {
 	Button,
+	Combobox,
+	ComboboxButton,
+	ComboboxInput,
+	ComboboxOption,
+	ComboboxOptions,
 	Dialog,
 	DialogPanel,
 	DialogTitle,
@@ -14,13 +19,16 @@ import {
 	createExtractionApiClient,
 	createZaimApiClient,
 	type Receipt,
+	type ZaimPlace,
 } from "@repo/workers/client";
 import {
 	QueryClient,
 	QueryClientProvider,
 	useMutation,
+	useQuery,
 } from "@tanstack/react-query";
 import {
+	Check,
 	ChevronDown,
 	LogOut,
 	Save,
@@ -238,8 +246,9 @@ const ZaimLoginButton: FC = () => {
 };
 
 const CategoriesButton: FC = () => {
-	const categoriesMutation = useMutation({
-		mutationFn: async () => {
+	const categoriesQuery = useQuery({
+		queryKey: ["categories"],
+		queryFn: async () => {
 			const res = await apiClient.categories.$get();
 
 			console.log(res);
@@ -251,28 +260,25 @@ const CategoriesButton: FC = () => {
 			}
 			throw new Error(res.statusText);
 		},
-		onSuccess: (data) => {
-			console.log("Categories success:", data);
-		},
-		onError: (error) => {
-			console.error("Categories error:", error);
-		},
+		enabled: false, // 手動で実行
+		staleTime: 5 * 60 * 1000, // 5分間キャッシュ
 	});
 
 	return (
 		<Button
-			onClick={() => categoriesMutation.mutate()}
-			disabled={categoriesMutation.isPending}
+			onClick={() => categoriesQuery.refetch()}
+			disabled={categoriesQuery.isFetching}
 			className="flex w-full items-center justify-center gap-2 rounded bg-gray-600 px-3 py-2 font-medium text-sm text-white transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-400"
 		>
-			{categoriesMutation.isPending ? "取得中..." : "カテゴリ取得"}
+			{categoriesQuery.isFetching ? "取得中..." : "カテゴリ取得"}
 		</Button>
 	);
 };
 
 const PlacesButton: FC = () => {
-	const placesMutation = useMutation({
-		mutationFn: async () => {
+	const placesQuery = useQuery({
+		queryKey: ["places-debug"],
+		queryFn: async () => {
 			const res = await apiClient.places.$get();
 
 			console.log(res);
@@ -284,21 +290,17 @@ const PlacesButton: FC = () => {
 			}
 			throw new Error(res.statusText);
 		},
-		onSuccess: (data) => {
-			console.log("Places success:", data);
-		},
-		onError: (error) => {
-			console.error("Places error:", error);
-		},
+		enabled: false, // 手動で実行
+		staleTime: 5 * 60 * 1000, // 5分間キャッシュ
 	});
 
 	return (
 		<Button
-			onClick={() => placesMutation.mutate()}
-			disabled={placesMutation.isPending}
+			onClick={() => placesQuery.refetch()}
+			disabled={placesQuery.isFetching}
 			className="flex w-full items-center justify-center gap-2 rounded bg-gray-600 px-3 py-2 font-medium text-sm text-white transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-400"
 		>
-			{placesMutation.isPending ? "取得中..." : "場所取得"}
+			{placesQuery.isFetching ? "取得中..." : "場所取得"}
 		</Button>
 	);
 };
@@ -370,7 +372,7 @@ const ItemNameEditModal: FC<{
 									})
 								}
 								rows={3}
-								className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none resize-y"
+								className="w-full resize-y rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
 								placeholder="商品名を入力してください"
 							/>
 						</Field>
@@ -416,6 +418,39 @@ const ExtractResultDisplay: FC<{
 		null,
 	);
 	const [editingIndex, setEditingIndex] = useState<number>(-1);
+	const [shopNameQuery, setShopNameQuery] = useState("");
+
+	// 店舗候補取得
+	const placesQuery = useQuery({
+		queryKey: ["places"],
+		queryFn: async () => {
+			const res = await apiClient.places.$get();
+			if (res.ok) {
+				const data = await res.json();
+				if ("places" in data) {
+					return data.places;
+				}
+				throw new Error("Invalid response format");
+			}
+			throw new Error(res.statusText);
+		},
+		staleTime: 5 * 60 * 1000, // 5分間キャッシュ
+	});
+
+	const places = placesQuery.data || [];
+
+	// 店舗名のフィルタリング
+	const filteredPlaces =
+		shopNameQuery === ""
+			? places
+			: places.filter((place) =>
+					place.name.toLowerCase().includes(shopNameQuery.toLowerCase()),
+				);
+
+	// 選択された店舗名を取得
+	const selectedPlace = places.find(
+		(place) => place.name === editableResult.shopName,
+	);
 
 	// 基本情報の更新
 	const updateBasicInfo = (
@@ -505,12 +540,57 @@ const ExtractResultDisplay: FC<{
 							<Label className="mb-1 block font-medium text-gray-600 text-xs">
 								店舗名
 							</Label>
-							<Input
-								type="text"
-								value={editableResult.shopName}
-								onChange={(e) => updateBasicInfo("shopName", e.target.value)}
-								className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
-							/>
+							<Combobox
+								value={selectedPlace}
+								onChange={(place: ZaimPlace | null) => {
+									if (place) {
+										updateBasicInfo("shopName", place.name);
+									}
+								}}
+							>
+								<div className="relative">
+									<ComboboxInput
+										className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+										displayValue={(place: ZaimPlace | null) =>
+											place?.name ?? editableResult.shopName
+										}
+										onChange={(event) => setShopNameQuery(event.target.value)}
+										placeholder="店舗名を選択してください"
+									/>
+									<ComboboxButton className="absolute inset-y-0 right-0 flex items-center pr-2">
+										<ChevronDown className="h-4 w-4 text-gray-400" />
+									</ComboboxButton>
+									<ComboboxOptions className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded border border-gray-300 bg-white shadow-lg">
+										{filteredPlaces.map((place) => (
+											<ComboboxOption
+												key={place.uid}
+												value={place}
+												className="relative cursor-pointer select-none py-2 pr-4 pl-8 text-sm data-[focus]:bg-blue-100 data-[selected]:bg-blue-600 data-[selected]:text-white"
+											>
+												{({ selected }) => (
+													<>
+														<span
+															className={`block truncate ${selected ? "font-medium" : "font-normal"}`}
+														>
+															{place.name}
+														</span>
+														{selected && (
+															<span className="absolute inset-y-0 left-0 flex items-center pl-2">
+																<Check className="h-4 w-4" />
+															</span>
+														)}
+													</>
+												)}
+											</ComboboxOption>
+										))}
+										{filteredPlaces.length === 0 && shopNameQuery !== "" && (
+											<div className="px-4 py-2 text-gray-500 text-sm">
+												候補が見つかりません
+											</div>
+										)}
+									</ComboboxOptions>
+								</div>
+							</Combobox>
 						</Field>
 					</div>
 
