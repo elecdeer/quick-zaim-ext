@@ -5,9 +5,6 @@ import {
 	ComboboxInput,
 	ComboboxOption,
 	ComboboxOptions,
-	Disclosure,
-	DisclosureButton,
-	DisclosurePanel,
 	Field,
 	Input,
 	Label,
@@ -57,11 +54,14 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 
 	const places = placesQuery.data || [];
 
+	// 使用回数順にソート
+	const sortedPlaces = [...places].sort((a, b) => b.count - a.count);
+
 	// 店舗名のフィルタリング
 	const filteredPlaces =
 		shopNameQuery === ""
-			? places
-			: places.filter((place) =>
+			? sortedPlaces
+			: sortedPlaces.filter((place) =>
 					place.name.toLowerCase().includes(shopNameQuery.toLowerCase()),
 				);
 
@@ -142,115 +142,117 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 				</div>
 
 				<div className="space-y-3">
-					<div className="grid grid-cols-2 gap-3">
-						<Field>
-							<Label className="mb-1 block font-medium text-gray-600 text-xs">
-								購入日
-							</Label>
-							<Input
-								type="date"
-								value={editableResult.date}
-								onChange={(e) => updateBasicInfo("date", e.target.value)}
-								className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
-							/>
-						</Field>
-						<Field>
-							<Label className="mb-1 block font-medium text-gray-600 text-xs">
-								店舗名
-							</Label>
-							<Combobox
-								value={selectedPlace}
-								onChange={(place: ZaimPlace | null) => {
-									if (place) {
-										updateBasicInfo("shopName", place.name);
+					<Field>
+						<Label className="mb-1 block font-medium text-gray-600 text-xs">
+							購入日
+						</Label>
+						<Input
+							type="date"
+							value={editableResult.date}
+							onChange={(e) => updateBasicInfo("date", e.target.value)}
+							className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+						/>
+					</Field>
+
+					<Field>
+						<Label className="mb-1 block font-medium text-gray-600 text-xs">
+							店舗名
+						</Label>
+						<Combobox
+							value={selectedPlace}
+							onChange={(place: ZaimPlace | null) => {
+								if (place) {
+									updateBasicInfo("shopName", place.name);
+								}
+							}}
+						>
+							<div className="relative">
+								<ComboboxInput
+									className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+									displayValue={(place: ZaimPlace | null) =>
+										place?.name ?? editableResult.shopName
 									}
-								}}
-							>
-								<div className="relative">
-									<ComboboxInput
-										className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
-										displayValue={(place: ZaimPlace | null) =>
-											place?.name ?? editableResult.shopName
-										}
-										onChange={(event) => setShopNameQuery(event.target.value)}
-										placeholder="店舗名を選択してください"
-									/>
-									<ComboboxButton className="absolute inset-y-0 right-0 flex items-center pr-2">
-										<ChevronDown className="h-4 w-4 text-gray-400" />
-									</ComboboxButton>
-									<ComboboxOptions className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded border border-gray-300 bg-white shadow-lg">
-										{filteredPlaces.map((place) => (
-											<ComboboxOption
-												key={place.uid}
-												value={place}
-												className="relative cursor-pointer select-none py-2 pr-4 pl-8 text-sm data-[focus]:bg-blue-100 data-[selected]:bg-blue-600 data-[selected]:text-white"
-											>
-												{({ selected }) => (
-													<>
-														<span
-															className={`block truncate ${selected ? "font-medium" : "font-normal"}`}
-														>
-															{place.name}
-														</span>
-														{selected && (
-															<span className="absolute inset-y-0 left-0 flex items-center pl-2">
-																<Check className="h-4 w-4" />
-															</span>
-														)}
-													</>
-												)}
-											</ComboboxOption>
-										))}
-										{filteredPlaces.length === 0 && shopNameQuery !== "" && (
-											<div className="px-4 py-2 text-gray-500 text-sm">
-												候補が見つかりません
-											</div>
-										)}
-									</ComboboxOptions>
-								</div>
-							</Combobox>
-						</Field>
-					</div>
+									onChange={(event) => setShopNameQuery(event.target.value)}
+									placeholder="店舗名を選択してください"
+								/>
+								<ComboboxButton className="absolute inset-y-0 right-0 flex items-center pr-2">
+									<ChevronDown className="h-4 w-4 text-gray-400" />
+								</ComboboxButton>
+								<ComboboxOptions className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded border border-gray-300 bg-white shadow-lg">
+									{filteredPlaces.map((place) => (
+										<ComboboxOption
+											key={place.uid}
+											value={place}
+											className="cursor-pointer select-none px-2 py-2 text-xs data-[focus]:bg-blue-100 data-[selected]:bg-blue-600 data-[selected]:text-white"
+										>
+											{({ selected }) => (
+												<div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
+													<div className="flex w-3 justify-center">
+														{selected && <Check className="h-3 w-3" />}
+													</div>
+													<span
+														className={`truncate ${selected ? "font-medium" : "font-normal"}`}
+													>
+														{place.name}
+													</span>
+													<span
+														className={`text-right text-xs ${selected ? "text-blue-100" : "text-gray-500"}`}
+													>
+														{place.count}
+													</span>
+												</div>
+											)}
+										</ComboboxOption>
+									))}
+									{filteredPlaces.length === 0 && shopNameQuery !== "" && (
+										<div className="px-4 py-2 text-gray-500 text-sm">
+											候補が見つかりません
+										</div>
+									)}
+								</ComboboxOptions>
+							</div>
+						</Combobox>
+					</Field>
 
-					<div className="grid grid-cols-2 gap-3">
-						<Field>
-							<Label className="mb-1 block font-medium text-gray-600 text-xs">
-								支払い方法
-							</Label>
-							<Input
-								type="text"
-								value={editableResult.paymentMethodName}
-								onChange={(e) =>
-									updateBasicInfo("paymentMethodName", e.target.value)
-								}
-								className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
-							/>
-						</Field>
-						<Field>
-							<Label className="mb-1 block font-medium text-gray-600 text-xs">
-								合計金額
-							</Label>
-							<Input
-								type="number"
-								value={editableResult.sumPrice}
-								onChange={(e) =>
-									updateBasicInfo("sumPrice", Number(e.target.value))
-								}
-								className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
-							/>
-						</Field>
-					</div>
+					<Field>
+						<Label className="mb-1 block font-medium text-gray-600 text-xs">
+							支払い方法
+						</Label>
+						<Input
+							type="text"
+							value={editableResult.paymentMethodName}
+							onChange={(e) =>
+								updateBasicInfo("paymentMethodName", e.target.value)
+							}
+							className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+						/>
+					</Field>
 
-					<Disclosure>
-						<DisclosureButton className="flex w-full justify-between rounded bg-gray-100 px-3 py-2 text-left font-medium text-gray-900 text-sm hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
-							<span>商品一覧 ({editableResult.items.length}件)</span>
-							<ChevronDown className="h-4 w-4" />
-						</DisclosureButton>
-						<DisclosurePanel className="mt-2 max-h-64 space-y-2 overflow-y-auto">
+					<Field>
+						<Label className="mb-1 block font-medium text-gray-600 text-xs">
+							合計金額
+						</Label>
+						<Input
+							type="number"
+							value={editableResult.sumPrice}
+							onChange={(e) =>
+								updateBasicInfo("sumPrice", Number(e.target.value))
+							}
+							className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+						/>
+					</Field>
+
+					<div className="rounded border border-gray-300 bg-white">
+						<div className="border-gray-200 border-b bg-gray-50 px-3 py-2">
+							<h3 className="font-medium text-gray-900 text-sm">
+								商品一覧 ({editableResult.items.length}件)
+							</h3>
+						</div>
+						<div>
 							{editableResult.items.map((item, index) => (
 								<div
 									key={`item-${index}-${item.name}`}
-									className="rounded border bg-gray-50 p-2"
+									className="border-gray-200 border-b bg-gray-50 p-2 last:border-b-0"
 								>
 									<div className="space-y-2">
 										{/* 商品名とカテゴリの行 */}
@@ -307,8 +309,8 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 									</div>
 								</div>
 							))}
-						</DisclosurePanel>
-					</Disclosure>
+						</div>
+					</div>
 				</div>
 			</div>
 
