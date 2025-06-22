@@ -12,7 +12,7 @@ export type {
 	SubCategory,
 } from "./services/agent/extraction/extractFromA11yTree";
 
-export type { ZaimPlace } from "./services/zaim/types";
+export type { ZaimPaymentMethod, ZaimPlace } from "./services/zaim/types";
 
 export const createZaimApiClient = (baseUrl: string) => {
 	const url = new URL("/zaim", baseUrl);

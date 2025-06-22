@@ -9,7 +9,11 @@ import {
 	Input,
 	Label,
 } from "@headlessui/react";
-import type { Receipt, ZaimPlace } from "@repo/workers/client";
+import type {
+	Receipt,
+	ZaimPaymentMethod,
+	ZaimPlace,
+} from "@repo/workers/client";
 import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronDown, Trash2, X } from "lucide-react";
 import { type FC, useState } from "react";
@@ -34,6 +38,7 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 	);
 	const [editingIndex, setEditingIndex] = useState<number>(-1);
 	const [shopNameQuery, setShopNameQuery] = useState("");
+	const [paymentMethodQuery, setPaymentMethodQuery] = useState("");
 
 	// 店舗候補取得
 	const placesQuery = useQuery({
@@ -54,6 +59,25 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 
 	const places = placesQuery.data || [];
 
+	// 支払い方法候補取得
+	const paymentMethodsQuery = useQuery({
+		queryKey: ["payment-methods"],
+		queryFn: async () => {
+			const res = await apiClient["payment-methods"].$get();
+			if (res.ok) {
+				const data = await res.json();
+				if ("paymentMethods" in data) {
+					return data.paymentMethods;
+				}
+				throw new Error("Invalid response format");
+			}
+			throw new Error(res.statusText);
+		},
+		staleTime: 5 * 60 * 1000, // 5分間キャッシュ
+	});
+
+	const paymentMethods = paymentMethodsQuery.data || [];
+
 	// 使用回数順にソート
 	const sortedPlaces = [...places].sort((a, b) => b.count - a.count);
 
@@ -62,9 +86,19 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 		place.name.toLowerCase().includes(shopNameQuery.toLowerCase()),
 	);
 
+	// 支払い方法のフィルタリング
+	const filteredPaymentMethods = paymentMethods.filter((method) =>
+		method.name.toLowerCase().includes(paymentMethodQuery.toLowerCase()),
+	);
+
 	// 選択された店舗名を取得
 	const selectedPlace = places.find(
 		(place) => place.name === editableResult.shopName,
+	);
+
+	// 選択された支払い方法を取得
+	const selectedPaymentMethod = paymentMethods.find(
+		(method) => method.name === editableResult.paymentMethodName,
 	);
 
 	// 基本情報の更新
@@ -219,14 +253,69 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 						<Label className="mb-1 block font-medium text-gray-600 text-xs">
 							支払い方法
 						</Label>
-						<Input
-							type="text"
-							value={editableResult.paymentMethodName}
-							onChange={(e) =>
-								updateBasicInfo("paymentMethodName", e.target.value)
-							}
-							className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
-						/>
+						<Combobox
+							value={selectedPaymentMethod}
+							onChange={(method: ZaimPaymentMethod | null) => {
+								if (method) {
+									updateBasicInfo("paymentMethodName", method.name);
+								}
+							}}
+						>
+							<div className="relative">
+								<ComboboxButton as="div" className="w-full">
+									<ComboboxInput
+										className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+										displayValue={(method: ZaimPaymentMethod | null) =>
+											method?.name ?? editableResult.paymentMethodName
+										}
+										onChange={(event) =>
+											setPaymentMethodQuery(event.target.value)
+										}
+										placeholder="支払い方法を選択してください"
+									/>
+									<div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+										<ChevronDown className="h-4 w-4 text-gray-400" />
+									</div>
+								</ComboboxButton>
+								<ComboboxOptions className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded border border-gray-300 bg-white shadow-lg">
+									{(paymentMethodQuery === ""
+										? paymentMethods
+										: filteredPaymentMethods
+									).map((method) => (
+										<ComboboxOption
+											key={method.id}
+											value={method}
+											className="cursor-pointer select-none px-2 py-2 text-xs data-[focus]:bg-blue-100 data-[selected]:bg-blue-600 data-[selected]:text-white"
+										>
+											{({ selected }) => (
+												<div
+													className={`grid items-center gap-2 ${
+														"count" in method
+															? "grid-cols-[auto_1fr_auto]"
+															: "grid-cols-[auto_1fr]"
+													}`}
+												>
+													<div className="flex w-3 justify-center">
+														{selected && <Check className="h-3 w-3" />}
+													</div>
+													<span
+														className={`truncate ${selected ? "font-medium" : "font-normal"}`}
+													>
+														{method.name}
+													</span>
+												</div>
+											)}
+										</ComboboxOption>
+									))}
+									{paymentMethodQuery !== "" &&
+										filteredPaymentMethods.length === 0 && (
+											<div className="px-4 py-2 text-gray-500 text-sm">
+												候補が見つかりません
+											</div>
+										)}
+								</ComboboxOptions>
+							</div>
+						</Combobox>
 					</Field>
 
 					<Field>
