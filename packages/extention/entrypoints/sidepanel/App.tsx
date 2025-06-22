@@ -22,7 +22,6 @@ import {
 } from "@tanstack/react-query";
 import {
 	ChevronDown,
-	Edit3,
 	LogOut,
 	Save,
 	ScanLine,
@@ -334,26 +333,100 @@ const LogoutButton: FC = () => {
 	);
 };
 
+// 商品名編集モーダル
+const ItemNameEditModal: FC<{
+	isOpen: boolean;
+	onClose: () => void;
+	item: Receipt["items"][0];
+	onSave: (updatedItem: Receipt["items"][0]) => void;
+}> = ({ isOpen, onClose, item, onSave }) => {
+	const [editedItem, setEditedItem] = useState(item);
+
+	const handleSave = () => {
+		onSave(editedItem);
+		onClose();
+	};
+
+	return (
+		<Dialog open={isOpen} onClose={onClose} className="relative z-50">
+			<div className="fixed inset-0 bg-black/25" />
+			<div className="fixed inset-0 flex items-center justify-center p-2">
+				<DialogPanel className="w-full max-w-sm rounded-lg bg-white p-4">
+					<DialogTitle className="mb-3 font-bold text-base text-gray-900">
+						商品名編集
+					</DialogTitle>
+
+					<div className="space-y-3">
+						<Field>
+							<Label className="mb-1 block font-medium text-gray-600 text-xs">
+								商品名
+							</Label>
+							<textarea
+								value={editedItem.normalizedName}
+								onChange={(e) =>
+									setEditedItem({
+										...editedItem,
+										normalizedName: e.target.value,
+									})
+								}
+								rows={3}
+								className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none resize-y"
+								placeholder="商品名を入力してください"
+							/>
+						</Field>
+						{editedItem.name !== editedItem.normalizedName && (
+							<div className="rounded bg-yellow-50 p-2">
+								<p className="text-xs text-yellow-700">
+									<span className="font-medium">元の名前:</span>{" "}
+									{editedItem.name}
+								</p>
+							</div>
+						)}
+					</div>
+
+					<div className="mt-4 flex justify-end gap-2">
+						<Button
+							onClick={onClose}
+							className="flex items-center gap-2 rounded bg-gray-500 px-3 py-2 text-sm text-white hover:bg-gray-600"
+						>
+							<X className="h-4 w-4" />
+							キャンセル
+						</Button>
+						<Button
+							onClick={handleSave}
+							className="flex items-center gap-2 rounded bg-blue-500 px-3 py-2 text-sm text-white hover:bg-blue-600"
+						>
+							<Save className="h-4 w-4" />
+							保存
+						</Button>
+					</div>
+				</DialogPanel>
+			</div>
+		</Dialog>
+	);
+};
+
 const ExtractResultDisplay: FC<{
 	result: Receipt;
 	onClear: () => void;
 	onUpdate?: (updatedResult: Receipt) => void;
 }> = ({ result, onClear, onUpdate }) => {
-	const [isOpen, setIsOpen] = useState(false);
 	const [editableResult, setEditableResult] = useState<Receipt>(result);
+	const [editingItem, setEditingItem] = useState<Receipt["items"][0] | null>(
+		null,
+	);
+	const [editingIndex, setEditingIndex] = useState<number>(-1);
 
-	// 編集内容を保存
-	const handleSave = () => {
+	// 基本情報の更新
+	const updateBasicInfo = (
+		field: keyof Omit<Receipt, "items">,
+		value: string | number,
+	) => {
+		const updated = { ...editableResult, [field]: value };
+		setEditableResult(updated);
 		if (onUpdate) {
-			onUpdate(editableResult);
+			onUpdate(updated);
 		}
-		setIsOpen(false);
-	};
-
-	// 編集をキャンセル
-	const handleCancel = () => {
-		setEditableResult(result);
-		setIsOpen(false);
 	};
 
 	// 商品項目の更新
@@ -364,93 +437,174 @@ const ExtractResultDisplay: FC<{
 	) => {
 		const updatedItems = [...editableResult.items];
 		updatedItems[index] = { ...updatedItems[index], [field]: value };
-		setEditableResult({ ...editableResult, items: updatedItems });
+		const updated = { ...editableResult, items: updatedItems };
+		setEditableResult(updated);
+		if (onUpdate) {
+			onUpdate(updated);
+		}
 	};
 
 	// 商品項目の削除
 	const removeItem = (index: number) => {
 		const updatedItems = editableResult.items.filter((_, i) => i !== index);
-		setEditableResult({ ...editableResult, items: updatedItems });
+		const updated = { ...editableResult, items: updatedItems };
+		setEditableResult(updated);
+		if (onUpdate) {
+			onUpdate(updated);
+		}
 	};
+
+	// 商品名編集モーダルを開く
+	const openItemEdit = (item: Receipt["items"][0], index: number) => {
+		setEditingItem(item);
+		setEditingIndex(index);
+	};
+
+	// 商品名編集を保存
+	const saveItemEdit = (updatedItem: Receipt["items"][0]) => {
+		if (editingIndex >= 0) {
+			const updatedItems = [...editableResult.items];
+			updatedItems[editingIndex] = updatedItem;
+			const updated = { ...editableResult, items: updatedItems };
+			setEditableResult(updated);
+			if (onUpdate) {
+				onUpdate(updated);
+			}
+		}
+		setEditingItem(null);
+		setEditingIndex(-1);
+	};
+
 	return (
 		<>
 			<div className="w-full rounded-lg bg-white p-3 shadow-sm">
 				<div className="mb-3 flex items-center justify-between">
 					<h2 className="font-bold text-base text-gray-800">抽出結果</h2>
-					<div className="flex gap-1">
-						<Button
-							onClick={() => setIsOpen(true)}
-							className="flex items-center gap-1 rounded bg-blue-500 px-2 py-1 text-white text-xs hover:bg-blue-600"
-						>
-							<Edit3 className="h-3 w-3" />
-							編集
-						</Button>
-						<Button
-							onClick={onClear}
-							className="flex items-center justify-center rounded bg-gray-200 px-2 py-1 text-gray-600 text-xs hover:bg-gray-300"
-						>
-							<X className="h-3 w-3" />
-						</Button>
-					</div>
+					<Button
+						onClick={onClear}
+						className="flex items-center justify-center rounded bg-gray-200 px-2 py-1 text-gray-600 text-xs hover:bg-gray-300"
+					>
+						<X className="h-3 w-3" />
+					</Button>
 				</div>
 
 				<div className="space-y-3">
 					<div className="grid grid-cols-2 gap-3">
-						<div>
-							<p className="mb-1 font-medium text-gray-600 text-xs">購入日</p>
-							<p className="text-gray-800 text-sm">{result.date}</p>
-						</div>
-						<div>
-							<p className="mb-1 font-medium text-gray-600 text-xs">店舗名</p>
-							<p className="text-gray-800 text-sm">{result.shopName}</p>
-						</div>
+						<Field>
+							<Label className="mb-1 block font-medium text-gray-600 text-xs">
+								購入日
+							</Label>
+							<Input
+								type="date"
+								value={editableResult.date}
+								onChange={(e) => updateBasicInfo("date", e.target.value)}
+								className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+							/>
+						</Field>
+						<Field>
+							<Label className="mb-1 block font-medium text-gray-600 text-xs">
+								店舗名
+							</Label>
+							<Input
+								type="text"
+								value={editableResult.shopName}
+								onChange={(e) => updateBasicInfo("shopName", e.target.value)}
+								className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+							/>
+						</Field>
 					</div>
 
 					<div className="grid grid-cols-2 gap-3">
-						<div>
-							<p className="mb-1 font-medium text-gray-600 text-xs">
+						<Field>
+							<Label className="mb-1 block font-medium text-gray-600 text-xs">
 								支払い方法
-							</p>
-							<p className="text-gray-800 text-sm">
-								{result.paymentMethodName}
-							</p>
-						</div>
-						<div>
-							<p className="mb-1 font-medium text-gray-600 text-xs">合計金額</p>
-							<p className="font-bold text-base text-gray-800">
-								¥{result.sumPrice.toLocaleString()}
-							</p>
-						</div>
+							</Label>
+							<Input
+								type="text"
+								value={editableResult.paymentMethodName}
+								onChange={(e) =>
+									updateBasicInfo("paymentMethodName", e.target.value)
+								}
+								className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+							/>
+						</Field>
+						<Field>
+							<Label className="mb-1 block font-medium text-gray-600 text-xs">
+								合計金額
+							</Label>
+							<Input
+								type="number"
+								value={editableResult.sumPrice}
+								onChange={(e) =>
+									updateBasicInfo("sumPrice", Number(e.target.value))
+								}
+								className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
+							/>
+						</Field>
 					</div>
 
 					<Disclosure>
 						<DisclosureButton className="flex w-full justify-between rounded bg-gray-100 px-3 py-2 text-left font-medium text-gray-900 text-sm hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
-							<span>商品一覧 ({result.items.length}件)</span>
+							<span>商品一覧 ({editableResult.items.length}件)</span>
 							<ChevronDown className="h-4 w-4" />
 						</DisclosureButton>
-						<DisclosurePanel className="mt-2 max-h-48 space-y-2 overflow-y-auto">
-							{result.items.map((item, index) => (
+						<DisclosurePanel className="mt-2 max-h-64 space-y-2 overflow-y-auto">
+							{editableResult.items.map((item, index) => (
 								<div
 									key={`item-${index}-${item.name}`}
 									className="rounded border bg-gray-50 p-2"
 								>
-									<div className="flex items-start justify-between">
-										<div className="flex-1">
-											<p className="font-medium text-gray-800 text-sm">
-												{item.normalizedName}
-											</p>
-											<p className="text-gray-600 text-xs">{item.category}</p>
-											{item.name !== item.normalizedName && (
-												<p className="mt-1 text-gray-500 text-xs">
-													元の名前: {item.name}
-												</p>
-											)}
+									<div className="space-y-2">
+										{/* 商品名とカテゴリの行 */}
+										<div className="flex items-start justify-between">
+											<div className="flex-1">
+												<button
+													type="button"
+													onClick={() => openItemEdit(item, index)}
+													className="w-full text-left font-medium text-blue-600 text-sm hover:text-blue-800 hover:underline"
+												>
+													{item.normalizedName}
+												</button>
+												<p className="text-gray-600 text-xs">{item.category}</p>
+											</div>
+											<Button
+												onClick={() => removeItem(index)}
+												className="flex items-center gap-1 rounded bg-red-500 px-2 py-1 text-white text-xs hover:bg-red-600"
+											>
+												<Trash2 className="h-3 w-3" />
+											</Button>
 										</div>
-										<div className="text-right">
-											<p className="font-medium text-gray-800 text-sm">
-												¥{item.priceYen.toLocaleString()}
-											</p>
-											<p className="text-gray-600 text-xs">×{item.amount}</p>
+
+										{/* 金額と個数の行 */}
+										<div className="flex items-center gap-4">
+											<div className="flex items-center gap-1">
+												<span className="text-gray-600 text-xs">価格:</span>
+												<Input
+													type="number"
+													value={item.priceYen}
+													onChange={(e) =>
+														updateItem(
+															index,
+															"priceYen",
+															Number(e.target.value),
+														)
+													}
+													className="w-20 rounded border border-gray-300 px-1 py-0.5 text-right text-sm focus:border-blue-500 focus:outline-none"
+												/>
+												<span className="text-gray-600 text-xs">円</span>
+											</div>
+											<div className="flex items-center gap-1">
+												<span className="text-gray-600 text-xs">数量:</span>
+												<Input
+													type="number"
+													value={item.amount}
+													onChange={(e) =>
+														updateItem(index, "amount", Number(e.target.value))
+													}
+													className="w-16 rounded border border-gray-300 px-1 py-0.5 text-center text-sm focus:border-blue-500 focus:outline-none"
+												/>
+												<span className="text-gray-600 text-xs">個</span>
+											</div>
 										</div>
 									</div>
 								</div>
@@ -460,192 +614,17 @@ const ExtractResultDisplay: FC<{
 				</div>
 			</div>
 
-			<Dialog open={isOpen} onClose={setIsOpen} className="relative z-50">
-				<div className="fixed inset-0 bg-black/25" />
-				<div className="fixed inset-0 flex items-center justify-center p-2">
-					<DialogPanel className="max-h-[95vh] w-full max-w-sm overflow-y-auto rounded-lg bg-white p-4">
-						<DialogTitle className="mb-3 font-bold text-base text-gray-900">
-							レシート編集
-						</DialogTitle>
-
-						<div className="space-y-4">
-							<div className="grid grid-cols-1 gap-3">
-								<Field>
-									<Label className="mb-1 block font-medium text-gray-600 text-xs">
-										購入日
-									</Label>
-									<Input
-										type="date"
-										value={editableResult.date}
-										onChange={(e) =>
-											setEditableResult({
-												...editableResult,
-												date: e.target.value,
-											})
-										}
-										className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
-									/>
-								</Field>
-								<Field>
-									<Label className="mb-1 block font-medium text-gray-600 text-xs">
-										店舗名
-									</Label>
-									<Input
-										type="text"
-										value={editableResult.shopName}
-										onChange={(e) =>
-											setEditableResult({
-												...editableResult,
-												shopName: e.target.value,
-											})
-										}
-										className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
-									/>
-								</Field>
-								<Field>
-									<Label className="mb-1 block font-medium text-gray-600 text-xs">
-										支払い方法
-									</Label>
-									<Input
-										type="text"
-										value={editableResult.paymentMethodName}
-										onChange={(e) =>
-											setEditableResult({
-												...editableResult,
-												paymentMethodName: e.target.value,
-											})
-										}
-										className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
-									/>
-								</Field>
-								<Field>
-									<Label className="mb-1 block font-medium text-gray-600 text-xs">
-										合計金額
-									</Label>
-									<Input
-										type="number"
-										value={editableResult.sumPrice}
-										onChange={(e) =>
-											setEditableResult({
-												...editableResult,
-												sumPrice: Number(e.target.value),
-											})
-										}
-										className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
-									/>
-								</Field>
-							</div>
-
-							<div>
-								<h3 className="mb-2 block font-medium text-gray-600 text-sm">
-									商品一覧
-								</h3>
-								<div className="space-y-2">
-									{editableResult.items.map((item, index) => (
-										<div
-											key={`edit-item-${index}-${item.name}`}
-											className="rounded border bg-gray-50 p-3"
-										>
-											<div className="space-y-2">
-												<Field>
-													<Label className="mb-1 block text-gray-600 text-xs">
-														商品名
-													</Label>
-													<Input
-														type="text"
-														value={item.normalizedName}
-														onChange={(e) =>
-															updateItem(
-																index,
-																"normalizedName",
-																e.target.value,
-															)
-														}
-														className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
-													/>
-												</Field>
-												<Field>
-													<Label className="mb-1 block text-gray-600 text-xs">
-														カテゴリ
-													</Label>
-													<Input
-														type="text"
-														value={item.category}
-														onChange={(e) =>
-															updateItem(index, "category", e.target.value)
-														}
-														className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
-													/>
-												</Field>
-												<div className="grid grid-cols-2 gap-2">
-													<Field>
-														<Label className="mb-1 block text-gray-600 text-xs">
-															価格
-														</Label>
-														<Input
-															type="number"
-															value={item.priceYen}
-															onChange={(e) =>
-																updateItem(
-																	index,
-																	"priceYen",
-																	Number(e.target.value),
-																)
-															}
-															className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
-														/>
-													</Field>
-													<Field>
-														<Label className="mb-1 block text-gray-600 text-xs">
-															数量
-														</Label>
-														<Input
-															type="number"
-															value={item.amount}
-															onChange={(e) =>
-																updateItem(
-																	index,
-																	"amount",
-																	Number(e.target.value),
-																)
-															}
-															className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
-														/>
-													</Field>
-												</div>
-												<Button
-													onClick={() => removeItem(index)}
-													className="flex items-center gap-1 rounded bg-red-500 px-2 py-1 text-white text-xs hover:bg-red-600"
-												>
-													<Trash2 className="h-3 w-3" />
-													削除
-												</Button>
-											</div>
-										</div>
-									))}
-								</div>
-							</div>
-						</div>
-
-						<div className="mt-4 flex justify-end gap-2">
-							<Button
-								onClick={handleCancel}
-								className="flex items-center gap-2 rounded bg-gray-500 px-3 py-2 text-sm text-white hover:bg-gray-600"
-							>
-								<X className="h-4 w-4" />
-								キャンセル
-							</Button>
-							<Button
-								onClick={handleSave}
-								className="flex items-center gap-2 rounded bg-green-500 px-3 py-2 text-sm text-white hover:bg-green-600"
-							>
-								<Save className="h-4 w-4" />
-								保存
-							</Button>
-						</div>
-					</DialogPanel>
-				</div>
-			</Dialog>
+			{editingItem && (
+				<ItemNameEditModal
+					isOpen={editingItem !== null}
+					onClose={() => {
+						setEditingItem(null);
+						setEditingIndex(-1);
+					}}
+					item={editingItem}
+					onSave={saveItemEdit}
+				/>
+			)}
 		</>
 	);
 };
