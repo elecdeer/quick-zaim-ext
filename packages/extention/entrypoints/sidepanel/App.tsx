@@ -20,6 +20,16 @@ import {
 	QueryClientProvider,
 	useMutation,
 } from "@tanstack/react-query";
+import {
+	ChevronDown,
+	Edit3,
+	LogOut,
+	Save,
+	ScanLine,
+	Settings,
+	Trash2,
+	X,
+} from "lucide-react";
 import { type FC, useCallback, useState } from "react";
 import { browser } from "wxt/browser";
 
@@ -116,8 +126,9 @@ function MainContent() {
 					<Button
 						onClick={handleClick}
 						disabled={extractMutation.isPending}
-						className="w-full rounded-lg bg-blue-600 px-3 py-2.5 font-medium text-sm text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+						className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2.5 font-medium text-sm text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
 					>
+						<ScanLine className="h-4 w-4" />
 						{extractMutation.isPending ? "抽出中..." : "レシートを抽出"}
 					</Button>
 
@@ -128,7 +139,8 @@ function MainContent() {
 					)}
 
 					<Disclosure>
-						<DisclosureButton className="w-full rounded-lg bg-gray-200 px-3 py-2.5 font-medium text-gray-700 text-sm transition-colors hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+						<DisclosureButton className="flex w-full items-center justify-center gap-2 rounded-lg bg-gray-200 px-3 py-2.5 font-medium text-gray-700 text-sm transition-colors hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+							<Settings className="h-4 w-4" />
 							認証・設定
 						</DisclosureButton>
 						<DisclosurePanel className="mt-2 space-y-2">
@@ -181,7 +193,7 @@ const LoginButton: FC = () => {
 		<Button
 			onClick={() => loginMutation.mutate()}
 			disabled={loginMutation.isPending}
-			className="w-full rounded bg-green-600 px-3 py-2 font-medium text-sm text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+			className="flex w-full items-center justify-center gap-2 rounded bg-blue-600 px-3 py-2 font-medium text-sm text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
 		>
 			{loginMutation.isPending ? "ログイン中..." : "ログイン"}
 		</Button>
@@ -219,7 +231,7 @@ const ZaimLoginButton: FC = () => {
 		<Button
 			onClick={() => zaimLoginMutation.mutate()}
 			disabled={zaimLoginMutation.isPending}
-			className="w-full rounded bg-purple-600 px-3 py-2 font-medium text-sm text-white transition-colors hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+			className="flex w-full items-center justify-center gap-2 rounded bg-blue-600 px-3 py-2 font-medium text-sm text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
 		>
 			{zaimLoginMutation.isPending ? "ログイン中..." : "Zaimログイン"}
 		</Button>
@@ -252,7 +264,7 @@ const CategoriesButton: FC = () => {
 		<Button
 			onClick={() => categoriesMutation.mutate()}
 			disabled={categoriesMutation.isPending}
-			className="w-full rounded bg-orange-600 px-3 py-2 font-medium text-sm text-white transition-colors hover:bg-orange-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+			className="flex w-full items-center justify-center gap-2 rounded bg-gray-600 px-3 py-2 font-medium text-sm text-white transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-400"
 		>
 			{categoriesMutation.isPending ? "取得中..." : "カテゴリ取得"}
 		</Button>
@@ -285,7 +297,7 @@ const PlacesButton: FC = () => {
 		<Button
 			onClick={() => placesMutation.mutate()}
 			disabled={placesMutation.isPending}
-			className="w-full rounded bg-teal-600 px-3 py-2 font-medium text-sm text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+			className="flex w-full items-center justify-center gap-2 rounded bg-gray-600 px-3 py-2 font-medium text-sm text-white transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-400"
 		>
 			{placesMutation.isPending ? "取得中..." : "場所取得"}
 		</Button>
@@ -314,8 +326,9 @@ const LogoutButton: FC = () => {
 		<Button
 			onClick={() => logoutMutation.mutate()}
 			disabled={logoutMutation.isPending}
-			className="w-full rounded bg-red-600 px-3 py-2 font-medium text-sm text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+			className="flex w-full items-center justify-center gap-2 rounded bg-red-600 px-3 py-2 font-medium text-sm text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-gray-400"
 		>
+			<LogOut className="h-4 w-4" />
 			{logoutMutation.isPending ? "ログアウト中..." : "ログアウト"}
 		</Button>
 	);
@@ -367,15 +380,16 @@ const ExtractResultDisplay: FC<{
 					<div className="flex gap-1">
 						<Button
 							onClick={() => setIsOpen(true)}
-							className="rounded bg-blue-500 px-2 py-1 text-white text-xs hover:bg-blue-600"
+							className="flex items-center gap-1 rounded bg-blue-500 px-2 py-1 text-white text-xs hover:bg-blue-600"
 						>
+							<Edit3 className="h-3 w-3" />
 							編集
 						</Button>
 						<Button
 							onClick={onClear}
-							className="rounded bg-gray-200 px-2 py-1 text-gray-600 text-xs hover:bg-gray-300"
+							className="flex items-center justify-center rounded bg-gray-200 px-2 py-1 text-gray-600 text-xs hover:bg-gray-300"
 						>
-							×
+							<X className="h-3 w-3" />
 						</Button>
 					</div>
 				</div>
@@ -412,7 +426,7 @@ const ExtractResultDisplay: FC<{
 					<Disclosure>
 						<DisclosureButton className="flex w-full justify-between rounded bg-gray-100 px-3 py-2 text-left font-medium text-gray-900 text-sm hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
 							<span>商品一覧 ({result.items.length}件)</span>
-							<span>▼</span>
+							<ChevronDown className="h-4 w-4" />
 						</DisclosureButton>
 						<DisclosurePanel className="mt-2 max-h-48 space-y-2 overflow-y-auto">
 							{result.items.map((item, index) => (
@@ -601,8 +615,9 @@ const ExtractResultDisplay: FC<{
 												</div>
 												<Button
 													onClick={() => removeItem(index)}
-													className="rounded bg-red-500 px-2 py-1 text-white text-xs hover:bg-red-600"
+													className="flex items-center gap-1 rounded bg-red-500 px-2 py-1 text-white text-xs hover:bg-red-600"
 												>
+													<Trash2 className="h-3 w-3" />
 													削除
 												</Button>
 											</div>
@@ -615,14 +630,16 @@ const ExtractResultDisplay: FC<{
 						<div className="mt-4 flex justify-end gap-2">
 							<Button
 								onClick={handleCancel}
-								className="rounded bg-gray-500 px-3 py-2 text-sm text-white hover:bg-gray-600"
+								className="flex items-center gap-2 rounded bg-gray-500 px-3 py-2 text-sm text-white hover:bg-gray-600"
 							>
+								<X className="h-4 w-4" />
 								キャンセル
 							</Button>
 							<Button
 								onClick={handleSave}
-								className="rounded bg-green-500 px-3 py-2 text-sm text-white hover:bg-green-600"
+								className="flex items-center gap-2 rounded bg-green-500 px-3 py-2 text-sm text-white hover:bg-green-600"
 							>
+								<Save className="h-4 w-4" />
 								保存
 							</Button>
 						</div>
