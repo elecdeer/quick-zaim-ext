@@ -4,8 +4,9 @@ import type { Env } from "../../env";
 import * as logger from "../../logger";
 
 export const getLanguageModel = async (env: Env): Promise<LanguageModel> => {
-	const gatewayUrl =
-		await env.AI.gateway("receipt-test").getUrl("google-ai-studio");
+	const gatewayUrl = await env.AI.gateway(env.AI_GATEWAY_ID).getUrl(
+		"google-ai-studio",
+	);
 	logger.debug({
 		message: "Gateway URL",
 		gatewayUrl,

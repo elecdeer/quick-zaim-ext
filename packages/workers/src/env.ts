@@ -6,11 +6,8 @@ import { HTTPException } from "hono/http-exception";
 import * as v from "valibot";
 
 const envVarsSchema = v.object({
-	OPENAI_API_KEY: v.string(),
-	OPENAI_MODEL: v.string(),
-	OPENAI_BASE_URL: v.pipe(v.string(), v.url()),
-
 	GEMINI_API_KEY: v.string(),
+	AI_GATEWAY_ID: v.string(),
 
 	OIDC_AUTH_SECRET: v.string(),
 	OIDC_ISSUER: v.string(),
