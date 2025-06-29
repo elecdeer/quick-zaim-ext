@@ -3,7 +3,7 @@
 		".": {
 			"ignoreDependencies": ["knip"]
 		},
-		"packages/extention": {
+		"packages/extension": {
 			"entry": ["entrypoints/**/*.ts", "entrypoints/**/*.tsx", "wxt.config.ts"],
 			"project": ["**/*.ts", "**/*.tsx"],
 			"ignoreDependencies": ["@wxt-dev/module-react", "vitest"]

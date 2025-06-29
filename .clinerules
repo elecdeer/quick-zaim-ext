@@ -4,7 +4,7 @@
 
 ## パッケージ構成
 
-1.  **`packages/extention`**:
+1.  **`packages/extension`**:
     *   **役割**: ブラウザ拡張機能のフロントエンド部分。ユーザーインターフェースを提供し、バックエンド (workers) と通信します。
     *   **主要技術**:
         *   `wxt`: ブラウザ拡張機能開発フレームワーク
@@ -46,7 +46,7 @@
 ```mermaid
 graph TD
     subgraph "quick-zaim-ext (pnpm workspace)"
-        Extension["packages/extention\n(Browser Extension - React, WXT, OpenAI)"]
+        Extension["packages/extension\n(Browser Extension - React, WXT, OpenAI)"]
         Workers["packages/workers\n(CF Workers - Hono, AI SDK, Drizzle)"]
         OAuth["packages/oauth\n(OAuth Client)"]
         ZaimAPI["packages/zaim-api\n(Zaim API Client - TypeSpec)"]

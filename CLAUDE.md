@@ -15,7 +15,7 @@ Zaim（家計簿サービス）との連携機能を持つブラウザ拡張機�
 ### 開発とビルド
 
 ```bash
-# ブラウザ拡張機能 (packages/extention)
+# ブラウザ拡張機能 (packages/extension)
 pnpm dev                     # Chrome開発モード
 pnpm dev:firefox             # Firefox開発モード
 pnpm build                   # Chrome用ビルド
@@ -55,7 +55,7 @@ pnpm knip                    # 未使用コードチェック
 
 ### パッケージ構成
 
-- **extention**: WXT ベースのブラウザ拡張機能（React + Tailwind CSS）
+- **extension**: WXT ベースのブラウザ拡張機能（React + Tailwind CSS）
 - **workers**: Cloudflare Workers API（Hono + AI SDK）
 - **oauth**: OAuth 1.0a 認証ライブラリ（Zaim API 用）
 - **zaim-api**: TypeSpec ベースの Zaim API 型定義

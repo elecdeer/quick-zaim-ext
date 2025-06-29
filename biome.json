@@ -14,7 +14,7 @@
 		"enabled": true,
 		"includes": [
 			"**",
-			"!**/packages/extention/entrypoints/playwright/**/*.ts",
+			"!**/packages/extension/entrypoints/playwright/**/*.ts",
 			"!**/packages/zaim-api/src/client/**"
 		],
 		"domains": {

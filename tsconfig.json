@@ -8,6 +8,6 @@
 		{ "path": "./packages/zaim-api" },
 		{ "path": "./packages/oauth" },
 		{ "path": "./packages/workers" },
-		{ "path": "./packages/extention" }
+		{ "path": "./packages/extension" }
 	]
 }
