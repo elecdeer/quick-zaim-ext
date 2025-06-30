@@ -3,6 +3,7 @@
 	"private": true,
 	"version": "0.0.1",
 	"author": "elecdeer",
+	"type": "module",
 	"scripts": {
 		"dev": "wxt",
 		"dev:firefox": "wxt -b firefox",
