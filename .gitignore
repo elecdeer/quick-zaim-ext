@@ -31,3 +31,6 @@ worker-configuration.d.ts
 *.njsproj
 *.sln
 *.sw?
+
+# Vitest
+__screenshots__

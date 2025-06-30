@@ -5,7 +5,8 @@
 		"jsx": "react-jsx",
 		"composite": true,
 		"declaration": true,
-		"emitDeclarationOnly": true
+		"emitDeclarationOnly": true,
+		"types": ["@vitest/browser/providers/playwright"]
 	},
 	"references": [{ "path": "../zaim-api" }, { "path": "../oauth" }]
 }
