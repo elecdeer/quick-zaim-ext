@@ -9,6 +9,7 @@ export default defineProject({
 			"src/**/*.test.browser.ts(x)",
 			"entrypoints/**/*.test.browser.ts(x)",
 		],
+		setupFiles: ["./vitest.setup.browser.ts"],
 		browser: {
 			provider: "playwright",
 			enabled: true,

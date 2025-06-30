@@ -1,10 +1,14 @@
 packages:
   - packages/*
+
 onlyBuiltDependencies:
   - '@biomejs/biome'
   - '@parcel/watcher'
+  - '@tailwindcss/oxide'
   - dtrace-provider
   - esbuild
+  - lefthook
+  - msw
   - sharp
   - spawn-sync
   - workerd
