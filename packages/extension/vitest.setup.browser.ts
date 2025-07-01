@@ -1,11 +1,16 @@
-import { vi } from "vitest";
+import { fakeBrowser } from "@webext-core/fake-browser";
+import { beforeEach, vi } from "vitest";
 import "./entrypoints/sidepanel/style.css";
 
-// wxt/browserモジュールをモック
-vi.mock("wxt/browser", () => ({
-	browser: {
-		identity: {
-			launchWebAuthFlow: vi.fn().mockResolvedValue("auth-success"),
-		},
-	},
-}));
+// webextension-polyfillをモック
+vi.mock("webextension-polyfill");
+
+// 各テスト前にfakeBrowserをリセット
+beforeEach(() => {
+	fakeBrowser.reset();
+
+	// identity APIのモック設定（fakeBrowserに含まれていない）
+	fakeBrowser.identity = {
+		launchWebAuthFlow: vi.fn().mockResolvedValue("auth-success"),
+	};
+});

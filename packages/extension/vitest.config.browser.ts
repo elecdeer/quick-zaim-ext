@@ -18,4 +18,7 @@ export default defineProject({
 			instances: [{ browser: "chromium" }],
 		},
 	},
+	optimizeDeps: {
+		include: ["@webext-core/fake-browser", "webextension-polyfill"],
+	},
 });
