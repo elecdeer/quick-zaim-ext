@@ -15,7 +15,7 @@ import type {
 	ZaimPlace,
 } from "@repo/workers/client";
 import { useQuery } from "@tanstack/react-query";
-import { Check, ChevronDown, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Plus, Trash2, X } from "lucide-react";
 import { type FC, useState } from "react";
 
 import { apiClient } from "../lib/api";
@@ -131,6 +131,23 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 	// 商品項目の削除
 	const removeItem = (index: number) => {
 		const updatedItems = editableResult.items.filter((_, i) => i !== index);
+		const updated = { ...editableResult, items: updatedItems };
+		setEditableResult(updated);
+		if (onUpdate) {
+			onUpdate(updated);
+		}
+	};
+
+	// 商品項目の追加
+	const addItem = () => {
+		const newItem: Receipt["items"][0] = {
+			name: "",
+			normalizedName: "新しい商品",
+			category: "",
+			priceYen: 0,
+			amount: 1,
+		};
+		const updatedItems = [...editableResult.items, newItem];
 		const updated = { ...editableResult, items: updatedItems };
 		setEditableResult(updated);
 		if (onUpdate) {
@@ -334,9 +351,18 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 
 					<div className="rounded border border-gray-300 bg-white">
 						<div className="border-gray-200 border-b bg-gray-50 px-3 py-2">
-							<h3 className="font-medium text-gray-900 text-sm">
-								商品一覧 ({editableResult.items.length}件)
-							</h3>
+							<div className="flex items-center justify-between">
+								<h3 className="font-medium text-gray-900 text-sm">
+									商品一覧 ({editableResult.items.length}件)
+								</h3>
+								<Button
+									onClick={addItem}
+									className="flex items-center gap-1 rounded bg-blue-600 px-2 py-1 text-white text-xs hover:bg-blue-700"
+								>
+									<Plus className="h-3 w-3" />
+									商品を追加
+								</Button>
+							</div>
 						</div>
 						<div>
 							{editableResult.items.map((item, index) => (
