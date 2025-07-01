@@ -155,6 +155,33 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 		}
 	};
 
+	// 商品合計金額を計算
+	const itemsTotalPrice = editableResult.items.reduce(
+		(total, item) => total + item.priceYen * item.amount,
+		0,
+	);
+
+	// 差額を計算
+	const priceDifference = editableResult.sumPrice - itemsTotalPrice;
+
+	// 差額商品を作成（差額が0でない場合のみ）
+	const differenceItem: Receipt["items"][0] | null =
+		priceDifference !== 0
+			? {
+					name: "",
+					normalizedName:
+						priceDifference > 0 ? "差額（不足分）" : "差額（超過分）",
+					category: "調整",
+					priceYen: priceDifference,
+					amount: 1,
+				}
+			: null;
+
+	// 合計金額を商品合計に調整
+	const adjustSumPrice = () => {
+		updateBasicInfo("sumPrice", itemsTotalPrice);
+	};
+
 	// 商品名編集モーダルを開く
 	const openItemEdit = (item: Receipt["items"][0], index: number) => {
 		setEditingItem(item);
@@ -351,18 +378,10 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 
 					<div className="rounded border border-gray-300 bg-white">
 						<div className="border-gray-200 border-b bg-gray-50 px-3 py-2">
-							<div className="flex items-center justify-between">
-								<h3 className="font-medium text-gray-900 text-sm">
-									商品一覧 ({editableResult.items.length}件)
-								</h3>
-								<Button
-									onClick={addItem}
-									className="flex items-center gap-1 rounded bg-blue-600 px-2 py-1 text-white text-xs hover:bg-blue-700"
-								>
-									<Plus className="h-3 w-3" />
-									商品を追加
-								</Button>
-							</div>
+							<h3 className="font-medium text-gray-900 text-sm">
+								商品一覧 (
+								{editableResult.items.length + (differenceItem ? 1 : 0)}件)
+							</h3>
 						</div>
 						<div>
 							{editableResult.items.map((item, index) => (
@@ -425,6 +444,63 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 									</div>
 								</div>
 							))}
+							{/* 差額商品の表示 */}
+							{differenceItem && (
+								<div className="border-gray-200 border-b bg-gray-100 p-2 last:border-b-0">
+									<div className="space-y-2">
+										{/* 商品名とカテゴリの行 */}
+										<div className="flex items-start justify-between">
+											<div className="flex-1">
+												<div className="flex items-center gap-2">
+													<span className="text-left font-medium text-gray-700 text-sm">
+														{differenceItem.normalizedName}
+													</span>
+													<span className="text-gray-500 text-xs">
+														自動計算
+													</span>
+												</div>
+												<p className="text-gray-600 text-xs">
+													{differenceItem.category}
+												</p>
+											</div>
+											<Button
+												onClick={adjustSumPrice}
+												className="flex items-center gap-1 rounded bg-blue-600 px-2 py-1 text-white text-xs hover:bg-blue-700"
+											>
+												調整
+											</Button>
+										</div>
+
+										{/* 金額と個数の行 */}
+										<div className="flex items-center gap-4">
+											<div className="flex items-center gap-1">
+												<span className="text-gray-600 text-xs">価格:</span>
+												<span className="w-20 rounded border border-gray-300 bg-gray-200 px-1 py-0.5 text-right text-gray-700 text-sm">
+													{differenceItem.priceYen}
+												</span>
+												<span className="text-gray-600 text-xs">円</span>
+											</div>
+											<div className="flex items-center gap-1">
+												<span className="text-gray-600 text-xs">数量:</span>
+												<span className="w-16 rounded border border-gray-300 bg-gray-200 px-1 py-0.5 text-center text-gray-700 text-sm">
+													{differenceItem.amount}
+												</span>
+												<span className="text-gray-600 text-xs">個</span>
+											</div>
+										</div>
+									</div>
+								</div>
+							)}
+							{/* 商品追加ボタン */}
+							<div className="border-gray-200 border-b bg-white p-2 last:border-b-0">
+								<Button
+									onClick={addItem}
+									className="flex w-full items-center justify-center gap-1 rounded bg-blue-600 px-3 py-2 text-white text-sm hover:bg-blue-700"
+								>
+									<Plus className="h-4 w-4" />
+									商品を追加
+								</Button>
+							</div>
 						</div>
 					</div>
 				</div>
