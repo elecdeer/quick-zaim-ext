@@ -9,11 +9,9 @@ import { apiClient } from "../lib/api";
 export const LoginButton: FC = () => {
 	const loginMutation = useMutation({
 		mutationFn: async () => {
+			const redirectURL = browser.identity.getRedirectURL();
 			const url = new URL("http://localhost:8787/login");
-			url.searchParams.set(
-				"return-to",
-				"https://efpgpbmleoemnhndmngfoinonbmbibed.chromiumapp.org",
-			);
+			url.searchParams.set("return-to", redirectURL);
 
 			const res = await browser.identity.launchWebAuthFlow({
 				interactive: true,
@@ -43,10 +41,10 @@ export const LoginButton: FC = () => {
 export const ZaimLoginButton: FC = () => {
 	const zaimLoginMutation = useMutation({
 		mutationFn: async () => {
+			const redirectURL = browser.identity.getRedirectURL();
 			const res = await apiClient.login.$post({
 				query: {
-					"return-to":
-						"https://efpgpbmleoemnhndmngfoinonbmbibed.chromiumapp.org",
+					"return-to": redirectURL,
 				},
 			});
 			const { userAuthorizeUrl } = await res.json();
