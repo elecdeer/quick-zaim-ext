@@ -5,10 +5,11 @@ import {
 	DialogTitle,
 	Field,
 	Label,
+	Textarea,
 } from "@headlessui/react";
 import type { Receipt } from "@repo/workers/client";
 import { Save, X } from "lucide-react";
-import { type FC, useState } from "react";
+import { type FC, useCallback, useLayoutEffect, useRef, useState } from "react";
 
 interface ItemNameEditModalProps {
 	isOpen: boolean;
@@ -24,6 +25,21 @@ export const ItemNameEditModal: FC<ItemNameEditModalProps> = ({
 	onSave,
 }) => {
 	const [editedItem, setEditedItem] = useState(item);
+	const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+	// Textareaの高さを自動調整する関数
+	const adjustTextareaHeight = useCallback(() => {
+		const textarea = textareaRef.current;
+		if (textarea) {
+			textarea.style.height = "auto";
+			textarea.style.height = `${textarea.scrollHeight}px`;
+		}
+	}, []);
+
+	// モーダルが開いたときに高さを調整
+	useLayoutEffect(() => {
+		adjustTextareaHeight();
+	}, [adjustTextareaHeight]);
 
 	const handleSave = () => {
 		onSave(editedItem);
@@ -44,17 +60,19 @@ export const ItemNameEditModal: FC<ItemNameEditModalProps> = ({
 							<Label className="mb-1 block font-medium text-gray-600 text-xs">
 								商品名
 							</Label>
-							<textarea
+							<Textarea
+								ref={textareaRef}
 								value={editedItem.normalizedName}
-								onChange={(e) =>
+								onChange={(e) => {
 									setEditedItem({
 										...editedItem,
 										normalizedName: e.target.value,
-									})
-								}
-								rows={3}
-								className="w-full resize-y rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+									});
+									adjustTextareaHeight();
+								}}
+								className="min-h-10 w-full resize-none rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
 								placeholder="商品名を入力してください"
+								autoFocus
 							/>
 						</Field>
 						{editedItem.name !== editedItem.normalizedName && (
