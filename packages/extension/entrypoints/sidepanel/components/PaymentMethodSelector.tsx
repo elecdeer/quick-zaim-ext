@@ -13,8 +13,8 @@ import { useState } from "react";
 import { apiClient } from "../lib/api";
 
 interface PaymentMethodSelectorProps {
-	value: string; // 支払い方法名
-	onChange: (paymentMethodName: string) => void;
+	value: string; // 支払い方法id
+	onChange: (method: { id: number; name: string } | null) => void;
 	placeholder?: string;
 	className?: string;
 }
@@ -53,7 +53,7 @@ export const PaymentMethodSelector: FC<PaymentMethodSelectorProps> = ({
 
 	// 選択された支払い方法を取得
 	const selectedPaymentMethod = paymentMethods.find(
-		(method) => method.name === value,
+		(method) => String(method.id) === value,
 	);
 
 	return (
@@ -61,7 +61,9 @@ export const PaymentMethodSelector: FC<PaymentMethodSelectorProps> = ({
 			value={selectedPaymentMethod}
 			onChange={(method: ZaimPaymentMethod | null) => {
 				if (method) {
-					onChange(method.name);
+					onChange({ id: method.id, name: method.name });
+				} else {
+					onChange(null);
 				}
 			}}
 		>
@@ -69,9 +71,14 @@ export const PaymentMethodSelector: FC<PaymentMethodSelectorProps> = ({
 				<ComboboxButton as="div" className="w-full">
 					<ComboboxInput
 						className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
-						displayValue={(method: ZaimPaymentMethod | null) =>
-							method?.name ?? value
-						}
+						displayValue={(method: ZaimPaymentMethod | null) => {
+							if (method) return method.name;
+							// valueがidの場合、対応する支払い方法名を表示
+							const foundMethod = paymentMethods.find(
+								(m) => String(m.id) === value,
+							);
+							return foundMethod?.name ?? "";
+						}}
 						onChange={(event) => {
 							setPaymentMethodQuery(event.target.value);
 						}}
@@ -92,13 +99,7 @@ export const PaymentMethodSelector: FC<PaymentMethodSelectorProps> = ({
 							className="cursor-pointer select-none px-2 py-2 text-xs data-[focus]:bg-blue-100 data-[selected]:bg-blue-600 data-[selected]:text-white"
 						>
 							{({ selected }) => (
-								<div
-									className={`grid items-center gap-2 ${
-										"count" in method
-											? "grid-cols-[auto_1fr_auto]"
-											: "grid-cols-[auto_1fr]"
-									}`}
-								>
+								<div className="grid grid-cols-[auto_1fr] items-center gap-2">
 									<div className="flex w-3 justify-center">
 										{selected && <Check className="h-3 w-3" />}
 									</div>
@@ -107,13 +108,6 @@ export const PaymentMethodSelector: FC<PaymentMethodSelectorProps> = ({
 									>
 										{method.name}
 									</span>
-									{"count" in method && (
-										<span
-											className={`text-right text-xs ${selected ? "text-blue-100" : "text-gray-500"}`}
-										>
-											{method.count}
-										</span>
-									)}
 								</div>
 							)}
 						</ComboboxOption>

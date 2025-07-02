@@ -178,9 +178,15 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 							支払い方法
 						</Label>
 						<PaymentMethodSelector
-							value={editableResult.paymentMethodName}
-							onChange={(paymentMethodName) => {
-								updateBasicInfo("paymentMethodName", paymentMethodName);
+							value={editableResult.paymentMethodId}
+							onChange={(method) => {
+								if (method) {
+									updateBasicInfo("paymentMethodId", String(method.id));
+									updateBasicInfo("paymentMethodName", method.name);
+								} else {
+									updateBasicInfo("paymentMethodId", "");
+									updateBasicInfo("paymentMethodName", "");
+								}
 							}}
 							placeholder="支払い方法を選択してください"
 						/>

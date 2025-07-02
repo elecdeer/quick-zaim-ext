@@ -86,7 +86,7 @@ describe("PaymentMethodSelector", () => {
 		const onChange = vi.fn();
 		const screen = renderWithQueryClient(
 			<PaymentMethodSelector
-				value="現金"
+				value="1" // idを使用
 				onChange={onChange}
 				placeholder="支払い方法を選択してください"
 			/>,
@@ -150,7 +150,7 @@ describe("PaymentMethodSelector", () => {
 		await cashOption.click();
 
 		// onChangeが正しい引数で呼ばれる
-		expect(onChange).toHaveBeenCalledWith("現金");
+		expect(onChange).toHaveBeenCalledWith({ id: 1, name: "現金" });
 	});
 
 	test("フィルタリング機能が存在する", async () => {
@@ -230,7 +230,7 @@ describe("PaymentMethodSelector", () => {
 		const onChange = vi.fn();
 		const screen = renderWithQueryClient(
 			<PaymentMethodSelector
-				value="現金"
+				value="1" // idを使用
 				onChange={onChange}
 				placeholder="支払い方法を選択してください"
 			/>,
