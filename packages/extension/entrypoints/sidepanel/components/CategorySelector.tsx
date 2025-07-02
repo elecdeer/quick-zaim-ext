@@ -25,15 +25,13 @@ import { apiClient } from "../lib/api";
 
 interface CategorySelectorProps {
 	value: string; // カテゴリIDの文字列
-	displayValue: string; // 表示用のカテゴリ名
-	onChange: (categoryId: string, categoryName: string) => void;
+	onChange: (categoryId: string) => void;
 	placeholder?: string;
 	className?: string;
 }
 
 export const CategorySelector: FC<CategorySelectorProps> = ({
 	value,
-	displayValue,
 	onChange,
 	placeholder = "カテゴリを選択",
 	className = "",
@@ -64,21 +62,21 @@ export const CategorySelector: FC<CategorySelectorProps> = ({
 		.flatMap((cat) => cat.subCategories)
 		.find((subCat) => String(subCat.id) === value);
 
+	// カテゴリIDからサブカテゴリ名のみを取得
+	const getSubCategoryName = (categoryId: string): string => {
+		const subCategory = categories
+			.flatMap((cat) => cat.subCategories)
+			.find((subCat) => String(subCat.id) === categoryId);
+		return subCategory?.name || "";
+	};
+
 	return (
 		<Combobox
 			value={selectedSubCategory}
 			onChange={(selectedCategory: ZaimCategory["subCategories"][0] | null) => {
 				if (selectedCategory && !("subCategories" in selectedCategory)) {
 					// サブカテゴリが選択された場合
-					const parentCategory = categories.find((cat) =>
-						cat.subCategories.some(
-							(sub) => String(sub.id) === String(selectedCategory.id),
-						),
-					);
-					if (parentCategory) {
-						const categoryName = `${parentCategory.name} > ${selectedCategory.name}`;
-						onChange(String(selectedCategory.id), categoryName);
-					}
+					onChange(String(selectedCategory.id));
 				}
 			}}
 		>
@@ -89,15 +87,12 @@ export const CategorySelector: FC<CategorySelectorProps> = ({
 						displayValue={(
 							selectedSubCategory: ZaimCategory["subCategories"][0] | null,
 						) => {
-							if (!selectedSubCategory) return displayValue;
-							const parentCategory = categories.find((cat) =>
-								cat.subCategories.some(
-									(sub) => String(sub.id) === String(selectedSubCategory.id),
-								),
-							);
-							return parentCategory
-								? `${parentCategory.name} > ${selectedSubCategory.name}`
-								: selectedSubCategory.name;
+							if (!selectedSubCategory) {
+								// valueがあるが、selectedSubCategoryがない場合はIDから名前を取得
+								return getSubCategoryName(value);
+							}
+							// サブカテゴリ名のみを表示（親カテゴリ名は表示しない）
+							return selectedSubCategory.name;
 						}}
 						onChange={(event) => {
 							setCategoryQuery(event.target.value);

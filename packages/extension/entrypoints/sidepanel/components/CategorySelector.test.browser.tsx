@@ -94,7 +94,6 @@ describe("CategorySelector", () => {
 		const screen = renderWithQueryClient(
 			<CategorySelector
 				value=""
-				displayValue=""
 				onChange={onChange}
 				placeholder="カテゴリを選択"
 			/>,
@@ -109,7 +108,6 @@ describe("CategorySelector", () => {
 		const screen = renderWithQueryClient(
 			<CategorySelector
 				value="11"
-				displayValue="食費 > 食材"
 				onChange={onChange}
 				placeholder="カテゴリを選択"
 			/>,
@@ -118,7 +116,7 @@ describe("CategorySelector", () => {
 		// コンポーネントが正しく表示されることを確認
 		const combobox = screen.container.querySelector("input");
 		expect(combobox).toBeInTheDocument();
-		// displayValueプロパティが設定されていることを確認（HeadlessUIの内部動作のため、実際の値は異なる場合がある）
+		// placeholderが設定されていることを確認
 		expect(combobox).toHaveAttribute("placeholder", "カテゴリを選択");
 	});
 
@@ -127,7 +125,6 @@ describe("CategorySelector", () => {
 		const screen = renderWithQueryClient(
 			<CategorySelector
 				value=""
-				displayValue=""
 				onChange={onChange}
 				placeholder="カテゴリを選択"
 			/>,
@@ -158,7 +155,6 @@ describe("CategorySelector", () => {
 		const screen = renderWithQueryClient(
 			<CategorySelector
 				value=""
-				displayValue=""
 				onChange={onChange}
 				placeholder="カテゴリを選択"
 			/>,
@@ -176,8 +172,8 @@ describe("CategorySelector", () => {
 		const foodMaterialOption = screen.getByText("食材");
 		await foodMaterialOption.click();
 
-		// onChangeが正しい引数で呼ばれる
-		expect(onChange).toHaveBeenCalledWith("11", "食費 > 食材");
+		// onChangeが正しい引数で呼ばれる（categoryIdのみ）
+		expect(onChange).toHaveBeenCalledWith("11");
 	});
 
 	test("フィルタリング機能が存在する", async () => {
@@ -185,7 +181,6 @@ describe("CategorySelector", () => {
 		const screen = renderWithQueryClient(
 			<CategorySelector
 				value=""
-				displayValue=""
 				onChange={onChange}
 				placeholder="カテゴリを選択"
 			/>,
@@ -211,7 +206,6 @@ describe("CategorySelector", () => {
 		const screen = renderWithQueryClient(
 			<CategorySelector
 				value=""
-				displayValue=""
 				onChange={onChange}
 				placeholder="カテゴリを選択"
 				className="custom-class"
@@ -238,7 +232,6 @@ describe("CategorySelector", () => {
 		const screen = renderWithQueryClient(
 			<CategorySelector
 				value=""
-				displayValue=""
 				onChange={onChange}
 				placeholder="カテゴリを選択"
 			/>,
@@ -261,7 +254,6 @@ describe("CategorySelector", () => {
 		const screen = renderWithQueryClient(
 			<CategorySelector
 				value="11"
-				displayValue="食費 > 食材"
 				onChange={onChange}
 				placeholder="カテゴリを選択"
 			/>,
@@ -279,7 +271,6 @@ describe("CategorySelector", () => {
 		const screen = renderWithQueryClient(
 			<CategorySelector
 				value=""
-				displayValue=""
 				onChange={onChange}
 				placeholder="カテゴリを選択"
 			/>,

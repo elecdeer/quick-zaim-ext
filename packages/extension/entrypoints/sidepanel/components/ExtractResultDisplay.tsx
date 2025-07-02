@@ -2,6 +2,7 @@ import { Button, Field, Input, Label } from "@headlessui/react";
 import type { Receipt } from "@repo/workers/client";
 import { Plus, Trash2, X } from "lucide-react";
 import { type FC, useState } from "react";
+import { type ReceiptState, useReceiptState } from "../hooks/useReceiptState";
 import { CategorySelector } from "./CategorySelector";
 import { ItemNameEditModal } from "./ItemNameEditModal";
 import { PaymentMethodSelector } from "./PaymentMethodSelector";
@@ -18,84 +19,40 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 	onClear,
 	onUpdate,
 }) => {
-	const [editableResult, setEditableResult] = useState<Receipt>(result);
+	const {
+		state,
+		updateBasicInfo,
+		updateItem,
+		removeItem,
+		addItem,
+		updateItemFull,
+	} = useReceiptState({
+		initialReceipt: result,
+		onUpdate,
+	});
+
 	const [editingItem, setEditingItem] = useState<Receipt["items"][0] | null>(
 		null,
 	);
 	const [editingIndex, setEditingIndex] = useState<number>(-1);
 
-	// 基本情報の更新
-	const updateBasicInfo = (
-		field: keyof Omit<Receipt, "items">,
-		value: string | number,
-	) => {
-		const updated = { ...editableResult, [field]: value };
-		setEditableResult(updated);
-		if (onUpdate) {
-			onUpdate(updated);
-		}
-	};
-
-	// 商品項目の更新
-	const updateItem = (
-		index: number,
-		field: keyof Receipt["items"][0],
-		value: string | number,
-	) => {
-		const updatedItems = [...editableResult.items];
-		updatedItems[index] = { ...updatedItems[index], [field]: value };
-		const updated = { ...editableResult, items: updatedItems };
-		setEditableResult(updated);
-		if (onUpdate) {
-			onUpdate(updated);
-		}
-	};
-
-	// 商品項目の削除
-	const removeItem = (index: number) => {
-		const updatedItems = editableResult.items.filter((_, i) => i !== index);
-		const updated = { ...editableResult, items: updatedItems };
-		setEditableResult(updated);
-		if (onUpdate) {
-			onUpdate(updated);
-		}
-	};
-
-	// 商品項目の追加
-	const addItem = () => {
-		const newItem: Receipt["items"][0] = {
-			name: "",
-			normalizedName: "新しい商品",
-			category: "",
-			categoryId: "",
-			priceYen: 0,
-			amount: 1,
-		};
-		const updatedItems = [...editableResult.items, newItem];
-		const updated = { ...editableResult, items: updatedItems };
-		setEditableResult(updated);
-		if (onUpdate) {
-			onUpdate(updated);
-		}
-	};
-
 	// 商品合計金額を計算
-	const itemsTotalPrice = editableResult.items.reduce(
-		(total, item) => total + item.priceYen * item.amount,
+	const itemsTotalPrice = state.items.reduce(
+		(total: number, item: ReceiptState["items"][0]) =>
+			total + item.priceYen * item.amount,
 		0,
 	);
 
 	// 差額を計算
-	const priceDifference = editableResult.sumPrice - itemsTotalPrice;
+	const priceDifference = state.sumPrice - itemsTotalPrice;
 
 	// 差額商品を作成（差額が0でない場合のみ）
-	const differenceItem: Receipt["items"][0] | null =
+	const differenceItem: ReceiptState["items"][0] | null =
 		priceDifference !== 0
 			? {
 					name: "",
 					normalizedName:
 						priceDifference > 0 ? "差額（不足分）" : "差額（超過分）",
-					category: "調整",
 					categoryId: "",
 					priceYen: priceDifference,
 					amount: 1,
@@ -108,21 +65,28 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 	};
 
 	// 商品名編集モーダルを開く
-	const openItemEdit = (item: Receipt["items"][0], index: number) => {
-		setEditingItem(item);
+	const openItemEdit = (item: ReceiptState["items"][0], index: number) => {
+		// Receipt形式に変換してモーダルに渡す（categoryは空文字列で十分）
+		const receiptItem: Receipt["items"][0] = {
+			...item,
+			category: "",
+		};
+		setEditingItem(receiptItem);
 		setEditingIndex(index);
 	};
 
 	// 商品名編集を保存
 	const saveItemEdit = (updatedItem: Receipt["items"][0]) => {
 		if (editingIndex >= 0) {
-			const updatedItems = [...editableResult.items];
-			updatedItems[editingIndex] = updatedItem;
-			const updated = { ...editableResult, items: updatedItems };
-			setEditableResult(updated);
-			if (onUpdate) {
-				onUpdate(updated);
-			}
+			// Receipt項目からReceiptState項目に変換
+			const stateItem: ReceiptState["items"][0] = {
+				name: updatedItem.name,
+				normalizedName: updatedItem.normalizedName,
+				amount: updatedItem.amount,
+				categoryId: updatedItem.categoryId,
+				priceYen: updatedItem.priceYen,
+			};
+			updateItemFull(editingIndex, stateItem);
 		}
 		setEditingItem(null);
 		setEditingIndex(-1);
@@ -148,7 +112,7 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 						</Label>
 						<Input
 							type="date"
-							value={editableResult.date}
+							value={state.date}
 							onChange={(e) => updateBasicInfo("date", e.target.value)}
 							className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
 						/>
@@ -159,14 +123,12 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 							店舗名
 						</Label>
 						<PlaceSelector
-							value={editableResult.shopId || ""}
+							value={state.shopId || ""}
 							onChange={(place) => {
 								if (place) {
 									updateBasicInfo("shopId", place.uid);
-									updateBasicInfo("shopName", place.name);
 								} else {
 									updateBasicInfo("shopId", "");
-									updateBasicInfo("shopName", "");
 								}
 							}}
 							placeholder="店舗名を選択してください"
@@ -178,14 +140,12 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 							支払い方法
 						</Label>
 						<PaymentMethodSelector
-							value={editableResult.paymentMethodId}
+							value={state.paymentMethodId}
 							onChange={(method) => {
 								if (method) {
 									updateBasicInfo("paymentMethodId", String(method.id));
-									updateBasicInfo("paymentMethodName", method.name);
 								} else {
 									updateBasicInfo("paymentMethodId", "");
-									updateBasicInfo("paymentMethodName", "");
 								}
 							}}
 							placeholder="支払い方法を選択してください"
@@ -198,7 +158,7 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 						</Label>
 						<Input
 							type="number"
-							value={editableResult.sumPrice}
+							value={state.sumPrice}
 							onChange={(e) =>
 								updateBasicInfo("sumPrice", Number(e.target.value))
 							}
@@ -209,84 +169,87 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 					<div className="rounded border border-gray-300 bg-white">
 						<div className="border-gray-200 border-b bg-gray-50 px-3 py-2">
 							<h3 className="font-medium text-gray-900 text-sm">
-								商品一覧 (
-								{editableResult.items.length + (differenceItem ? 1 : 0)}件)
+								商品一覧 ({state.items.length + (differenceItem ? 1 : 0)}件)
 							</h3>
 						</div>
 						<div>
-							{editableResult.items.map((item, index) => (
-								<div
-									key={`item-${index}-${item.name}`}
-									className="border-gray-200 border-b bg-gray-50 p-2 last:border-b-0"
-								>
-									<div className="space-y-2">
-										{/* 商品名の行 */}
-										<div className="flex items-start justify-between">
-											<div className="flex-1">
-												<button
-													type="button"
-													onClick={() => openItemEdit(item, index)}
-													className="w-full text-left font-medium text-blue-600 text-sm hover:text-blue-800 hover:underline"
+							{state.items.map(
+								(item: ReceiptState["items"][0], index: number) => (
+									<div
+										key={`item-${index}-${item.name}`}
+										className="border-gray-200 border-b bg-gray-50 p-2 last:border-b-0"
+									>
+										<div className="space-y-2">
+											{/* 商品名の行 */}
+											<div className="flex items-start justify-between">
+												<div className="flex-1">
+													<button
+														type="button"
+														onClick={() => openItemEdit(item, index)}
+														className="w-full text-left font-medium text-blue-600 text-sm hover:text-blue-800 hover:underline"
+													>
+														{item.normalizedName}
+													</button>
+												</div>
+												<Button
+													onClick={() => removeItem(index)}
+													className="flex items-center gap-1 rounded bg-red-500 px-2 py-1 text-white text-xs hover:bg-red-600"
 												>
-													{item.normalizedName}
-												</button>
+													<Trash2 className="h-3 w-3" />
+												</Button>
 											</div>
-											<Button
-												onClick={() => removeItem(index)}
-												className="flex items-center gap-1 rounded bg-red-500 px-2 py-1 text-white text-xs hover:bg-red-600"
-											>
-												<Trash2 className="h-3 w-3" />
-											</Button>
-										</div>
 
-										{/* カテゴリ選択の行 */}
-										<div className="flex items-center gap-1">
-											<span className="text-gray-600 text-xs">カテゴリ:</span>
-											<CategorySelector
-												value={item.categoryId}
-												displayValue={item.category}
-												onChange={(categoryId, categoryName) => {
-													updateItem(index, "categoryId", categoryId);
-													updateItem(index, "category", categoryName);
-												}}
-												placeholder="カテゴリを選択"
-											/>
-										</div>
-
-										{/* 金額と個数の行 */}
-										<div className="flex items-center gap-4">
+											{/* カテゴリ選択の行 */}
 											<div className="flex items-center gap-1">
-												<span className="text-gray-600 text-xs">価格:</span>
-												<Input
-													type="number"
-													value={item.priceYen}
-													onChange={(e) =>
-														updateItem(
-															index,
-															"priceYen",
-															Number(e.target.value),
-														)
-													}
-													className="w-20 rounded border border-gray-300 px-1 py-0.5 text-right text-sm focus:border-blue-500 focus:outline-none"
+												<span className="text-gray-600 text-xs">カテゴリ:</span>
+												<CategorySelector
+													value={item.categoryId}
+													onChange={(categoryId) => {
+														updateItem(index, "categoryId", categoryId);
+													}}
+													placeholder="カテゴリを選択"
 												/>
-												<span className="text-gray-600 text-xs">円</span>
 											</div>
-											<div className="flex items-center gap-1">
-												<span className="text-gray-600 text-xs">数量:</span>
-												<Input
-													type="number"
-													value={item.amount}
-													onChange={(e) =>
-														updateItem(index, "amount", Number(e.target.value))
-													}
-													className="w-16 rounded border border-gray-300 px-1 py-0.5 text-center text-sm focus:border-blue-500 focus:outline-none"
-												/>
-												<span className="text-gray-600 text-xs">個</span>
+
+											{/* 金額と個数の行 */}
+											<div className="flex items-center gap-4">
+												<div className="flex items-center gap-1">
+													<span className="text-gray-600 text-xs">価格:</span>
+													<Input
+														type="number"
+														value={item.priceYen}
+														onChange={(e) =>
+															updateItem(
+																index,
+																"priceYen",
+																Number(e.target.value),
+															)
+														}
+														className="w-20 rounded border border-gray-300 px-1 py-0.5 text-right text-sm focus:border-blue-500 focus:outline-none"
+													/>
+													<span className="text-gray-600 text-xs">円</span>
+												</div>
+												<div className="flex items-center gap-1">
+													<span className="text-gray-600 text-xs">数量:</span>
+													<Input
+														type="number"
+														value={item.amount}
+														onChange={(e) =>
+															updateItem(
+																index,
+																"amount",
+																Number(e.target.value),
+															)
+														}
+														className="w-16 rounded border border-gray-300 px-1 py-0.5 text-center text-sm focus:border-blue-500 focus:outline-none"
+													/>
+													<span className="text-gray-600 text-xs">個</span>
+												</div>
 											</div>
 										</div>
 									</div>
-								</div>
-							))}
+								),
+							)}
 							{/* 差額商品の表示 */}
 							{differenceItem && (
 								<div className="border-gray-200 border-b bg-gray-100 p-2 last:border-b-0">
