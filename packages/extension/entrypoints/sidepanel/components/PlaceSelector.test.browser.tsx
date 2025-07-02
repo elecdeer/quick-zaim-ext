@@ -86,7 +86,7 @@ describe("PlaceSelector", () => {
 		const onChange = vi.fn();
 		const screen = renderWithQueryClient(
 			<PlaceSelector
-				value="セブンイレブン"
+				value="place1" // uidを使用
 				onChange={onChange}
 				placeholder="店舗名を選択してください"
 			/>,
@@ -147,7 +147,10 @@ describe("PlaceSelector", () => {
 		await sevenElevenOption.click();
 
 		// onChangeが正しい引数で呼ばれる
-		expect(onChange).toHaveBeenCalledWith("セブンイレブン");
+		expect(onChange).toHaveBeenCalledWith({
+			uid: "place1",
+			name: "セブンイレブン",
+		});
 	});
 
 	test("使用回数順に店舗がソートされて表示される", async () => {
@@ -256,7 +259,7 @@ describe("PlaceSelector", () => {
 		const onChange = vi.fn();
 		const screen = renderWithQueryClient(
 			<PlaceSelector
-				value="セブンイレブン"
+				value="place1" // uidを使用
 				onChange={onChange}
 				placeholder="店舗名を選択してください"
 			/>,

@@ -1,5 +1,4 @@
 import { hc } from "hono/client";
-
 import type { ExtractionRouteType } from "./handlers/extraction";
 import type { ZaimRouteType } from "./handlers/zaim";
 

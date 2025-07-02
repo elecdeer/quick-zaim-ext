@@ -13,8 +13,8 @@ import { useState } from "react";
 import { apiClient } from "../lib/api";
 
 interface PlaceSelectorProps {
-	value: string; // 店舗名
-	onChange: (placeName: string) => void;
+	value: string; // 店舗uid
+	onChange: (place: { uid: string; name: string } | null) => void;
 	placeholder?: string;
 	className?: string;
 }
@@ -55,14 +55,16 @@ export const PlaceSelector: FC<PlaceSelectorProps> = ({
 	);
 
 	// 選択された店舗を取得
-	const selectedPlace = places.find((place) => place.name === value);
+	const selectedPlace = places.find((place) => place.uid === value);
 
 	return (
 		<Combobox
 			value={selectedPlace}
 			onChange={(place: ZaimPlace | null) => {
 				if (place) {
-					onChange(place.name);
+					onChange({ uid: place.uid, name: place.name });
+				} else {
+					onChange(null);
 				}
 			}}
 		>
@@ -70,7 +72,12 @@ export const PlaceSelector: FC<PlaceSelectorProps> = ({
 				<ComboboxButton as="div" className="w-full">
 					<ComboboxInput
 						className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
-						displayValue={(place: ZaimPlace | null) => place?.name ?? value}
+						displayValue={(place: ZaimPlace | null) => {
+							if (place) return place.name;
+							// valueがuidの場合、対応する店舗名を表示
+							const foundPlace = places.find((p) => p.uid === value);
+							return foundPlace?.name ?? "";
+						}}
 						onChange={(event) => setShopNameQuery(event.target.value)}
 						placeholder={placeholder}
 					/>

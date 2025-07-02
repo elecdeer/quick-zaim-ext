@@ -6,6 +6,7 @@ import { QueryClient } from "@tanstack/react-query";
 
 // TODO: 環境変数などからベース URL を取得するようにする
 export const apiClient = createZaimApiClient("http://localhost:8787");
+
 export const extractionClient = createExtractionApiClient(
 	"http://localhost:8787",
 );

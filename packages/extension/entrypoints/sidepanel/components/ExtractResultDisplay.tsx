@@ -159,9 +159,15 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 							店舗名
 						</Label>
 						<PlaceSelector
-							value={editableResult.shopName}
-							onChange={(shopName) => {
-								updateBasicInfo("shopName", shopName);
+							value={editableResult.shopId || ""}
+							onChange={(place) => {
+								if (place) {
+									updateBasicInfo("shopId", place.uid);
+									updateBasicInfo("shopName", place.name);
+								} else {
+									updateBasicInfo("shopId", "");
+									updateBasicInfo("shopName", "");
+								}
 							}}
 							placeholder="店舗名を選択してください"
 						/>
