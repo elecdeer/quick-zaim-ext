@@ -35,7 +35,7 @@ export const extractionRoute = new Hono<HonoApp>().post(
 					code: clientResult.error.code,
 					message: "Failed to access Zaim API",
 				},
-				clientResult.error.statusCode,
+				500,
 			);
 		}
 
@@ -50,7 +50,7 @@ export const extractionRoute = new Hono<HonoApp>().post(
 					code: categories.error.code,
 					message: "Failed to get Zaim categories",
 				},
-				categories.error.statusCode,
+				500,
 			);
 		}
 
@@ -67,7 +67,7 @@ export const extractionRoute = new Hono<HonoApp>().post(
 					code: paymentMethods.error.code,
 					message: "Failed to get Zaim payment methods",
 				},
-				paymentMethods.error.statusCode,
+				500,
 			);
 		}
 
@@ -103,6 +103,6 @@ export const extractionRoute = new Hono<HonoApp>().post(
 		);
 
 		console.log(res);
-		return c.json(res);
+		return c.json(res, 200);
 	},
 );

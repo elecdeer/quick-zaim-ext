@@ -96,7 +96,7 @@ export const zaimRoute = new Hono<HonoApp>()
 					code: clientResult.error.code,
 					message: "Failed to access Zaim API",
 				},
-				clientResult.error.statusCode,
+				500,
 			);
 		}
 
@@ -107,9 +107,12 @@ export const zaimRoute = new Hono<HonoApp>()
 				client,
 			}),
 			(result) => {
-				return c.json({
-					categories: result,
-				});
+				return c.json(
+					{
+						categories: result,
+					},
+					200,
+				);
 			},
 			(error) => {
 				logger.info({
@@ -141,7 +144,7 @@ export const zaimRoute = new Hono<HonoApp>()
 					code: clientResult.error.code,
 					message: "Failed to access Zaim API",
 				},
-				clientResult.error.statusCode,
+				500,
 			);
 		}
 
@@ -152,9 +155,12 @@ export const zaimRoute = new Hono<HonoApp>()
 				client,
 			}),
 			(result) => {
-				return c.json({
-					paymentMethods: result,
-				});
+				return c.json(
+					{
+						paymentMethods: result,
+					},
+					200,
+				);
 			},
 			(error) => {
 				logger.info({
@@ -185,7 +191,7 @@ export const zaimRoute = new Hono<HonoApp>()
 					code: clientResult.error.code,
 					message: "Failed to access Zaim API",
 				},
-				clientResult.error.statusCode,
+				500,
 			);
 		}
 
@@ -196,9 +202,12 @@ export const zaimRoute = new Hono<HonoApp>()
 				client,
 			}),
 			(result) => {
-				return c.json({
-					places: result,
-				});
+				return c.json(
+					{
+						places: result,
+					},
+					200,
+				);
 			},
 			(error) => {
 				logger.info({
