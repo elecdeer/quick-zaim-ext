@@ -1,25 +1,11 @@
-import {
-	Button,
-	Combobox,
-	ComboboxButton,
-	ComboboxInput,
-	ComboboxOption,
-	ComboboxOptions,
-	Field,
-	Input,
-	Label,
-} from "@headlessui/react";
-import type {
-	Receipt,
-	ZaimPaymentMethod,
-	ZaimPlace,
-} from "@repo/workers/client";
-import { useQuery } from "@tanstack/react-query";
-import { Check, ChevronDown, Plus, Trash2, X } from "lucide-react";
+import { Button, Field, Input, Label } from "@headlessui/react";
+import type { Receipt } from "@repo/workers/client";
+import { Plus, Trash2, X } from "lucide-react";
 import { type FC, useState } from "react";
-
-import { apiClient } from "../lib/api";
+import { CategorySelector } from "./CategorySelector";
 import { ItemNameEditModal } from "./ItemNameEditModal";
+import { PaymentMethodSelector } from "./PaymentMethodSelector";
+import { PlaceSelector } from "./PlaceSelector";
 
 interface ExtractResultDisplayProps {
 	result: Receipt;
@@ -37,69 +23,6 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 		null,
 	);
 	const [editingIndex, setEditingIndex] = useState<number>(-1);
-	const [shopNameQuery, setShopNameQuery] = useState("");
-	const [paymentMethodQuery, setPaymentMethodQuery] = useState("");
-
-	// 店舗候補取得
-	const placesQuery = useQuery({
-		queryKey: ["places"],
-		queryFn: async () => {
-			const res = await apiClient.places.$get();
-			if (res.ok) {
-				const data = await res.json();
-				if ("places" in data) {
-					return data.places;
-				}
-				throw new Error("Invalid response format");
-			}
-			throw new Error(res.statusText);
-		},
-		staleTime: 5 * 60 * 1000, // 5分間キャッシュ
-	});
-
-	const places = placesQuery.data || [];
-
-	// 支払い方法候補取得
-	const paymentMethodsQuery = useQuery({
-		queryKey: ["payment-methods"],
-		queryFn: async () => {
-			const res = await apiClient["payment-methods"].$get();
-			if (res.ok) {
-				const data = await res.json();
-				if ("paymentMethods" in data) {
-					return data.paymentMethods;
-				}
-				throw new Error("Invalid response format");
-			}
-			throw new Error(res.statusText);
-		},
-		staleTime: 5 * 60 * 1000, // 5分間キャッシュ
-	});
-
-	const paymentMethods = paymentMethodsQuery.data || [];
-
-	// 使用回数順にソート
-	const sortedPlaces = [...places].sort((a, b) => b.count - a.count);
-
-	// 店舗名のフィルタリング
-	const filteredPlaces = sortedPlaces.filter((place) =>
-		place.name.toLowerCase().includes(shopNameQuery.toLowerCase()),
-	);
-
-	// 支払い方法のフィルタリング
-	const filteredPaymentMethods = paymentMethods.filter((method) =>
-		method.name.toLowerCase().includes(paymentMethodQuery.toLowerCase()),
-	);
-
-	// 選択された店舗名を取得
-	const selectedPlace = places.find(
-		(place) => place.name === editableResult.shopName,
-	);
-
-	// 選択された支払い方法を取得
-	const selectedPaymentMethod = paymentMethods.find(
-		(method) => method.name === editableResult.paymentMethodName,
-	);
 
 	// 基本情報の更新
 	const updateBasicInfo = (
@@ -144,6 +67,7 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 			name: "",
 			normalizedName: "新しい商品",
 			category: "",
+			categoryId: "",
 			priceYen: 0,
 			amount: 1,
 		};
@@ -172,6 +96,7 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 					normalizedName:
 						priceDifference > 0 ? "差額（不足分）" : "差額（超過分）",
 					category: "調整",
+					categoryId: "",
 					priceYen: priceDifference,
 					amount: 1,
 				}
@@ -233,133 +158,26 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 						<Label className="mb-1 block font-medium text-gray-600 text-xs">
 							店舗名
 						</Label>
-						<Combobox
-							value={selectedPlace}
-							onChange={(place: ZaimPlace | null) => {
-								if (place) {
-									updateBasicInfo("shopName", place.name);
-								}
+						<PlaceSelector
+							value={editableResult.shopName}
+							onChange={(shopName) => {
+								updateBasicInfo("shopName", shopName);
 							}}
-						>
-							<div className="relative">
-								<ComboboxButton as="div" className="w-full">
-									<ComboboxInput
-										className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
-										displayValue={(place: ZaimPlace | null) =>
-											place?.name ?? editableResult.shopName
-										}
-										onChange={(event) => setShopNameQuery(event.target.value)}
-										placeholder="店舗名を選択してください"
-									/>
-									<div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-										<ChevronDown className="h-4 w-4 text-gray-400" />
-									</div>
-								</ComboboxButton>
-								<ComboboxOptions className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded border border-gray-300 bg-white shadow-lg">
-									{(shopNameQuery === "" ? sortedPlaces : filteredPlaces).map(
-										(place) => (
-											<ComboboxOption
-												key={place.uid}
-												value={place}
-												className="cursor-pointer select-none px-2 py-2 text-xs data-[focus]:bg-blue-100 data-[selected]:bg-blue-600 data-[selected]:text-white"
-											>
-												{({ selected }) => (
-													<div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
-														<div className="flex w-3 justify-center">
-															{selected && <Check className="h-3 w-3" />}
-														</div>
-														<span
-															className={`truncate ${selected ? "font-medium" : "font-normal"}`}
-														>
-															{place.name}
-														</span>
-														<span
-															className={`text-right text-xs ${selected ? "text-blue-100" : "text-gray-500"}`}
-														>
-															{place.count}
-														</span>
-													</div>
-												)}
-											</ComboboxOption>
-										),
-									)}
-									{shopNameQuery !== "" && filteredPlaces.length === 0 && (
-										<div className="px-4 py-2 text-gray-500 text-sm">
-											候補が見つかりません
-										</div>
-									)}
-								</ComboboxOptions>
-							</div>
-						</Combobox>
+							placeholder="店舗名を選択してください"
+						/>
 					</Field>
 
 					<Field>
 						<Label className="mb-1 block font-medium text-gray-600 text-xs">
 							支払い方法
 						</Label>
-						<Combobox
-							value={selectedPaymentMethod}
-							onChange={(method: ZaimPaymentMethod | null) => {
-								if (method) {
-									updateBasicInfo("paymentMethodName", method.name);
-								}
+						<PaymentMethodSelector
+							value={editableResult.paymentMethodName}
+							onChange={(paymentMethodName) => {
+								updateBasicInfo("paymentMethodName", paymentMethodName);
 							}}
-						>
-							<div className="relative">
-								<ComboboxButton as="div" className="w-full">
-									<ComboboxInput
-										className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
-										displayValue={(method: ZaimPaymentMethod | null) =>
-											method?.name ?? editableResult.paymentMethodName
-										}
-										onChange={(event) =>
-											setPaymentMethodQuery(event.target.value)
-										}
-										placeholder="支払い方法を選択してください"
-									/>
-									<div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-										<ChevronDown className="h-4 w-4 text-gray-400" />
-									</div>
-								</ComboboxButton>
-								<ComboboxOptions className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded border border-gray-300 bg-white shadow-lg">
-									{(paymentMethodQuery === ""
-										? paymentMethods
-										: filteredPaymentMethods
-									).map((method) => (
-										<ComboboxOption
-											key={method.id}
-											value={method}
-											className="cursor-pointer select-none px-2 py-2 text-xs data-[focus]:bg-blue-100 data-[selected]:bg-blue-600 data-[selected]:text-white"
-										>
-											{({ selected }) => (
-												<div
-													className={`grid items-center gap-2 ${
-														"count" in method
-															? "grid-cols-[auto_1fr_auto]"
-															: "grid-cols-[auto_1fr]"
-													}`}
-												>
-													<div className="flex w-3 justify-center">
-														{selected && <Check className="h-3 w-3" />}
-													</div>
-													<span
-														className={`truncate ${selected ? "font-medium" : "font-normal"}`}
-													>
-														{method.name}
-													</span>
-												</div>
-											)}
-										</ComboboxOption>
-									))}
-									{paymentMethodQuery !== "" &&
-										filteredPaymentMethods.length === 0 && (
-											<div className="px-4 py-2 text-gray-500 text-sm">
-												候補が見つかりません
-											</div>
-										)}
-								</ComboboxOptions>
-							</div>
-						</Combobox>
+							placeholder="支払い方法を選択してください"
+						/>
 					</Field>
 
 					<Field>
@@ -390,7 +208,7 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 									className="border-gray-200 border-b bg-gray-50 p-2 last:border-b-0"
 								>
 									<div className="space-y-2">
-										{/* 商品名とカテゴリの行 */}
+										{/* 商品名の行 */}
 										<div className="flex items-start justify-between">
 											<div className="flex-1">
 												<button
@@ -400,7 +218,6 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 												>
 													{item.normalizedName}
 												</button>
-												<p className="text-gray-600 text-xs">{item.category}</p>
 											</div>
 											<Button
 												onClick={() => removeItem(index)}
@@ -408,6 +225,20 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 											>
 												<Trash2 className="h-3 w-3" />
 											</Button>
+										</div>
+
+										{/* カテゴリ選択の行 */}
+										<div className="flex items-center gap-1">
+											<span className="text-gray-600 text-xs">カテゴリ:</span>
+											<CategorySelector
+												value={item.categoryId}
+												displayValue={item.category}
+												onChange={(categoryId, categoryName) => {
+													updateItem(index, "categoryId", categoryId);
+													updateItem(index, "category", categoryName);
+												}}
+												placeholder="カテゴリを選択"
+											/>
 										</div>
 
 										{/* 金額と個数の行 */}
@@ -448,7 +279,7 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 							{differenceItem && (
 								<div className="border-gray-200 border-b bg-gray-100 p-2 last:border-b-0">
 									<div className="space-y-2">
-										{/* 商品名とカテゴリの行 */}
+										{/* 商品名の行 */}
 										<div className="flex items-start justify-between">
 											<div className="flex-1">
 												<div className="flex items-center gap-2">
@@ -459,9 +290,6 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 														自動計算
 													</span>
 												</div>
-												<p className="text-gray-600 text-xs">
-													{differenceItem.category}
-												</p>
 											</div>
 											<Button
 												onClick={adjustSumPrice}
@@ -495,7 +323,7 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 							<div className="border-gray-200 border-b bg-white p-2 last:border-b-0">
 								<Button
 									onClick={addItem}
-									className="flex w-full items-center justify-center gap-1 rounded bg-blue-600 px-3 py-2 text-white text-sm hover:bg-blue-700"
+									className="flex w-full items-center justify-center gap-1 rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700"
 								>
 									<Plus className="h-4 w-4" />
 									商品を追加
