@@ -75,7 +75,7 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 	};
 
 	// 商品名編集モーダルを開く
-	const openItemEdit = (item: ReceiptState["items"][0], index: number) => {
+	const openItemEdit = (index: number) => {
 		setEditingIndex(index);
 	};
 
@@ -186,7 +186,7 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 												<div className="flex-1">
 													<button
 														type="button"
-														onClick={() => openItemEdit(item, index)}
+														onClick={() => openItemEdit(index)}
 														className="w-full text-left font-medium text-blue-600 text-sm hover:text-blue-800 hover:underline"
 													>
 														{item.normalizedName}
