@@ -7,6 +7,7 @@ import {
 } from "@headlessui/react";
 import type { ZaimPaymentMethod } from "@repo/workers/client";
 import { useQuery } from "@tanstack/react-query";
+import clsx from "clsx";
 import { Check, ChevronDown } from "lucide-react";
 import type { FC } from "react";
 import { useState } from "react";
@@ -67,7 +68,7 @@ export const PaymentMethodSelector: FC<PaymentMethodSelectorProps> = ({
 				}
 			}}
 		>
-			<div className={`relative flex-1 ${className}`}>
+			<div className={clsx("relative flex-1", className)}>
 				<ComboboxButton as="div" className="w-full">
 					<ComboboxInput
 						className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
@@ -104,7 +105,10 @@ export const PaymentMethodSelector: FC<PaymentMethodSelectorProps> = ({
 										{selected && <Check className="h-3 w-3" />}
 									</div>
 									<span
-										className={`truncate ${selected ? "font-medium" : "font-normal"}`}
+										className={clsx(
+											"truncate",
+											selected ? "font-medium" : "font-normal",
+										)}
 									>
 										{method.name}
 									</span>

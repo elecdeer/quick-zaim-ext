@@ -6,6 +6,7 @@ import {
 	ComboboxOptions,
 } from "@headlessui/react";
 import { useQuery } from "@tanstack/react-query";
+import clsx from "clsx";
 import { Check, ChevronDown } from "lucide-react";
 import type { FC } from "react";
 import { useState } from "react";
@@ -81,7 +82,7 @@ export const CategorySelector: FC<CategorySelectorProps> = ({
 				}
 			}}
 		>
-			<div className={`relative flex-1 ${className}`}>
+			<div className={clsx("relative flex-1", className)}>
 				<ComboboxButton as="div" className="w-full">
 					<ComboboxInput
 						className="w-full rounded border border-gray-300 px-1 py-0.5 text-sm focus:border-blue-500 focus:outline-none"

@@ -7,6 +7,7 @@ import {
 } from "@headlessui/react";
 import type { ZaimPlace } from "@repo/workers/client";
 import { useQuery } from "@tanstack/react-query";
+import clsx from "clsx";
 import { Check, ChevronDown } from "lucide-react";
 import type { FC } from "react";
 import { useState } from "react";
@@ -68,7 +69,7 @@ export const PlaceSelector: FC<PlaceSelectorProps> = ({
 				}
 			}}
 		>
-			<div className={`relative ${className}`}>
+			<div className={clsx("relative", className)}>
 				<ComboboxButton as="div" className="w-full">
 					<ComboboxInput
 						className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
@@ -99,12 +100,18 @@ export const PlaceSelector: FC<PlaceSelectorProps> = ({
 											{selected && <Check className="h-3 w-3" />}
 										</div>
 										<span
-											className={`truncate ${selected ? "font-medium" : "font-normal"}`}
+											className={clsx(
+												"truncate",
+												selected ? "font-medium" : "font-normal",
+											)}
 										>
 											{place.name}
 										</span>
 										<span
-											className={`text-right text-xs ${selected ? "text-blue-100" : "text-gray-500"}`}
+											className={clsx(
+												"text-right text-xs",
+												selected ? "text-blue-100" : "text-gray-500",
+											)}
 										>
 											{place.count}
 										</span>
