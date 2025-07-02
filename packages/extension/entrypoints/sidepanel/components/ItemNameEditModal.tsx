@@ -14,8 +14,10 @@ import { type FC, useCallback, useLayoutEffect, useRef, useState } from "react";
 interface ItemNameEditModalProps {
 	isOpen: boolean;
 	onClose: () => void;
-	item: Receipt["items"][0];
-	onSave: (updatedItem: Receipt["items"][0]) => void;
+	item: Pick<Receipt["items"][number], "name" | "normalizedName">;
+	onSave: (
+		updatedItem: Pick<Receipt["items"][number], "name" | "normalizedName">,
+	) => void;
 }
 
 export const ItemNameEditModal: FC<ItemNameEditModalProps> = ({

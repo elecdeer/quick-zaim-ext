@@ -2,22 +2,38 @@ import { Button, Field, Input, Label } from "@headlessui/react";
 import type { Receipt } from "@repo/workers/client";
 import { Plus, Trash2, X } from "lucide-react";
 import { type FC, useState } from "react";
-import { type ReceiptState, useReceiptState } from "../hooks/useReceiptState";
+import type { ReceiptState } from "../hooks/useReceiptState";
 import { CategorySelector } from "./CategorySelector";
 import { ItemNameEditModal } from "./ItemNameEditModal";
 import { PaymentMethodSelector } from "./PaymentMethodSelector";
 import { PlaceSelector } from "./PlaceSelector";
 
+// useReceiptStateの戻り値型を定義
+type UseReceiptStateReturn = {
+	state: ReceiptState;
+	updateBasicInfo: (
+		field: keyof Omit<ReceiptState, "items">,
+		value: string | number | null,
+	) => void;
+	updateItem: (
+		index: number,
+		field: keyof ReceiptState["items"][0],
+		value: string | number,
+	) => void;
+	removeItem: (index: number) => void;
+	addItem: () => void;
+	updateItemFull: (index: number, item: ReceiptState["items"][0]) => void;
+	setExtractResult: (receipt: Receipt) => void;
+};
+
 interface ExtractResultDisplayProps {
-	result: Receipt;
+	receiptState: UseReceiptStateReturn;
 	onClear: () => void;
-	onUpdate?: (updatedResult: Receipt) => void;
 }
 
 export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
-	result,
+	receiptState,
 	onClear,
-	onUpdate,
 }) => {
 	const {
 		state,
@@ -26,15 +42,9 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 		removeItem,
 		addItem,
 		updateItemFull,
-	} = useReceiptState({
-		initialReceipt: result,
-		onUpdate,
-	});
+	} = receiptState;
 
-	const [editingItem, setEditingItem] = useState<Receipt["items"][0] | null>(
-		null,
-	);
-	const [editingIndex, setEditingIndex] = useState<number>(-1);
+	const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
 	// 商品合計金額を計算
 	const itemsTotalPrice = state.items.reduce(
@@ -66,29 +76,20 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 
 	// 商品名編集モーダルを開く
 	const openItemEdit = (item: ReceiptState["items"][0], index: number) => {
-		// Receipt形式に変換してモーダルに渡す（categoryは空文字列で十分）
-		const receiptItem: Receipt["items"][0] = {
-			...item,
-			category: "",
-		};
-		setEditingItem(receiptItem);
 		setEditingIndex(index);
 	};
 
 	// 商品名編集を保存
-	const saveItemEdit = (updatedItem: Receipt["items"][0]) => {
-		if (editingIndex >= 0) {
-			// Receipt項目からReceiptState項目に変換
-			const stateItem: ReceiptState["items"][0] = {
+	const saveItemEdit = (
+		updatedItem: Pick<Receipt["items"][number], "name" | "normalizedName">,
+	) => {
+		if (editingIndex !== null) {
+			updateItemFull(editingIndex, {
+				...state.items[editingIndex],
 				name: updatedItem.name,
 				normalizedName: updatedItem.normalizedName,
-				amount: updatedItem.amount,
-				categoryId: updatedItem.categoryId,
-				priceYen: updatedItem.priceYen,
-			};
-			updateItemFull(editingIndex, stateItem);
+			});
 		}
-		setEditingItem(null);
 		setEditingIndex(-1);
 	};
 
@@ -309,14 +310,13 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 				</div>
 			</div>
 
-			{editingItem && (
+			{editingIndex !== null && (
 				<ItemNameEditModal
-					isOpen={editingItem !== null}
+					isOpen={true}
 					onClose={() => {
-						setEditingItem(null);
-						setEditingIndex(-1);
+						setEditingIndex(null);
 					}}
-					item={editingItem}
+					item={receiptState.state.items[editingIndex]}
 					onSave={saveItemEdit}
 				/>
 			)}

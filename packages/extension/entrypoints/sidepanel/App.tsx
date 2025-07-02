@@ -7,7 +7,7 @@ import {
 import type { Receipt } from "@repo/workers/client";
 import { QueryClientProvider, useMutation } from "@tanstack/react-query";
 import { ScanLine, Settings } from "lucide-react";
-import { type FC, useCallback, useState } from "react";
+import { type FC, useCallback } from "react";
 import { browser } from "wxt/browser";
 import {
 	CategoriesButton,
@@ -17,6 +17,7 @@ import {
 	ZaimLoginButton,
 } from "./components/AuthButtons";
 import { ExtractResultDisplay } from "./components/ExtractResultDisplay";
+import { useReceiptState } from "./hooks/useReceiptState";
 import { extractionClient, queryClient } from "./lib/api";
 
 function App() {
@@ -28,7 +29,8 @@ function App() {
 }
 
 function MainContent() {
-	const [extractResult, setExtractResult] = useState<Receipt | null>(null);
+	// Receipt状態管理フック
+	const receiptState = useReceiptState();
 
 	// Extract mutation を作成
 	const extractMutation = useMutation({
@@ -73,7 +75,7 @@ function MainContent() {
 			return data as Receipt;
 		},
 		onSuccess: (data) => {
-			setExtractResult(data);
+			receiptState.setExtractResult(data);
 		},
 		onError: (error) => {
 			console.error("Extract error:", error);
@@ -109,11 +111,21 @@ function MainContent() {
 
 					<AuthSettingsPanel />
 
-					{extractResult && (
+					{receiptState.state.receiptId && (
 						<ExtractResultDisplay
-							result={extractResult}
-							onClear={() => setExtractResult(null)}
-							onUpdate={(updatedResult) => setExtractResult(updatedResult)}
+							receiptState={receiptState}
+							onClear={() => {
+								receiptState.setExtractResult({
+									date: "",
+									items: [],
+									shopName: "",
+									shopId: null,
+									paymentMethodName: "",
+									paymentMethodId: "",
+									sumPrice: 0,
+									receiptId: "",
+								});
+							}}
 						/>
 					)}
 				</div>

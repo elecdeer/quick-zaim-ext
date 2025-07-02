@@ -1,5 +1,5 @@
 import type { Receipt } from "@repo/workers/client";
-import { useEffect, useReducer } from "react";
+import { useReducer } from "react";
 
 // idから導出可能な情報を除いた最小限の状態
 export type ReceiptState = {
@@ -31,7 +31,8 @@ export type ReceiptAction =
 	  }
 	| { type: "REMOVE_ITEM"; index: number }
 	| { type: "ADD_ITEM" }
-	| { type: "UPDATE_ITEM_FULL"; index: number; item: ReceiptState["items"][0] };
+	| { type: "UPDATE_ITEM_FULL"; index: number; item: ReceiptState["items"][0] }
+	| { type: "SET_EXTRACT_RESULT"; receipt: Receipt };
 
 function receiptReducer(
 	state: ReceiptState,
@@ -75,6 +76,8 @@ function receiptReducer(
 					index === action.index ? action.item : item,
 				),
 			};
+		case "SET_EXTRACT_RESULT":
+			return receiptToState(action.receipt);
 		default:
 			return state;
 	}
@@ -98,39 +101,20 @@ function receiptToState(receipt: Receipt): ReceiptState {
 	};
 }
 
-// ReceiptState型からReceipt型に変換
-function stateToReceipt(state: ReceiptState): Receipt {
+// 初期状態を作成する関数
+function createInitialState(): ReceiptState {
 	return {
-		...state,
-		items: state.items.map((item) => ({
-			...item,
-			category: "", // categoryIdから導出されるため空文字列
-		})),
-		shopName: "", // shopIdから導出されるため空文字列
-		paymentMethodName: "", // paymentMethodIdから導出されるため空文字列
+		date: "",
+		items: [],
+		shopId: null,
+		paymentMethodId: "",
+		sumPrice: 0,
+		receiptId: "",
 	};
 }
 
-export interface UseReceiptStateProps {
-	initialReceipt: Receipt;
-	onUpdate?: (updatedReceipt: Receipt) => void;
-}
-
-export function useReceiptState({
-	initialReceipt,
-	onUpdate,
-}: UseReceiptStateProps) {
-	const [state, dispatch] = useReducer(
-		receiptReducer,
-		receiptToState(initialReceipt),
-	);
-
-	// stateが変更されたらonUpdateを呼び出す
-	useEffect(() => {
-		if (onUpdate) {
-			onUpdate(stateToReceipt(state));
-		}
-	}, [state, onUpdate]);
+export function useReceiptState() {
+	const [state, dispatch] = useReducer(receiptReducer, createInitialState());
 
 	// 基本情報の更新
 	const updateBasicInfo = (
@@ -164,6 +148,11 @@ export function useReceiptState({
 		dispatch({ type: "UPDATE_ITEM_FULL", index, item });
 	};
 
+	// 抽出結果の設定
+	const setExtractResult = (receipt: Receipt) => {
+		dispatch({ type: "SET_EXTRACT_RESULT", receipt });
+	};
+
 	return {
 		state,
 		updateBasicInfo,
@@ -171,5 +160,6 @@ export function useReceiptState({
 		removeItem,
 		addItem,
 		updateItemFull,
+		setExtractResult,
 	};
 }
