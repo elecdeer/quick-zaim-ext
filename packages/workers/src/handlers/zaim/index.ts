@@ -18,7 +18,7 @@ const createReceiptRequestSchema = v.object({
 	),
 	shopId: v.nullable(v.string()),
 	paymentMethodId: v.string(),
-	receiptId: v.string(),
+	// receiptIdはサーバー側で採番するため不要
 });
 
 import {

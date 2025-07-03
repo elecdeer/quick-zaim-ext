@@ -127,7 +127,7 @@ function stateToCreateReceiptRequest(
 		})),
 		shopId: state.shopId,
 		paymentMethodId: state.paymentMethodId,
-		receiptId: state.orderNo, // orderNo（注文番号）をreceiptId（Zaim用ID）として使用
+		// receiptIdはサーバー側で採番するため送信しない
 	};
 }
 

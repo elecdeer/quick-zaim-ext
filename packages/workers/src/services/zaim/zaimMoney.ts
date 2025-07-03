@@ -19,7 +19,6 @@ export type CreateReceiptRequest = {
 	}[];
 	shopId: string | null;
 	paymentMethodId: string;
-	receiptId: string;
 };
 
 /**
@@ -35,6 +34,9 @@ export const createPayment = async ({
 	// receiptの各itemを個別の支払いとして登録
 	const results: CreatePaymentResult[] = [];
 
+	// サーバー側でreceiptIdを採番（unix秒）
+	const receiptId = Math.floor(Date.now() / 1000);
+
 	for (const item of receipt.items) {
 		const paymentData = {
 			mapping: 1 as const,
@@ -46,7 +48,7 @@ export const createPayment = async ({
 			comment: `${item.name} x${item.amount}`,
 			name: item.name,
 			place_uid: receipt.shopId || undefined,
-			receipt_id: Number.parseInt(receipt.receiptId),
+			receipt_id: receiptId, // サーバー側で採番したunix秒を使用
 		};
 
 		const response = await paymentOperationsCreate({
