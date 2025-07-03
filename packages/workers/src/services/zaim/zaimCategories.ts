@@ -1,6 +1,6 @@
+import { R } from "@praha/byethrow";
 import { categoryGetCategories, genreGetGenres } from "@repo/zaim-api";
 import type { Client } from "@repo/zaim-api/client";
-import { err, ok, type Result } from "../../result";
 import type { ZaimCategory, ZaimServiceError } from "./types";
 
 /**
@@ -10,7 +10,7 @@ export const getZaimCategories = async ({
 	client,
 }: {
 	client: Client;
-}): Promise<Result<ZaimCategory[], ZaimServiceError>> => {
+}): Promise<R.Result<ZaimCategory[], ZaimServiceError>> => {
 	const [categoriesRes, genreRes] = await Promise.all([
 		categoryGetCategories({
 			client,
@@ -23,15 +23,15 @@ export const getZaimCategories = async ({
 	]);
 
 	if (categoriesRes.error || genreRes.error) {
-		return err({
-			code: "ZAIM_API_ERROR",
-			statusCode: 500,
+		return R.fail({
+			code: "ZAIM_API_ERROR" as const,
+			statusCode: 500 as const,
 			message: "Failed to retrieve categories from Zaim API.",
 			cause: categoriesRes.error || genreRes.error,
 		});
 	}
 
-	return ok(
+	return R.succeed(
 		categoriesRes.data.categories.map((category) => ({
 			id: category.id,
 			name: category.name,

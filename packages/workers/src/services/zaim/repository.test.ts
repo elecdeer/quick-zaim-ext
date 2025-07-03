@@ -1,6 +1,6 @@
+import { R } from "@praha/byethrow";
 import { assert, beforeEach, describe, expect, test, vi } from "vitest";
 import type { Env } from "../../env";
-import { isErr, ok } from "../../result";
 import { getZaimRepository } from "./repository";
 
 // KVNamespaceのモック
@@ -63,7 +63,7 @@ describe("getZaimRepository", () => {
 			const result = await repository.readTemporalRequestToken(oauthToken);
 
 			expect(result).toEqual(
-				ok({ oauthToken, oauthTokenSecret, returnTo: null }),
+				R.succeed({ oauthToken, oauthTokenSecret, returnTo: null }),
 			);
 			expect(mockKV.get).toHaveBeenCalledTimes(1);
 			expect(mockKV.get).toHaveBeenCalledWith(expect.stringContaining(userId));
@@ -77,7 +77,7 @@ describe("getZaimRepository", () => {
 
 			const result = await repository.readTemporalRequestToken(oauthToken);
 
-			assert(isErr(result));
+			assert(R.isFailure(result));
 			expect(result.error.code).toBe("NOT_FOUND");
 			expect(mockKV.get).toHaveBeenCalledTimes(1);
 			expect(mockKV.get).toHaveBeenCalledWith(expect.stringContaining(userId));
@@ -135,7 +135,7 @@ describe("getZaimRepository", () => {
 
 			const result = await repository.readAccessToken();
 
-			expect(result).toEqual(ok({ accessToken, accessTokenSecret }));
+			expect(result).toEqual(R.succeed({ accessToken, accessTokenSecret }));
 			expect(mockKV.get).toHaveBeenCalledTimes(1);
 			expect(mockKV.get).toHaveBeenCalledWith(expect.stringContaining(userId));
 		});
@@ -145,7 +145,7 @@ describe("getZaimRepository", () => {
 
 			const result = await repository.readAccessToken();
 
-			assert(isErr(result));
+			assert(R.isFailure(result));
 			expect(result.error.code).toBe("NOT_FOUND");
 			expect(mockKV.get).toHaveBeenCalledTimes(1);
 			expect(mockKV.get).toHaveBeenCalledWith(expect.stringContaining(userId));

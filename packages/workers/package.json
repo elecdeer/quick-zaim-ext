@@ -14,6 +14,7 @@
 		"@ai-sdk/valibot": "^0.1.28",
 		"@hono/oidc-auth": "^1.6.1",
 		"@hono/valibot-validator": "^0.5.2",
+		"@praha/byethrow": "^0.4.0",
 		"@repo/oauth": "workspace:*",
 		"@repo/zaim-api": "workspace:*",
 		"ai": "^4.3.16",

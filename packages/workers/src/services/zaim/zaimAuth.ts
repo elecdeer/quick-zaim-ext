@@ -1,9 +1,9 @@
+import { R } from "@praha/byethrow";
 import { fetchAccessToken, fetchRequestToken } from "@repo/oauth";
 import type { UserVerifyUserResponse } from "@repo/zaim-api";
 import { userVerifyUser } from "@repo/zaim-api";
 import type { Client } from "@repo/zaim-api/client";
 import type { Env } from "../../env";
-import { err, isErr, ok, type Result } from "../../result";
 import { getZaimRepository } from "./repository";
 import type { ZaimServiceError } from "./types";
 import { createZaimClient } from "./zaimClient";
@@ -76,7 +76,7 @@ export const handleZaimCallback = async ({
 	oauthVerifier: string;
 	userId: string;
 }): Promise<
-	Result<
+	R.Result<
 		{
 			user: UserVerifyUserResponse["me"];
 			returnTo: string | undefined;
@@ -89,8 +89,8 @@ export const handleZaimCallback = async ({
 	const requestTokenPairResult =
 		await repository.readTemporalRequestToken(oauthToken);
 
-	if (isErr(requestTokenPairResult)) {
-		return err({
+	if (R.isFailure(requestTokenPairResult)) {
+		return R.fail({
 			code: "INVALID_REQUEST",
 			statusCode: 400,
 			message: "Request token not found.",
@@ -119,7 +119,7 @@ export const handleZaimCallback = async ({
 	// ユーザー情報を検証 (一時的なクライアントを使用)
 	const userResponse = await userVerifyUser({ client: tempClient });
 	if (!userResponse || !userResponse.data) {
-		return err({
+		return R.fail({
 			code: "ZAIM_API_ERROR",
 			statusCode: 500,
 			message: "Failed to verify user from Zaim API.",
@@ -134,7 +134,7 @@ export const handleZaimCallback = async ({
 		accessTokenSecret: accessTokenPair.accessTokenSecret,
 	});
 
-	return ok({
+	return R.succeed({
 		user,
 		returnTo: requestTokenPairResult.value.returnTo ?? undefined,
 	});
@@ -146,11 +146,11 @@ export const handleZaimCallback = async ({
 export const getUserZaimClient = async (
 	env: Env,
 	userId: string,
-): Promise<Result<Client, ZaimServiceError>> => {
+): Promise<R.Result<Client, ZaimServiceError>> => {
 	const repository = getZaimRepository(env, userId);
 	const tokenResult = await repository.readAccessToken();
-	if (isErr(tokenResult)) {
-		return err({
+	if (R.isFailure(tokenResult)) {
+		return R.fail({
 			code: "ZAIM_AUTH_ERROR",
 			statusCode: 401,
 			message: "Zaim access token not found.",
@@ -158,7 +158,7 @@ export const getUserZaimClient = async (
 		});
 	}
 
-	return ok(
+	return R.succeed(
 		createZaimClient({
 			accessToken: tokenResult.value.accessToken,
 			accessTokenSecret: tokenResult.value.accessTokenSecret,

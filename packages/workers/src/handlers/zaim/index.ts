@@ -1,9 +1,9 @@
 import { vValidator } from "@hono/valibot-validator";
+import { R } from "@praha/byethrow";
 import { Hono } from "hono";
 import * as v from "valibot";
 import { getUserId } from "../../auth";
 import * as logger from "../../logger";
-import { isErr, match } from "../../result";
 import {
 	getUserZaimClient,
 	getZaimLoginUrl,
@@ -58,7 +58,7 @@ export const zaimRoute = new Hono<HonoApp>()
 				userId: userId,
 			});
 
-			if (isErr(result)) {
+			if (R.isFailure(result)) {
 				logger.info({
 					type: "zaim-callback-error",
 					error: result.error,
@@ -90,43 +90,41 @@ export const zaimRoute = new Hono<HonoApp>()
 		const userId = getUserId(c);
 
 		const clientResult = await getUserZaimClient(c.env, userId);
-		if (isErr(clientResult)) {
+		if (R.isFailure(clientResult)) {
 			return c.json(
 				{
-					code: clientResult.error.code,
+					code: R.unwrapError(clientResult).code,
 					message: "Failed to access Zaim API",
 				},
 				500,
 			);
 		}
 
+		clientResult.value;
+
 		const client = clientResult.value;
 
-		return match(
-			await getZaimCategories({
-				client,
-			}),
-			(result) => {
-				return c.json(
-					{
-						categories: result,
-					},
-					200,
-				);
+		const categories = await getZaimCategories({
+			client,
+		});
+		if (R.isFailure(categories)) {
+			logger.info({
+				type: "zaim-categories-error",
+				error: categories.error,
+			});
+			return c.json(
+				{
+					code: "ZAIM_API_ERROR",
+					message: "Failed to get Zaim categories",
+				},
+				500,
+			);
+		}
+		return c.json(
+			{
+				categories: categories.value,
 			},
-			(error) => {
-				logger.info({
-					type: "zaim-categories-error",
-					error,
-				});
-				return c.json(
-					{
-						code: "ZAIM_API_ERROR",
-						message: "Failed to get Zaim categories",
-					},
-					500,
-				);
-			},
+			200,
 		);
 	})
 	.get("/payment-methods", async (c) => {
@@ -134,7 +132,7 @@ export const zaimRoute = new Hono<HonoApp>()
 
 		const userId = getUserId(c);
 		const clientResult = await getUserZaimClient(c.env, userId);
-		if (isErr(clientResult)) {
+		if (R.isFailure(clientResult)) {
 			logger.info({
 				type: "zaim-client-error",
 				error: clientResult.error,
@@ -150,38 +148,34 @@ export const zaimRoute = new Hono<HonoApp>()
 
 		const client = clientResult.value;
 
-		return match(
-			await getZaimPayments({
-				client,
-			}),
-			(result) => {
-				return c.json(
-					{
-						paymentMethods: result,
-					},
-					200,
-				);
+		const paymentMethods = await getZaimPayments({
+			client,
+		});
+		if (R.isFailure(paymentMethods)) {
+			logger.info({
+				type: "zaim-payment-methods-error",
+				error: paymentMethods.error,
+			});
+			return c.json(
+				{
+					code: "ZAIM_API_ERROR",
+					message: "Failed to get Zaim payment methods",
+				},
+				500,
+			);
+		}
+		return c.json(
+			{
+				paymentMethods: paymentMethods.value,
 			},
-			(error) => {
-				logger.info({
-					type: "zaim-payment-methods-error",
-					error,
-				});
-				return c.json(
-					{
-						code: "ZAIM_API_ERROR",
-						message: "Failed to get Zaim payment methods",
-					},
-					500,
-				);
-			},
+			200,
 		);
 	})
 	.get("/places", async (c) => {
 		// 店舗の一覧を取得するエンドポイント
 		const userId = getUserId(c);
 		const clientResult = await getUserZaimClient(c.env, userId);
-		if (isErr(clientResult)) {
+		if (R.isFailure(clientResult)) {
 			logger.info({
 				type: "zaim-client-error",
 				error: clientResult.error,
@@ -197,30 +191,27 @@ export const zaimRoute = new Hono<HonoApp>()
 
 		const client = clientResult.value;
 
-		return match(
-			await getZaimPlaces({
-				client,
-			}),
-			(result) => {
-				return c.json(
-					{
-						places: result,
-					},
-					200,
-				);
+		const places = await getZaimPlaces({
+			client,
+		});
+
+		if (R.isFailure(places)) {
+			logger.info({
+				type: "zaim-places-error",
+				error: places.error,
+			});
+			return c.json(
+				{
+					code: "ZAIM_API_ERROR",
+					message: "Failed to get Zaim places",
+				},
+				500,
+			);
+		}
+		return c.json(
+			{
+				places: places.value,
 			},
-			(error) => {
-				logger.info({
-					type: "zaim-places-error",
-					error,
-				});
-				return c.json(
-					{
-						code: "ZAIM_API_ERROR",
-						message: "Failed to get Zaim places",
-					},
-					500,
-				);
-			},
+			200,
 		);
 	});

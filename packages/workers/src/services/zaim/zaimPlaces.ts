@@ -1,6 +1,6 @@
+import { R } from "@praha/byethrow";
 import { type MoneyMoney, moneyGetMoney } from "@repo/zaim-api";
 import type { Client } from "@repo/zaim-api/client";
-import { err, ok, type Result } from "../../result";
 import type { ZaimPlace, ZaimServiceError } from "./types";
 
 /**
@@ -10,16 +10,16 @@ export const getZaimPlaces = async ({
 	client,
 }: {
 	client: Client;
-}): Promise<Result<ZaimPlace[], ZaimServiceError>> => {
+}): Promise<R.Result<ZaimPlace[], ZaimServiceError>> => {
 	const res = await moneyGetMoney({
 		client,
 		query: { mapping: 1, mode: "payment", group_by: "receipt_id" },
 	});
 
 	if (res.error) {
-		return err({
-			code: "ZAIM_API_ERROR",
-			statusCode: 500,
+		return R.fail({
+			code: "ZAIM_API_ERROR" as const,
+			statusCode: 500 as const,
 			message: "Failed to retrieve places from Zaim API.",
 			cause: res.error,
 		});
@@ -48,7 +48,7 @@ export const getZaimPlaces = async ({
 		];
 	});
 
-	return ok(places);
+	return R.succeed(places);
 };
 
 const countBy = <T, U extends PropertyKey>(

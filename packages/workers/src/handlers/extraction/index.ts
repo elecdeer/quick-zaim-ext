@@ -1,9 +1,9 @@
 import { vValidator } from "@hono/valibot-validator";
+import { R } from "@praha/byethrow";
 import { Hono } from "hono";
 import * as v from "valibot";
 import { getUserId } from "../../auth";
 import * as logger from "../../logger";
-import { isErr } from "../../result";
 import { extractFromAriaSnapshot } from "../../services/agent/extraction/extractFromA11yTree";
 import { getLanguageModel } from "../../services/agent/model";
 import { getUserZaimClient } from "../../services/zaim/zaimAuth";
@@ -25,7 +25,7 @@ export const extractionRoute = new Hono<HonoApp>().post(
 		const userId = getUserId(c);
 
 		const clientResult = await getUserZaimClient(c.env, userId);
-		if (isErr(clientResult)) {
+		if (R.isFailure(clientResult)) {
 			logger.info({
 				type: "zaim-client-error",
 				error: clientResult.error,
@@ -39,8 +39,10 @@ export const extractionRoute = new Hono<HonoApp>().post(
 			);
 		}
 
-		const categories = await getZaimCategories({ client: clientResult.value });
-		if (isErr(categories)) {
+		const categories = await getZaimCategories({
+			client: clientResult.value,
+		});
+		if (R.isFailure(categories)) {
 			logger.info({
 				type: "zaim-service-error",
 				error: categories.error,
@@ -57,7 +59,7 @@ export const extractionRoute = new Hono<HonoApp>().post(
 		const paymentMethods = await getZaimPayments({
 			client: clientResult.value,
 		});
-		if (isErr(paymentMethods)) {
+		if (R.isFailure(paymentMethods)) {
 			logger.info({
 				type: "zaim-service-error",
 				error: paymentMethods.error,

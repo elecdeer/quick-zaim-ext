@@ -1,6 +1,6 @@
+import { R } from "@praha/byethrow";
 import { accountGetAccounts } from "@repo/zaim-api";
 import type { Client } from "@repo/zaim-api/client";
-import { err, ok, type Result } from "../../result";
 import type { ZaimPaymentMethod, ZaimServiceError } from "./types";
 
 /**
@@ -10,22 +10,22 @@ export const getZaimPayments = async ({
 	client,
 }: {
 	client: Client;
-}): Promise<Result<ZaimPaymentMethod[], ZaimServiceError>> => {
+}): Promise<R.Result<ZaimPaymentMethod[], ZaimServiceError>> => {
 	const res = await accountGetAccounts({
 		client,
 		query: { mapping: 1 },
 	});
 
 	if (res.error) {
-		return err({
-			code: "ZAIM_API_ERROR",
-			statusCode: 500,
+		return R.fail({
+			code: "ZAIM_API_ERROR" as const,
+			statusCode: 500 as const,
 			message: "Failed to retrieve payments from Zaim API.",
 			cause: res.error,
 		});
 	}
 
-	return ok(
+	return R.succeed(
 		res.data.accounts.map((account) => ({
 			id: account.id,
 			name: account.name,

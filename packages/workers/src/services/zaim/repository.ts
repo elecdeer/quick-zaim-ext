@@ -1,6 +1,6 @@
+import { R } from "@praha/byethrow";
 import * as v from "valibot";
 import type { Env } from "../../env";
-import { err, ok, type Result } from "../../result";
 
 export type ZaimRepository = {
 	/**
@@ -23,7 +23,7 @@ export type ZaimRepository = {
 	readTemporalRequestToken: (
 		oauthToken: string,
 	) => Promise<
-		Result<
+		R.Result<
 			{ oauthToken: string; oauthTokenSecret: string; returnTo: string | null },
 			ZaimRepositoryError<"NOT_FOUND">
 		>
@@ -46,7 +46,7 @@ export type ZaimRepository = {
 	 * アクセストークンを取得する
 	 */
 	readAccessToken: () => Promise<
-		Result<
+		R.Result<
 			{ accessToken: string; accessTokenSecret: string },
 			ZaimRepositoryError<"NOT_FOUND">
 		>
@@ -103,7 +103,7 @@ export const getZaimRepository = (env: Env, userId: string): ZaimRepository => {
 			const requestTokenRaw =
 				await env.ZAIM_AGENT_ZAIM_TOKENS_KV.get(kvKeyRequest);
 			if (!requestTokenRaw) {
-				return err({
+				return R.fail({
 					code: "NOT_FOUND",
 					message: "Request token not found in KV.",
 					cause: null,
@@ -112,7 +112,7 @@ export const getZaimRepository = (env: Env, userId: string): ZaimRepository => {
 
 			const json = JSON.parse(requestTokenRaw);
 			const parsed = v.parse(temporalRequestTokenValueSchema, json);
-			return ok({
+			return R.succeed({
 				oauthToken,
 				oauthTokenSecret: parsed.oauthTokenSecret,
 				returnTo: parsed.returnTo,
@@ -153,7 +153,7 @@ export const getZaimRepository = (env: Env, userId: string): ZaimRepository => {
 		const kvKeyAccess = getAccessTokenKey();
 		const accessTokenRaw = await env.ZAIM_AGENT_ZAIM_TOKENS_KV.get(kvKeyAccess);
 		if (!accessTokenRaw) {
-			return err({
+			return R.fail({
 				code: "NOT_FOUND",
 				message: "Access token not found in KV.",
 				cause: null,
@@ -161,7 +161,7 @@ export const getZaimRepository = (env: Env, userId: string): ZaimRepository => {
 		}
 		const json = JSON.parse(accessTokenRaw);
 		const parsed = v.parse(accessTokenValueSchema, json);
-		return ok({
+		return R.succeed({
 			accessToken: parsed.accessToken,
 			accessTokenSecret: parsed.accessTokenSecret,
 		});
