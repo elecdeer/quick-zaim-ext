@@ -9,6 +9,7 @@ import { getLanguageModel } from "../../services/agent/model";
 import { getUserZaimClient } from "../../services/zaim/zaimAuth";
 import { getZaimCategories } from "../../services/zaim/zaimCategories";
 import { getZaimPayments } from "../../services/zaim/zaimPayments";
+import { getZaimPlaces } from "../../services/zaim/zaimPlaces";
 import type { HonoApp } from "../../workers";
 
 export type ExtractionRouteType = typeof extractionRoute;
@@ -73,6 +74,23 @@ export const extractionRoute = new Hono<HonoApp>().post(
 			);
 		}
 
+		const places = await getZaimPlaces({
+			client: clientResult.value,
+		});
+		if (R.isFailure(places)) {
+			logger.info({
+				type: "zaim-service-error",
+				error: places.error,
+			});
+			return c.json(
+				{
+					code: places.error.code,
+					message: "Failed to get Zaim places",
+				},
+				500,
+			);
+		}
+
 		const { ariaSnapshot } = c.req.valid("json");
 
 		const model = await getLanguageModel(c.env);
@@ -80,11 +98,10 @@ export const extractionRoute = new Hono<HonoApp>().post(
 		const res = await extractFromAriaSnapshot(
 			{
 				ariaSnapshot,
-				shops: [
-					{ id: "19285109", name: "Amazon.co.jp" },
-					{ id: "41917412", name: "Amazon.com" },
-					{ id: "1912410", name: "Yodobashi.com" },
-				],
+				shops: places.value.map((place) => ({
+					id: place.uid,
+					name: place.name,
+				})),
 				categories: categories.value.map((category) => ({
 					id: String(category.id),
 					name: category.name,
