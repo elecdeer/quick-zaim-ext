@@ -9,6 +9,7 @@ describe("ItemNameEditModal", () => {
 		name: "原商品名",
 		normalizedName: "正規化された商品名",
 		category: "食費",
+		categoryId: "1",
 		priceYen: 100,
 		amount: 1,
 	};

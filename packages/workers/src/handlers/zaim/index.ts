@@ -4,12 +4,30 @@ import { Hono } from "hono";
 import * as v from "valibot";
 import { getUserId } from "../../auth";
 import * as logger from "../../logger";
+
+// リクエスト専用のスキーマを定義（LLM抽出用のreceiptSchemaとは別）
+const createReceiptRequestSchema = v.object({
+	date: v.string(),
+	items: v.array(
+		v.object({
+			name: v.string(),
+			amount: v.pipe(v.number(), v.integer()),
+			categoryId: v.string(),
+			priceYen: v.number(),
+		}),
+	),
+	shopId: v.nullable(v.string()),
+	paymentMethodId: v.string(),
+	receiptId: v.string(),
+});
+
 import {
 	getUserZaimClient,
 	getZaimLoginUrl,
 	handleZaimCallback,
 } from "../../services/zaim/zaimAuth";
 import { getZaimCategories } from "../../services/zaim/zaimCategories";
+import { createPayment } from "../../services/zaim/zaimMoney";
 import { getZaimPayments } from "../../services/zaim/zaimPayments";
 import { getZaimPlaces } from "../../services/zaim/zaimPlaces";
 import type { HonoApp } from "../../workers";
@@ -214,4 +232,57 @@ export const zaimRoute = new Hono<HonoApp>()
 			},
 			200,
 		);
-	});
+	})
+	.post(
+		"/receipt",
+		vValidator("json", createReceiptRequestSchema),
+		async (c) => {
+			// レシート情報をZaim APIに登録するエンドポイント
+			const userId = getUserId(c);
+			const receipt = c.req.valid("json");
+
+			const clientResult = await getUserZaimClient(c.env, userId);
+			if (R.isFailure(clientResult)) {
+				logger.info({
+					type: "zaim-client-error",
+					error: clientResult.error,
+				});
+				return c.json(
+					{
+						code: clientResult.error.code,
+						message: "Failed to access Zaim API",
+					},
+					500,
+				);
+			}
+
+			const client = clientResult.value;
+
+			const result = await createPayment({
+				client,
+				receipt,
+			});
+
+			if (R.isFailure(result)) {
+				logger.info({
+					type: "zaim-create-payment-error",
+					error: result.error,
+				});
+				return c.json(
+					{
+						code: result.error.code,
+						message: "Failed to create payment in Zaim",
+					},
+					500,
+				);
+			}
+
+			return c.json(
+				{
+					success: true,
+					payment: result.value,
+				},
+				200,
+			);
+		},
+	);
