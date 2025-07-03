@@ -54,9 +54,9 @@ export const receiptSchema = v.object({
 	paymentMethodName: v.pipe(v.string(), v.description("支払い方法の名前")),
 	paymentMethodId: v.pipe(v.string(), v.description("支払い方法のID")),
 	sumPrice: v.pipe(v.number(), v.description("全てのitemの金額の合計")),
-	receiptId: v.pipe(
+	orderNo: v.pipe(
 		v.string(),
-		v.description("請求書を特定するためのユニークなID"),
+		v.description("注文番号・レシート番号などの識別子"),
 	),
 });
 

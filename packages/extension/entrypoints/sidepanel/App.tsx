@@ -111,7 +111,7 @@ function MainContent() {
 
 					<AuthSettingsPanel />
 
-					{receiptState.state.receiptId && (
+					{receiptState.state.orderNo && (
 						<ExtractResultDisplay
 							receiptState={receiptState}
 							onClear={() => {
@@ -123,7 +123,7 @@ function MainContent() {
 									paymentMethodName: "",
 									paymentMethodId: "",
 									sumPrice: 0,
-									receiptId: "",
+									orderNo: "",
 								});
 							}}
 						/>

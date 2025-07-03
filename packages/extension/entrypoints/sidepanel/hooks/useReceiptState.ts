@@ -14,7 +14,7 @@ export type ReceiptState = {
 	shopId: string | null;
 	paymentMethodId: string;
 	sumPrice: number;
-	receiptId: string;
+	orderNo: string;
 };
 
 export type ReceiptAction =
@@ -97,7 +97,7 @@ function receiptToState(receipt: Receipt): ReceiptState {
 		shopId: receipt.shopId,
 		paymentMethodId: receipt.paymentMethodId,
 		sumPrice: receipt.sumPrice,
-		receiptId: receipt.receiptId,
+		orderNo: receipt.orderNo,
 	};
 }
 
@@ -109,7 +109,7 @@ function createInitialState(): ReceiptState {
 		shopId: null,
 		paymentMethodId: "",
 		sumPrice: 0,
-		receiptId: "",
+		orderNo: "",
 	};
 }
 
@@ -127,7 +127,7 @@ function stateToCreateReceiptRequest(
 		})),
 		shopId: state.shopId,
 		paymentMethodId: state.paymentMethodId,
-		receiptId: state.receiptId,
+		receiptId: state.orderNo, // orderNo（注文番号）をreceiptId（Zaim用ID）として使用
 	};
 }
 
