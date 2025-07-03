@@ -6,20 +6,6 @@ import { getUserId } from "../../auth";
 import * as logger from "../../logger";
 
 // リクエスト専用のスキーマを定義（LLM抽出用のreceiptSchemaとは別）
-const createReceiptRequestSchema = v.object({
-	date: v.string(),
-	items: v.array(
-		v.object({
-			name: v.string(),
-			amount: v.pipe(v.number(), v.integer()),
-			categoryId: v.string(),
-			priceYen: v.number(),
-		}),
-	),
-	shopId: v.nullable(v.string()),
-	paymentMethodId: v.string(),
-	// receiptIdはサーバー側で採番するため不要
-});
 
 import {
 	getUserZaimClient,
@@ -235,7 +221,23 @@ export const zaimRoute = new Hono<HonoApp>()
 	})
 	.post(
 		"/receipt",
-		vValidator("json", createReceiptRequestSchema),
+		vValidator(
+			"json",
+			v.object({
+				date: v.string(),
+				items: v.array(
+					v.object({
+						name: v.string(),
+						amount: v.pipe(v.number(), v.integer()),
+						categoryId: v.string(),
+						priceYen: v.number(),
+					}),
+				),
+				shopId: v.nullable(v.string()),
+				paymentMethodId: v.string(),
+				orderNo: v.string(), // 注文番号（memoフィールドに記録用）
+			}),
+		),
 		async (c) => {
 			// レシート情報をZaim APIに登録するエンドポイント
 			const userId = getUserId(c);

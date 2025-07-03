@@ -127,6 +127,7 @@ function stateToCreateReceiptRequest(
 		})),
 		shopId: state.shopId,
 		paymentMethodId: state.paymentMethodId,
+		orderNo: state.orderNo, // 注文番号をmemoフィールドに記録するため送信
 		// receiptIdはサーバー側で採番するため送信しない
 	};
 }

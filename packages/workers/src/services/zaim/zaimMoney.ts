@@ -19,6 +19,7 @@ export type CreateReceiptRequest = {
 	}[];
 	shopId: string | null;
 	paymentMethodId: string;
+	orderNo: string; // 注文番号（memoフィールドに記録用）
 };
 
 /**
@@ -45,7 +46,7 @@ export const createPayment = async ({
 			amount: item.priceYen,
 			date: receipt.date,
 			from_account_id: Number.parseInt(receipt.paymentMethodId),
-			comment: `${item.name} x${item.amount}`,
+			comment: receipt.orderNo,
 			name: item.name,
 			place_uid: receipt.shopId || undefined,
 			receipt_id: receiptId, // サーバー側で採番したunix秒を使用
