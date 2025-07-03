@@ -1,8 +1,10 @@
 import { Button, Field, Input, Label } from "@headlessui/react";
 import type { Receipt } from "@repo/workers/client";
-import { Plus, Trash2, X } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { Plus, Send, Trash2, X } from "lucide-react";
 import { type FC, useState } from "react";
 import type { ReceiptState } from "../hooks/useReceiptState";
+import { apiClient } from "../lib/api";
 import { CategorySelector } from "./CategorySelector";
 import { ItemNameEditModal } from "./ItemNameEditModal";
 import { PaymentMethodSelector } from "./PaymentMethodSelector";
@@ -24,6 +26,7 @@ type UseReceiptStateReturn = {
 	addItem: () => void;
 	updateItemFull: (index: number, item: ReceiptState["items"][0]) => void;
 	setExtractResult: (receipt: Receipt) => void;
+	toCreateReceiptRequest: () => import("@repo/workers/client").CreateReceiptRequest;
 };
 
 interface ExtractResultDisplayProps {
@@ -42,9 +45,67 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 		removeItem,
 		addItem,
 		updateItemFull,
+		toCreateReceiptRequest,
 	} = receiptState;
 
 	const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
+	// レシート送信用のmutation
+	const submitMutation = useMutation({
+		mutationFn: async () => {
+			const requestData = toCreateReceiptRequest();
+
+			const response = await apiClient.receipt.$post({
+				json: requestData,
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				throw new Error(`送信に失敗しました: ${errorText}`);
+			}
+
+			return response.json();
+		},
+		onSuccess: (data) => {
+			console.log("Receipt submitted successfully:", data);
+		},
+		onError: (error) => {
+			console.error("Submit error:", error);
+		},
+	});
+
+	// バリデーション関数
+	const validateReceipt = () => {
+		const errors: string[] = [];
+
+		if (!state.date) errors.push("購入日が入力されていません");
+		if (!state.paymentMethodId) errors.push("支払い方法が選択されていません");
+		if (state.items.length === 0) errors.push("商品が1つも登録されていません");
+
+		state.items.forEach((item, index) => {
+			if (!item.name.trim())
+				errors.push(`商品${index + 1}の名前が入力されていません`);
+			if (!item.categoryId)
+				errors.push(`商品${index + 1}のカテゴリが選択されていません`);
+			if (item.priceYen <= 0)
+				errors.push(`商品${index + 1}の価格が正しくありません`);
+			if (item.amount <= 0)
+				errors.push(`商品${index + 1}の数量が正しくありません`);
+		});
+
+		return errors;
+	};
+
+	// 送信処理
+	const handleSubmit = () => {
+		const errors = validateReceipt();
+		if (errors.length > 0) {
+			alert(`入力エラーがあります:\n${errors.join("\n")}`);
+			return;
+		}
+
+		submitMutation.mutate();
+	};
 
 	// 商品合計金額を計算
 	const itemsTotalPrice = state.items.reduce(
@@ -166,6 +227,30 @@ export const ExtractResultDisplay: FC<ExtractResultDisplayProps> = ({
 							className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none"
 						/>
 					</Field>
+
+					{/* 送信ボタンとエラー表示 */}
+					<div className="space-y-2">
+						<Button
+							onClick={handleSubmit}
+							disabled={submitMutation.isPending}
+							className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-2.5 font-medium text-sm text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+						>
+							<Send className="h-4 w-4" />
+							{submitMutation.isPending ? "送信中..." : "Zaimに登録"}
+						</Button>
+
+						{submitMutation.isError && (
+							<div className="rounded-lg border border-red-200 bg-red-50 p-2.5 text-red-700 text-sm">
+								{submitMutation.error?.message || "送信エラーが発生しました"}
+							</div>
+						)}
+
+						{submitMutation.isSuccess && (
+							<div className="rounded-lg border border-green-200 bg-green-50 p-2.5 text-green-700 text-sm">
+								Zaimへの登録が完了しました！
+							</div>
+						)}
+					</div>
 
 					<div className="rounded border border-gray-300 bg-white">
 						<div className="border-gray-200 border-b bg-gray-50 px-3 py-2">

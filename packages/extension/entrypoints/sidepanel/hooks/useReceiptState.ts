@@ -1,4 +1,4 @@
-import type { Receipt } from "@repo/workers/client";
+import type { CreateReceiptRequest, Receipt } from "@repo/workers/client";
 import { useReducer } from "react";
 
 // idから導出可能な情報を除いた最小限の状態
@@ -113,6 +113,24 @@ function createInitialState(): ReceiptState {
 	};
 }
 
+// ReceiptStateからCreateReceiptRequest型に変換
+function stateToCreateReceiptRequest(
+	state: ReceiptState,
+): CreateReceiptRequest {
+	return {
+		date: state.date,
+		items: state.items.map((item) => ({
+			name: item.name,
+			amount: item.amount,
+			categoryId: item.categoryId,
+			priceYen: item.priceYen,
+		})),
+		shopId: state.shopId,
+		paymentMethodId: state.paymentMethodId,
+		receiptId: state.receiptId,
+	};
+}
+
 export function useReceiptState() {
 	const [state, dispatch] = useReducer(receiptReducer, createInitialState());
 
@@ -153,6 +171,11 @@ export function useReceiptState() {
 		dispatch({ type: "SET_EXTRACT_RESULT", receipt });
 	};
 
+	// 送信用データの変換
+	const toCreateReceiptRequest = (): CreateReceiptRequest => {
+		return stateToCreateReceiptRequest(state);
+	};
+
 	return {
 		state,
 		updateBasicInfo,
@@ -161,5 +184,6 @@ export function useReceiptState() {
 		addItem,
 		updateItemFull,
 		setExtractResult,
+		toCreateReceiptRequest,
 	};
 }
