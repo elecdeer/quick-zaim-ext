@@ -2,16 +2,7 @@ import { env } from "cloudflare:test";
 import { R } from "@praha/byethrow";
 import { type Client, createClient } from "@repo/zaim-api/client";
 import { getResponse } from "msw";
-import {
-	afterAll,
-	afterEach,
-	assert,
-	test as baseTest,
-	beforeEach,
-	describe,
-	expect,
-	vi,
-} from "vitest";
+import { assert, test as baseTest, describe, expect, vi } from "vitest";
 import {
 	createCustomHandlers,
 	createErrorHandlers,
@@ -59,6 +50,7 @@ type TestContext = {
 		delete: ReturnType<typeof vi.fn>;
 	};
 	mockClient: Client;
+	fetchSpy: ReturnType<typeof vi.fn>;
 };
 
 const test = baseTest.extend<TestContext>({
@@ -81,14 +73,10 @@ const test = baseTest.extend<TestContext>({
 		});
 		await use(client);
 	},
-});
+	fetchSpy: async ({}, use) => {
+		const originalFetch = globalThis.fetch;
+		const fetchSpy = vi.fn();
 
-describe("getZaimCategories", () => {
-	const originalFetch = globalThis.fetch;
-	const fetchSpy = vi.fn();
-
-	beforeEach(() => {
-		vi.clearAllMocks();
 		// globalThis.fetchをspyに置き換え
 		globalThis.fetch = fetchSpy;
 
@@ -99,21 +87,20 @@ describe("getZaimCategories", () => {
 				return await getResponse(zaimApiHandlers, request);
 			},
 		);
-	});
 
-	afterEach(() => {
-		vi.clearAllMocks();
-	});
+		await use(fetchSpy);
 
-	afterAll(() => {
 		// 元のfetchを復元
 		globalThis.fetch = originalFetch;
-	});
+	},
+});
 
+describe("getZaimCategories", () => {
 	describe("キャッシュヒット時", () => {
 		test("新しいキャッシュがある場合は即座に返す", async ({
 			mockCacheRepo,
 			mockClient,
+			fetchSpy,
 		}) => {
 			const now = new Date();
 			mockCacheRepo.get.mockResolvedValue(
@@ -145,6 +132,7 @@ describe("getZaimCategories", () => {
 		test("staleなキャッシュがある場合は古いデータを返し、バックグラウンド更新する", async ({
 			mockCacheRepo,
 			mockClient,
+			fetchSpy,
 		}) => {
 			const now = new Date();
 			mockCacheRepo.get.mockResolvedValue(
@@ -183,6 +171,7 @@ describe("getZaimCategories", () => {
 		test("APIからカテゴリデータを正常に取得できる", async ({
 			mockCacheRepo,
 			mockClient,
+			fetchSpy,
 		}) => {
 			// キャッシュが存在しない場合をモック
 			mockCacheRepo.get.mockResolvedValue(R.succeed(null));
@@ -204,6 +193,7 @@ describe("getZaimCategories", () => {
 		test("カテゴリとジャンルのデータ変換が正しく行われる", async ({
 			mockCacheRepo,
 			mockClient,
+			fetchSpy,
 		}) => {
 			// キャッシュが存在しない場合をモック
 			mockCacheRepo.get.mockResolvedValue(R.succeed(null));
@@ -253,6 +243,7 @@ describe("getZaimCategories", () => {
 		test("キャッシュ書き込みが失敗してもデータは返される", async ({
 			mockCacheRepo,
 			mockClient,
+			fetchSpy,
 		}) => {
 			// キャッシュが存在しない場合をモック
 			mockCacheRepo.get.mockResolvedValue(R.succeed(null));
@@ -279,6 +270,7 @@ describe("getZaimCategories", () => {
 		test("カテゴリAPI呼び出しエラー時にエラーを返す", async ({
 			mockCacheRepo,
 			mockClient,
+			fetchSpy,
 		}) => {
 			// キャッシュが存在しない場合をモック
 			mockCacheRepo.get.mockResolvedValue(R.succeed(null));
@@ -304,6 +296,7 @@ describe("getZaimCategories", () => {
 		test("ジャンルAPI呼び出しエラー時にエラーを返す", async ({
 			mockCacheRepo,
 			mockClient,
+			fetchSpy,
 		}) => {
 			// キャッシュが存在しない場合をモック
 			mockCacheRepo.get.mockResolvedValue(R.succeed(null));
@@ -329,6 +322,7 @@ describe("getZaimCategories", () => {
 		test("キャッシュ取得エラー時はAPIを呼び出す", async ({
 			mockCacheRepo,
 			mockClient,
+			fetchSpy,
 		}) => {
 			// キャッシュ取得がエラー
 			mockCacheRepo.get.mockResolvedValue(
@@ -357,6 +351,7 @@ describe("getZaimCategories", () => {
 		test("バックグラウンド更新でAPI呼び出しが失敗した場合もエラーログが出力される", async ({
 			mockCacheRepo,
 			mockClient,
+			fetchSpy,
 		}) => {
 			const now = new Date();
 			mockCacheRepo.get.mockResolvedValue(
@@ -397,6 +392,7 @@ describe("getZaimCategories", () => {
 		test("バックグラウンド更新でキャッシュ書き込みが失敗した場合もエラーログが出力される", async ({
 			mockCacheRepo,
 			mockClient,
+			fetchSpy,
 		}) => {
 			const now = new Date();
 			mockCacheRepo.get.mockResolvedValue(
