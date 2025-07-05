@@ -1,98 +1,134 @@
 # CLAUDE.md
 
-このファイルは、このリポジトリでコードを作業する際に Claude Code (claude.ai/code) にガイダンスを提供します。
+This file provides guidance for Claude Code (claude.ai/code) when working on code in this repository.
 
 ## Work Completion Guidelines
 
-- 作業が完了したらまず pnpm check を実行してください。biome の --write オプションを使用して自動修正を行うことができます。
+- Run `pnpm check` first when work is completed. You can use Biome's `--write` option for automatic fixes.
 
-## リポジトリ概要
+## Repository Overview
 
-Zaim（家計簿サービス）との連携機能を持つブラウザ拡張機能と Cloudflare Workers API のモノレポプロジェクトです。WXT フレームワークを使用してブラウザ拡張機能を構築し、Cloudflare Workers で API を提供します。
+A monorepo project containing a browser extension and Cloudflare Workers API with Zaim (household budget service) integration. The browser extension is built using the WXT framework, and the API is provided by Cloudflare Workers.
 
-## 共通コマンド
+## Common Commands
 
-### 開発とビルド
+### Development & Build
 
 ```bash
-# ブラウザ拡張機能 (packages/extension)
-pnpm dev                     # Chrome開発モード
-pnpm dev:firefox             # Firefox開発モード
-pnpm build                   # Chrome用ビルド
-pnpm build:firefox           # Firefox用ビルド
-pnpm zip                     # Chrome用配布パッケージ作成
-pnpm zip:firefox             # Firefox用配布パッケージ作成
+# Browser Extension (packages/extension)
+pnpm dev                     # Chrome development mode
+pnpm dev:firefox             # Firefox development mode
+pnpm build                   # Chrome build
+pnpm build:firefox           # Firefox build
+pnpm zip                     # Chrome distribution package
+pnpm zip:firefox             # Firefox distribution package
 
 # Cloudflare Workers (packages/workers)
-pnpm dev                     # ローカル開発サーバー
-pnpm deploy                  # Cloudflareにデプロイ
-pnpm wrangler:types          # Cloudflare Workers型定義生成
+pnpm dev                     # Local development server
+pnpm deploy                  # Deploy to Cloudflare
+pnpm wrangler:types          # Generate Cloudflare Workers type definitions
 
-# Zaim API型定義生成 (packages/zaim-api)
-pnpm generate:openapi3       # TypeSpecからOpenAPI仕様生成
-pnpm generate:ts-client      # TypeScript型定義生成
+# Zaim API Type Generation (packages/zaim-api)
+pnpm generate:openapi3       # Generate OpenAPI spec from TypeSpec
+pnpm generate:ts-client      # Generate TypeScript type definitions
 ```
 
-### コード品質チェック
+### Code Quality Checks
 
 ```bash
-# Biome（ルートでの全体チェック）
-pnpm run check            # リント・フォーマット・インポート整理
-pnpm run check:fix        # 自動修正
-pnpm run check:fix:unsafe # 自動修正付き（unsafeオプション）
+# Biome (root-level checks)
+pnpm run check            # Lint, format, and organize imports
+pnpm run check:fix        # Auto-fix
+pnpm run check:fix:unsafe # Auto-fix with unsafe option
 
-# TypeScript型チェック
-pnpm run typecheck        # 速型チェック
+# TypeScript type checking
+pnpm run typecheck        # Fast type checking
 
-# テスト
-pnpm run test            # 全体テスト実行
+# Testing
+pnpm run test            # Run all tests
 
-# その他ツール
-pnpm knip                    # 未使用コードチェック
+# Other tools
+pnpm knip                    # Unused code detection
 ```
 
-## アーキテクチャ
+## Architecture
 
-### パッケージ構成
+### Package Structure
 
-- **extension**: WXT ベースのブラウザ拡張機能（React + Tailwind CSS）
-- **workers**: Cloudflare Workers API（Hono + AI SDK）
-- **oauth**: OAuth 1.0a 認証ライブラリ（Zaim API 用）
-- **zaim-api**: TypeSpec ベースの Zaim API 型定義
+- **extension**: WXT-based browser extension (React + Tailwind CSS)
+- **workers**: Cloudflare Workers API (Hono + AI SDK)
+- **oauth**: OAuth 1.0a authentication library (for Zaim API)
+- **zaim-api**: TypeSpec-based Zaim API type definitions
 
-### 拡張機能アーキテクチャ
+### Extension Architecture
 
-- **entrypoints/background.ts**: サービスワーカー
-- **entrypoints/content.ts**: コンテンツスクリプト
-- **entrypoints/extract.content.ts**: DOM 抽出用コンテンツスクリプト
-- **entrypoints/popup/**: React 製ポップアップ UI
-- **entrypoints/playwright/**: Playwright 由来の a11y 関連ユーティリティ
+- **entrypoints/background.ts**: Service worker
+- **entrypoints/content.ts**: Content script
+- **entrypoints/extract.content.ts**: DOM extraction content script
+- **entrypoints/popup/**: React popup UI
+- **entrypoints/playwright/**: Playwright-derived a11y utilities
 
-### Workers API アーキテクチャ
+### Workers API Architecture
 
-- **handlers/**: API エンドポイント（extraction, zaim）
-- **services/agent/**: AI・抽出サービス
-- **services/zaim/**: Zaim API 連携サービス
-- Cloudflare KV を使用したトークン管理
-- Google AI（Gemini）を使用したテキスト抽出
+- **handlers/**: API endpoints (extraction, zaim)
+- **services/agent/**: AI & extraction services
+- **services/zaim/**: Zaim API integration services
+- Token management using Cloudflare KV
+- Text extraction using Google AI (Gemini)
 
-### API 型定義システム
+### API Type Definition System
 
-TypeSpec で Zaim API の型定義を記述し、OpenAPI 3.0 仕様と TypeScript 型定義を生成。各エンドポイント（account, category, genre, money, user 等）ごとに分割管理。
+Zaim API type definitions are written in TypeSpec and generate OpenAPI 3.0 specifications and TypeScript type definitions. Managed separately for each endpoint (account, category, genre, money, user, etc.).
 
-## 開発時の注意点
+## Development Notes
 
-### ツール設定
+### Tool Configuration
 
-- **Biome**: リント・フォーマット・インポート整理
-- **Knip**: 未使用コード検出（knip.json で各パッケージの設定を管理）
-- **TypeScript**: Project References 対応の型チェック専用設定
-  - `tsconfig.base.json`で共通設定を管理
-  - `emitDeclarationOnly: true`で型定義ファイルのみ生成
-  - 増分型チェックで高速化
-- **pnpm**: パッケージマネージャー（workspace 設定済み）
+- **Biome**: Lint, format, and organize imports
+- **Knip**: Unused code detection (configuration managed in knip.json for each package)
+- **TypeScript**: Project References support with type-checking-only configuration
+  - Common settings managed in `tsconfig.base.json`
+  - Generate only type definition files with `emitDeclarationOnly: true`
+  - Accelerated with incremental type checking
+- **pnpm**: Package manager (workspace configured)
 
-### 権限とセキュリティ
+### Permissions & Security
 
-拡張機能は以下の権限を使用：storage, activeTab, scripting, identity, debugger
-OAuth 認証と Cloudflare KV での安全なトークン管理が実装済み
+Extension uses the following permissions: storage, activeTab, scripting, identity, debugger
+OAuth authentication and secure token management with Cloudflare KV are implemented.
+
+## Testing Guidelines
+
+### Vitest Testing Best Practices
+
+- **Use test.extend**: Use Vitest's test.extend for fixture-based test setup instead of beforeEach
+- **Avoid if statements**: Use assert for type narrowing instead of if statements for type checking in tests
+  - Use `assert(R.isSuccess(result))` instead of `expect(R.isSuccess(result)).toBe(true)`
+  - Type narrowing with assert allows type-safe access in subsequent code
+
+### Test Execution
+
+Test scripts are added to each package. Use pnpm's `-F` option to run tests for specific packages:
+
+```bash
+# Run tests for specific packages
+pnpm -F @repo/workers run test              # workers package tests
+pnpm -F @repo/oauth run test                # oauth package tests
+pnpm -F @repo/zaim-api run test             # zaim-api package tests
+pnpm -F extension run test                  # extension package tests
+
+# Browser tests for extension package
+pnpm -F extension run test:browser
+
+# Run specific test files
+pnpm -F @repo/workers run test src/services/cache/kvCache.test.ts
+pnpm -F extension run test:browser entrypoints/sidepanel/components/AuthButtons.test.browser.tsx
+
+```
+
+#### Package-specific Features
+
+- **workers**: Uses vitest.config.unit.ts for Cloudflare Workers environment
+- **extension**: Supports both unit tests and browser tests (vitest.config.unit.ts / vitest.config.browser.ts)
+- **oauth**: Standard Vitest tests (vitest.config.unit.ts)
+- **zaim-api**: Standard Vitest tests (vitest.config.unit.ts, currently no test files)

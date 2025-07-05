@@ -23,6 +23,9 @@ const bindingsSchema = v.object({
 	ZAIM_AGENT_ZAIM_TOKENS_KV: v.custom<KVNamespace>(
 		(value) => typeof value === "object" && value !== null,
 	),
+	ZAIM_AGENT_CACHE_KV: v.custom<KVNamespace>(
+		(value) => typeof value === "object" && value !== null,
+	),
 	AI: v.custom<Ai>((value) => typeof value === "object" && value !== null),
 });
 

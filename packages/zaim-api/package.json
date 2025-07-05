@@ -5,7 +5,9 @@
 	"scripts": {
 		"generate:openapi3": "tsp compile ./typespec",
 		"generate:ts-client": "openapi-ts",
-		"typecheck": "tsc --build"
+		"typecheck": "tsc --build",
+		"test": "vitest run --config vitest.config.unit.ts",
+		"test:watch": "vitest --config vitest.config.unit.ts"
 	},
 	"exports": {
 		".": "./src/client/index.ts",

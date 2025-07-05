@@ -11,6 +11,11 @@ compatibility_date = "2025-01-26"
 binding = "ZAIM_AGENT_ZAIM_TOKENS_KV" # Binding名を変更
 id = "0622d6df2c7b479da4e3ac56eac1ced3" # 取得したIDを設定
 
+[[kv_namespaces]]
+binding = "ZAIM_AGENT_CACHE_KV" # キャッシュ用KV
+id = "d1e2b9e06e614c01a83b1228c2e60970"
+preview_id = "5d31cd4532ea4951bc34c3ace46a578d"
+
 # [[r2_buckets]]
 # binding = "MY_BUCKET"
 # bucket_name = "my-bucket"

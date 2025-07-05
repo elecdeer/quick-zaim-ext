@@ -42,6 +42,8 @@ export const extractionRoute = new Hono<HonoApp>().post(
 
 		const categories = await getZaimCategories({
 			client: clientResult.value,
+			env: c.env,
+			userId,
 		});
 		if (R.isFailure(categories)) {
 			logger.info({

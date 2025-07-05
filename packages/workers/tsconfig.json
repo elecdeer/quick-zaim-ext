@@ -3,9 +3,10 @@
 	"compilerOptions": {
 		"lib": ["ESNext"],
 		"target": "ESNext",
-		"outDir": "./dist"
+		"outDir": "./dist",
+		"types": ["@cloudflare/vitest-pool-workers"]
 	},
-	"include": ["src/**/*", "worker-configuration.d.ts"],
+	"include": ["src/**/*", "worker-configuration.d.ts", "env.d.ts"],
 	"exclude": ["dist", "node_modules"],
 	"references": [{ "path": "../zaim-api" }, { "path": "../oauth" }]
 }

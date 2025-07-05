@@ -46,5 +46,17 @@
 				"noUselessElse": "error"
 			}
 		}
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["**/*.test.ts", "**/*.test.tsx"],
+			"linter": {
+				"rules": {
+					"correctness": {
+						"noEmptyPattern": "off"
+					}
+				}
+			}
+		}
+	]
 }

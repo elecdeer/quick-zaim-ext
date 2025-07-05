@@ -11,7 +11,8 @@
 		"check:lint": "biome check ./src",
 		"check:type": "tsc --noEmit",
 		"dev:test-cli": "tsx ./test-cli.ts",
-		"test": "vitest",
+		"test": "vitest run --config vitest.config.unit.ts",
+		"test:watch": "vitest --config vitest.config.unit.ts",
 		"typecheck": "tsc --build"
 	},
 	"devDependencies": {

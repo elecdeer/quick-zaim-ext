@@ -110,6 +110,8 @@ export const zaimRoute = new Hono<HonoApp>()
 
 		const categories = await getZaimCategories({
 			client,
+			env: c.env,
+			userId,
 		});
 		if (R.isFailure(categories)) {
 			logger.info({
