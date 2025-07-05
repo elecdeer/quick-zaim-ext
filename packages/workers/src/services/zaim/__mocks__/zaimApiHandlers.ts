@@ -60,39 +60,19 @@ export const mockGenres = [
 // MSWハンドラー
 export const zaimApiHandlers = [
 	// カテゴリ取得API
-	http.get("https://api.zaim.net/v2/home/category", ({ request }) => {
-		const url = new URL(request.url);
-		const mapping = url.searchParams.get("mapping");
-
-		if (mapping === "1") {
-			return HttpResponse.json({
-				categories: mockCategories,
-				requested: Date.now(),
-			});
-		}
-
-		return HttpResponse.json(
-			{ error: true, message: "Invalid mapping parameter" },
-			{ status: 400 },
-		);
+	http.get("https://api.zaim.net/v2/home/category", () => {
+		return HttpResponse.json({
+			categories: mockCategories,
+			requested: Date.now(),
+		});
 	}),
 
 	// ジャンル取得API
-	http.get("https://api.zaim.net/v2/home/genre", ({ request }) => {
-		const url = new URL(request.url);
-		const mapping = url.searchParams.get("mapping");
-
-		if (mapping === "1") {
-			return HttpResponse.json({
-				genres: mockGenres,
-				requested: Date.now(),
-			});
-		}
-
-		return HttpResponse.json(
-			{ error: true, message: "Invalid mapping parameter" },
-			{ status: 400 },
-		);
+	http.get("https://api.zaim.net/v2/home/genre", () => {
+		return HttpResponse.json({
+			genres: mockGenres,
+			requested: Date.now(),
+		});
 	}),
 ];
 
