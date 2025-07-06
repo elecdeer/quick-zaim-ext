@@ -117,6 +117,7 @@ const setCacheData = async <T>(
 			staleAt: staleAt.toISOString(),
 			dataType,
 			userId,
+			version: config.version,
 		};
 
 		const cacheKey = generateCacheKey(userId, dataType);

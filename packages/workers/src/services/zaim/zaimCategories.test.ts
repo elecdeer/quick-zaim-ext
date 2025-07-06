@@ -35,10 +35,7 @@ const expectedZaimCategories: ZaimCategory[] = [
 	},
 ];
 
-const mockCacheData = {
-	data: expectedZaimCategories,
-	version: 1,
-};
+const mockCacheData = expectedZaimCategories;
 
 const userId = "test-user-id";
 

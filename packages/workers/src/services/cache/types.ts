@@ -2,42 +2,60 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import * as v from "valibot";
 
 // キャッシュ対象のデータ型
-export type CacheDataType = "categories" | "payment-methods" | "places";
+export type CacheDataType =
+	| "categories"
+	| "genres"
+	| "payment-methods"
+	| "places";
 
 // KVメタデータのスキーマ
 export const cacheMetadataSchema = v.object({
 	cachedAt: v.pipe(v.string(), v.isoTimestamp()),
 	staleAt: v.pipe(v.string(), v.isoTimestamp()),
-	dataType: v.picklist(["categories", "payment-methods", "places"]),
+	dataType: v.picklist(["categories", "genres", "payment-methods", "places"]),
 	userId: v.string(),
+	version: v.number(),
 });
 
 export type CacheMetadata = v.InferOutput<typeof cacheMetadataSchema>;
 
 // Zaimカテゴリキャッシュのスキーマ
-export const zaimCategoriesCacheSchema = v.object({
-	data: v.array(
-		v.object({
-			id: v.number(),
-			name: v.string(),
-			subCategories: v.array(
-				v.object({
-					id: v.number(),
-					name: v.string(),
-				}),
-			),
-		}),
-	),
-	version: v.number(),
-});
+export const zaimCategoriesCacheSchema = v.array(
+	v.object({
+		id: v.number(),
+		name: v.string(),
+		subCategories: v.array(
+			v.object({
+				id: v.number(),
+				name: v.string(),
+			}),
+		),
+	}),
+);
 
 export type ZaimCategoriesCache = v.InferOutput<
 	typeof zaimCategoriesCacheSchema
 >;
 
+// Zaimジャンルキャッシュのスキーマ
+export const zaimGenresCacheSchema = v.array(
+	v.object({
+		id: v.number(),
+		name: v.string(),
+		categoryId: v.number(),
+	}),
+);
+
+export type ZaimGenresCache = v.InferOutput<typeof zaimGenresCacheSchema>;
+
 // キャッシュ設定
 export const cacheConfig = {
 	categories: {
+		ttlSeconds: 86400, // 24時間
+		staleSeconds: 3600, // 1時間
+		version: 1,
+	},
+	genres: {
 		ttlSeconds: 86400, // 24時間
 		staleSeconds: 3600, // 1時間
 		version: 1,

@@ -2,15 +2,19 @@ import { R } from "@praha/byethrow";
 import { categoryGetCategories, genreGetGenres } from "@repo/zaim-api";
 import type { Client } from "@repo/zaim-api/client";
 import type { Env } from "../../env";
-import * as logger from "../../logger";
 import { getKVCacheRepository } from "../cache/kvCache";
-import { zaimCategoriesCacheSchema } from "../cache/types";
-import type { ZaimCategory, ZaimServiceError } from "./types";
+import {
+	type CacheError,
+	zaimCategoriesCacheSchema,
+	zaimGenresCacheSchema,
+} from "../cache/types";
+import { withCache } from "../cache/withCache";
+import type { ZaimCategory, ZaimGenre, ZaimServiceError } from "./types";
 
 /**
  * Zaim APIからカテゴリとサブカテゴリを取得する（キャッシュ対応）
  */
-export const getZaimCategories = async ({
+export const getZaimCategories = ({
 	client,
 	env,
 	userId,
@@ -18,7 +22,7 @@ export const getZaimCategories = async ({
 	client: Client;
 	env: Env;
 	userId: string;
-}): Promise<R.Result<ZaimCategory[], ZaimServiceError>> => {
+}): R.ResultAsync<ZaimCategory[], ZaimServiceError | CacheError> => {
 	const cacheRepo = getKVCacheRepository(
 		env,
 		userId,
@@ -26,71 +30,39 @@ export const getZaimCategories = async ({
 		zaimCategoriesCacheSchema,
 	);
 
-	// キャッシュからデータを取得
-	const cacheResult = await cacheRepo.get();
-
-	if (R.isSuccess(cacheResult) && cacheResult.value) {
-		const { data: cachedData, isStale } = cacheResult.value;
-
-		// キャッシュが新しい場合はそのまま返す
-		if (!isStale) {
-			logger.info({
-				type: "zaim-categories-cache-hit",
-				userId,
-				isStale: false,
-			});
-			return R.succeed(cachedData.data);
-		}
-
-		// staleな場合はバックグラウンドで更新
-		logger.info({
-			type: "zaim-categories-cache-stale",
-			userId,
-			isStale: true,
-		});
-
-		// バックグラウンドでAPI呼び出し（非同期）
-		fetchAndUpdateCache(client, env, userId).catch((error) => {
-			logger.error({
-				type: "zaim-categories-background-update-error",
-				userId,
-				error: error instanceof Error ? error.message : String(error),
-			});
-		});
-
-		// staleなデータを返す
-		return R.succeed(cachedData.data);
-	}
-
-	// キャッシュがない場合はAPIを呼び出し
-	logger.info({
-		type: "zaim-categories-cache-miss",
+	return withCache({
+		cacheRepo,
+		fetcher: () => fetchFromAPI(client),
 		userId,
+		logType: "zaim-categories",
 	});
+};
 
-	const apiResult = await fetchFromAPI(client);
-	if (R.isFailure(apiResult)) {
-		return apiResult;
-	}
+/**
+ * Zaim APIからジャンル一覧を取得する（キャッシュ対応）
+ */
+export const getZaimGenres = ({
+	client,
+	env,
+	userId,
+}: {
+	client: Client;
+	env: Env;
+	userId: string;
+}): R.ResultAsync<ZaimGenre[], ZaimServiceError | CacheError> => {
+	const cacheRepo = getKVCacheRepository(
+		env,
+		userId,
+		"genres",
+		zaimGenresCacheSchema,
+	);
 
-	// 新しいデータをキャッシュに保存
-	const cacheData = {
-		data: apiResult.value,
-		version: 1,
-	};
-
-	const setCacheResult = await cacheRepo.set(cacheData);
-
-	if (R.isFailure(setCacheResult)) {
-		logger.warn({
-			type: "zaim-categories-cache-write-failed",
-			userId,
-			error: setCacheResult.error,
-		});
-		// キャッシュ保存失敗してもデータは返す
-	}
-
-	return R.succeed(apiResult.value);
+	return withCache({
+		cacheRepo,
+		fetcher: () => fetchGenresFromAPI(client),
+		userId,
+		logType: "zaim-genres",
+	});
 };
 
 /**
@@ -134,47 +106,30 @@ async function fetchFromAPI(
 }
 
 /**
- * バックグラウンドでAPI呼び出しとキャッシュ更新を行う
+ * ジャンルAPIからデータを取得する
  */
-async function fetchAndUpdateCache(
+async function fetchGenresFromAPI(
 	client: Client,
-	env: Env,
-	userId: string,
-): Promise<void> {
-	const apiResult = await fetchFromAPI(client);
-	if (R.isFailure(apiResult)) {
-		logger.error({
-			type: "zaim-categories-background-fetch-error",
-			userId,
-			error: apiResult.error,
+): Promise<R.Result<ZaimGenre[], ZaimServiceError>> {
+	const genreRes = await genreGetGenres({
+		client,
+		query: { mapping: 1 },
+	});
+
+	if (genreRes.error) {
+		return R.fail({
+			code: "ZAIM_API_ERROR" as const,
+			statusCode: 500 as const,
+			message: "Failed to retrieve genres from Zaim API.",
+			cause: genreRes.error,
 		});
-		return;
 	}
 
-	const cacheData = {
-		data: apiResult.value,
-		version: 1,
-	};
-
-	const cacheRepo = getKVCacheRepository(
-		env,
-		userId,
-		"categories",
-		zaimCategoriesCacheSchema,
+	return R.succeed(
+		genreRes.data.genres.map((genre) => ({
+			id: genre.id,
+			name: genre.name,
+			categoryId: genre.category_id,
+		})),
 	);
-
-	const setCacheResult = await cacheRepo.set(cacheData);
-
-	if (R.isFailure(setCacheResult)) {
-		logger.error({
-			type: "zaim-categories-background-cache-error",
-			userId,
-			error: setCacheResult.error,
-		});
-	} else {
-		logger.info({
-			type: "zaim-categories-background-update-success",
-			userId,
-		});
-	}
 }

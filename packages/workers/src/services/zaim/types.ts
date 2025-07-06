@@ -9,6 +9,13 @@ export type ZaimCategory = {
 		name: string;
 	}[];
 };
+
+export type ZaimGenre = {
+	id: number;
+	name: string;
+	categoryId: number;
+};
+
 export type ZaimPaymentMethod = {
 	id: number;
 	name: string;
