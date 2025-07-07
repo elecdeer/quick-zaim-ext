@@ -1,4 +1,7 @@
+import { createAsyncObjectStack } from "async-object-stack";
 import { createFactory } from "hono/factory";
+
+const stack = createAsyncObjectStack();
 
 type Logger = (context: object) => void;
 
@@ -6,11 +9,19 @@ const createLeveledLogger = (level: string) => {
 	const logger: Logger = (context) => {
 		console.log({
 			level,
+			...stack.render(),
 			...context,
 		});
 	};
 
 	return logger;
+};
+
+/**
+ * 今のリクエストコンテキストにメタデータを追加する
+ */
+export const metadata = (meta: Record<string, unknown>) => {
+	return stack.push(meta);
 };
 
 export const debug = createLeveledLogger("DEBUG");
@@ -32,7 +43,9 @@ export const middleware = factory.createMiddleware(async (c, next) => {
 
 	const start = Date.now();
 
-	await next();
+	await stack.region(async () => {
+		await next();
+	});
 
 	const end = Date.now();
 	const duration = end - start;

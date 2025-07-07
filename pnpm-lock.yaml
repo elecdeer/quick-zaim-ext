@@ -144,6 +144,9 @@ importers:
       ai:
         specifier: ^4.3.16
         version: 4.3.16(react@19.1.0)(zod@3.25.64)
+      async-object-stack:
+        specifier: ^1.0.0
+        version: 1.0.0
       hono:
         specifier: ^4.7.11
         version: 4.7.11
@@ -1887,6 +1890,9 @@ packages:
 
   async-mutex@0.5.0:
     resolution: {integrity: sha512-1A94B18jkJ3DYq284ohPxoXbfTA5HsQ7/Mf4DEhcyLx3Bz27Rh59iScbB6EPiP+B+joue6YCxcMXSbFC1tZKwA==}
+
+  async-object-stack@1.0.0:
+    resolution: {integrity: sha512-IgX5tVl+Z2FgJ9JQfsCe0GR4Yy2oMOn5wkvrU1ombXSGj7Y2vMnukqr10CIJSsrhUqpEltTigDBNOjP8nQAFrQ==}
 
   async@3.2.6:
     resolution: {integrity: sha512-htCUDlxyyCLMgaM3xXg0C0LW2xqfuQ6p05pCEIsXuyQ+a1koYKTuBMzRNwmybfLgvJDMd0r1LTn4+E0Ti6C2AA==}
@@ -5799,6 +5805,8 @@ snapshots:
   async-mutex@0.5.0:
     dependencies:
       tslib: 2.8.1
+
+  async-object-stack@1.0.0: {}
 
   async@3.2.6: {}
 
