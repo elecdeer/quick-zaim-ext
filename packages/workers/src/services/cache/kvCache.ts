@@ -42,7 +42,6 @@ const getCacheData = async <T>(
 			logger.warn({
 				type: "cache-metadata-parse-error",
 				dataType,
-				userId,
 				error: metadataResult.issues,
 			});
 			return R.succeed(null);
@@ -54,7 +53,6 @@ const getCacheData = async <T>(
 			logger.warn({
 				type: "cache-data-parse-error",
 				dataType,
-				userId,
 				error: dataResult.issues,
 			});
 			return R.succeed(null);
@@ -73,7 +71,6 @@ const getCacheData = async <T>(
 		logger.error({
 			type: "cache-read-error",
 			dataType,
-			userId,
 			error: error instanceof Error ? error.message : String(error),
 		});
 
@@ -133,7 +130,6 @@ const setCacheData = async <T>(
 		logger.info({
 			type: "cache-write-success",
 			dataType,
-			userId,
 			ttl: config.ttlSeconds,
 			staleSeconds: config.staleSeconds,
 		});
@@ -143,7 +139,6 @@ const setCacheData = async <T>(
 		logger.error({
 			type: "cache-write-error",
 			dataType,
-			userId,
 			error: error instanceof Error ? error.message : String(error),
 		});
 
@@ -171,13 +166,11 @@ const deleteCacheData = async (
 		logger.info({
 			type: "cache-delete-success",
 			dataType,
-			userId,
 		});
 	} catch (error) {
 		logger.error({
 			type: "cache-delete-error",
 			dataType,
-			userId,
 			error: error instanceof Error ? error.message : String(error),
 		});
 	}

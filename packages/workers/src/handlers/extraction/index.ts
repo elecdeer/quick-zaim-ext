@@ -40,6 +40,10 @@ export const extractionRoute = new Hono<HonoApp>().post(
 			);
 		}
 
+		using _ = logger.metadata({
+			userId,
+		});
+
 		const categories = await getZaimCategories({
 			client: clientResult.value,
 			env: c.env,

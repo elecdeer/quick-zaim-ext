@@ -2,6 +2,7 @@ import { R } from "@praha/byethrow";
 import { categoryGetCategories, genreGetGenres } from "@repo/zaim-api";
 import type { Client } from "@repo/zaim-api/client";
 import type { Env } from "../../env";
+import * as logger from "../../logger";
 import { getKVCacheRepository } from "../cache/kvCache";
 import {
 	type CacheError,
@@ -23,6 +24,9 @@ export const getZaimCategories = ({
 	env: Env;
 	userId: string;
 }): R.ResultAsync<ZaimCategory[], ZaimServiceError | CacheError> => {
+	using _ = logger.metadata({
+		service: "zaim-categories",
+	});
 	const cacheRepo = getKVCacheRepository(
 		env,
 		userId,
@@ -32,9 +36,9 @@ export const getZaimCategories = ({
 
 	return withCache({
 		cacheRepo,
-		fetcher: () => fetchFromAPI(client),
-		userId,
-		logType: "zaim-categories",
+		fetcher: async () => {
+			return await fetchFromAPI(client);
+		},
 	});
 };
 
@@ -60,8 +64,6 @@ export const getZaimGenres = ({
 	return withCache({
 		cacheRepo,
 		fetcher: () => fetchGenresFromAPI(client),
-		userId,
-		logType: "zaim-genres",
 	});
 };
 
