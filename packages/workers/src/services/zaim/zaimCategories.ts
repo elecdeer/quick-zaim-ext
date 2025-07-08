@@ -4,13 +4,9 @@ import type { Client } from "@repo/zaim-api/client";
 import type { Env } from "../../env";
 import * as logger from "../../logger";
 import { getKVCacheRepository } from "../cache/kvCache";
-import {
-	type CacheError,
-	zaimCategoriesCacheSchema,
-	zaimGenresCacheSchema,
-} from "../cache/types";
+import { type CacheError, zaimCategoriesCacheSchema } from "../cache/types";
 import { withCache } from "../cache/withCache";
-import type { ZaimCategory, ZaimGenre, ZaimServiceError } from "./types";
+import type { ZaimCategory, ZaimServiceError } from "./types";
 
 /**
  * Zaim APIからカテゴリとサブカテゴリを取得する（キャッシュ対応）
@@ -19,10 +15,12 @@ export const getZaimCategories = ({
 	client,
 	env,
 	userId,
+	waitUntil,
 }: {
 	client: Client;
 	env: Env;
 	userId: string;
+	waitUntil: (promise: Promise<unknown>) => void;
 }): R.ResultAsync<ZaimCategory[], ZaimServiceError | CacheError> => {
 	using _ = logger.metadata({
 		service: "zaim-categories",
@@ -34,37 +32,20 @@ export const getZaimCategories = ({
 		zaimCategoriesCacheSchema,
 	);
 
-	return withCache({
-		cacheRepo,
-		fetcher: async () => {
-			return await fetchFromAPI(client);
-		},
-	});
-};
-
-/**
- * Zaim APIからジャンル一覧を取得する（キャッシュ対応）
- */
-export const getZaimGenres = ({
-	client,
-	env,
-	userId,
-}: {
-	client: Client;
-	env: Env;
-	userId: string;
-}): R.ResultAsync<ZaimGenre[], ZaimServiceError | CacheError> => {
-	const cacheRepo = getKVCacheRepository(
-		env,
-		userId,
-		"genres",
-		zaimGenresCacheSchema,
+	return R.pipe(
+		withCache({
+			cacheRepo,
+			fetcher: async () => {
+				return await fetchFromAPI(client);
+			},
+		}),
+		R.map(([zaimCategories, backgroundPromise]) => {
+			if (backgroundPromise) {
+				waitUntil(backgroundPromise);
+			}
+			return zaimCategories;
+		}),
 	);
-
-	return withCache({
-		cacheRepo,
-		fetcher: () => fetchGenresFromAPI(client),
-	});
 };
 
 /**
@@ -103,35 +84,6 @@ async function fetchFromAPI(
 					id: genre.id,
 					name: genre.name,
 				})),
-		})),
-	);
-}
-
-/**
- * ジャンルAPIからデータを取得する
- */
-async function fetchGenresFromAPI(
-	client: Client,
-): Promise<R.Result<ZaimGenre[], ZaimServiceError>> {
-	const genreRes = await genreGetGenres({
-		client,
-		query: { mapping: 1 },
-	});
-
-	if (genreRes.error) {
-		return R.fail({
-			code: "ZAIM_API_ERROR" as const,
-			statusCode: 500 as const,
-			message: "Failed to retrieve genres from Zaim API.",
-			cause: genreRes.error,
-		});
-	}
-
-	return R.succeed(
-		genreRes.data.genres.map((genre) => ({
-			id: genre.id,
-			name: genre.name,
-			categoryId: genre.category_id,
 		})),
 	);
 }

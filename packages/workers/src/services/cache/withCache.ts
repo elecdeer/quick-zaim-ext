@@ -14,7 +14,10 @@ export const withCache = async <T, E>({
 	cacheRepo: KVCacheRepository<T>;
 	/** データ取得関数 */
 	fetcher: () => R.ResultAsync<T, E>;
-}): R.ResultAsync<T, E | CacheError> => {
+}): R.ResultAsync<
+	readonly [T, Promise<unknown> | undefined],
+	E | CacheError
+> => {
 	// キャッシュからデータを取得
 	const cacheResult = await cacheRepo.get();
 
@@ -28,7 +31,7 @@ export const withCache = async <T, E>({
 				isStale: false,
 			});
 
-			return R.succeed(cachedData) as R.Success<T>;
+			return R.succeed([cachedData, undefined]);
 		}
 
 		// staleな場合はバックグラウンドで更新
@@ -38,13 +41,13 @@ export const withCache = async <T, E>({
 		});
 
 		// バックグラウンドでAPI呼び出し（非同期）
-		void backgroundUpdate({
+		const backgroundPromise = backgroundUpdate({
 			fetcher,
 			cacheRepo,
 		});
 
 		// staleなデータを返す
-		return R.succeed(cachedData) as R.Success<T>;
+		return R.succeed([cachedData, backgroundPromise]);
 	}
 
 	// キャッシュがない場合はAPIを呼び出し
@@ -63,17 +66,17 @@ export const withCache = async <T, E>({
 	}
 
 	// 新しいデータをキャッシュに保存
-	const setCacheResult = await cacheRepo.set(apiResult.value);
+	const setCacheResult = R.pipe(
+		cacheRepo.set(apiResult.value),
+		R.inspectError((error) => {
+			logger.warn({
+				type: "cache-write-error",
+				error,
+			});
+		}),
+	);
 
-	if (R.isFailure(setCacheResult)) {
-		logger.warn({
-			type: "cache-write-failed",
-			error: setCacheResult.error,
-		});
-		// キャッシュ保存失敗してもデータは返す
-	}
-
-	return R.succeed(apiResult.value) as R.Success<T>;
+	return R.succeed([apiResult.value, setCacheResult]);
 };
 
 /**

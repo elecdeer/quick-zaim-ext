@@ -112,6 +112,7 @@ export const zaimRoute = new Hono<HonoApp>()
 			client,
 			env: c.env,
 			userId,
+			waitUntil: c.executionCtx.waitUntil,
 		});
 		if (R.isFailure(categories)) {
 			logger.info({

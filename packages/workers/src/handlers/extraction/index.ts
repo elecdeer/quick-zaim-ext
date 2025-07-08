@@ -48,6 +48,7 @@ export const extractionRoute = new Hono<HonoApp>().post(
 			client: clientResult.value,
 			env: c.env,
 			userId,
+			waitUntil: c.executionCtx.waitUntil,
 		});
 		if (R.isFailure(categories)) {
 			logger.info({

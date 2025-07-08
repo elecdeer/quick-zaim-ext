@@ -37,6 +37,8 @@ const expectedZaimCategories: ZaimCategory[] = [
 
 const mockCacheData = expectedZaimCategories;
 
+const waitUntilMock = vi.fn();
+
 const userId = "test-user-id";
 
 // テストフィクスチャ
@@ -122,6 +124,7 @@ describe("getZaimCategories", () => {
 				client: mockClient,
 				env,
 				userId,
+				waitUntil: () => {},
 			});
 
 			assert(R.isSuccess(result));
@@ -155,6 +158,7 @@ describe("getZaimCategories", () => {
 				client: mockClient,
 				env,
 				userId,
+				waitUntil: waitUntilMock,
 			});
 
 			assert(R.isSuccess(result));
@@ -181,6 +185,7 @@ describe("getZaimCategories", () => {
 				client: mockClient,
 				env,
 				userId,
+				waitUntil: waitUntilMock,
 			});
 
 			assert(R.isSuccess(result));
@@ -218,6 +223,7 @@ describe("getZaimCategories", () => {
 					client: mockClient,
 					env,
 					userId,
+					waitUntil: waitUntilMock,
 				});
 
 				assert(R.isSuccess(result));
@@ -249,6 +255,7 @@ describe("getZaimCategories", () => {
 				client: mockClient,
 				env,
 				userId,
+				waitUntil: waitUntilMock,
 			});
 
 			assert(R.isSuccess(result));
@@ -272,6 +279,7 @@ describe("getZaimCategories", () => {
 				client: mockClient,
 				env,
 				userId,
+				waitUntil: waitUntilMock,
 			});
 
 			assert(R.isFailure(result));
@@ -289,6 +297,7 @@ describe("getZaimCategories", () => {
 				client: mockClient,
 				env,
 				userId,
+				waitUntil: waitUntilMock,
 			});
 
 			assert(R.isFailure(result));
@@ -316,6 +325,7 @@ describe("getZaimCategories", () => {
 				client: mockClient,
 				env,
 				userId,
+				waitUntil: waitUntilMock,
 			});
 
 			assert(R.isSuccess(result));
@@ -352,6 +362,7 @@ describe("getZaimCategories", () => {
 				client: mockClient,
 				env,
 				userId,
+				waitUntil: waitUntilMock,
 			});
 
 			// staleデータが返される
@@ -392,6 +403,7 @@ describe("getZaimCategories", () => {
 				client: mockClient,
 				env,
 				userId,
+				waitUntil: waitUntilMock,
 			});
 
 			// staleデータが返される
