@@ -1,13 +1,9 @@
 {
-	"$schema": "https://json.schemastore.org/tsconfig",
-	"files": [],
-	"compilerOptions": {
-		"composite": true
-	},
-	"references": [
-		{ "path": "./packages/zaim-api" },
-		{ "path": "./packages/oauth" },
-		{ "path": "./packages/workers" },
-		{ "path": "./packages/extension" }
-	]
+  "compilerOptions": {
+    "noEmit": true,
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "allowImportingTsExtensions": true,
+    "esModuleInterop": true
+  }
 }

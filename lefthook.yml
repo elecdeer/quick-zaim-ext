@@ -1,6 +1,0 @@
-pre-commit:
-  commands:
-    biome-check:
-      run: pnpm check
-      fail_text: "Biome check failed. Please run 'pnpm check:fix' to fix issues automatically."
-      stage_fixed: true
