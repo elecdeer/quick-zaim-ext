@@ -11,6 +11,10 @@ catalog:
   vite: npm:@voidzero-dev/vite-plus-core@latest
   vitest: npm:@voidzero-dev/vite-plus-test@latest
   vite-plus: latest
+  "@hey-api/openapi-ts": ^0.73.0
+  "@typespec/compiler": ^1.1.0
+  "@typespec/http": ^1.1.0
+  "@typespec/openapi3": ^1.1.0
 overrides:
   vite: "catalog:"
   vitest: "catalog:"

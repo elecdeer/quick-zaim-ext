@@ -1,0 +1,24 @@
+{
+  "name": "@repo/zaim-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/client/index.ts",
+    "./client": "./src/client/client/index.ts"
+  },
+  "scripts": {
+    "test": "vp test",
+    "check": "vp check",
+    "generate:openapi3": "tsp compile ./typespec",
+    "generate:ts-client": "openapi-ts",
+    "generate": "pnpm run generate:openapi3 && pnpm run generate:ts-client"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "catalog:",
+    "@typespec/compiler": "catalog:",
+    "@typespec/http": "catalog:",
+    "@typespec/openapi3": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

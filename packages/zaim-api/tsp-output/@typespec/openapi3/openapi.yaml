@@ -1,0 +1,2456 @@
+openapi: 3.0.0
+info:
+  title: Zaim API
+  version: 0.0.0
+tags: []
+paths:
+  /v2/account:
+    get:
+      operationId: Other_getDefaultAccounts
+      parameters: []
+      responses:
+        "200":
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - accounts
+                  - requested
+                properties:
+                  accounts:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Other.DefaultAccount"
+                    description: List of default accounts
+                  requested:
+                    type: integer
+                    format: int32
+        "400":
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v2/category:
+    get:
+      operationId: Other_getDefaultCategories
+      parameters: []
+      responses:
+        "200":
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - categories
+                  - requested
+                properties:
+                  categories:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Other.DefaultCategory"
+                    description: List of default categories
+                  requested:
+                    type: integer
+                    format: int32
+        "400":
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v2/currency:
+    get:
+      operationId: Other_getCurrencies
+      parameters: []
+      responses:
+        "200":
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - currencies
+                  - requested
+                properties:
+                  currencies:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Other.Currency"
+                    description: List of currencies
+                  requested:
+                    type: integer
+                    format: int32
+        "400":
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v2/genre:
+    get:
+      operationId: Other_getDefaultGenres
+      parameters: []
+      responses:
+        "200":
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - genres
+                  - requested
+                properties:
+                  genres:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Other.DefaultGenre"
+                    description: List of default genres
+                  requested:
+                    type: integer
+                    format: int32
+        "400":
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v2/home/account:
+    get:
+      operationId: Account_getAccounts
+      parameters:
+        - name: mapping
+          in: query
+          required: true
+          description: Required. Set to 1
+          schema:
+            type: number
+            enum:
+              - 1
+          explode: false
+      responses:
+        "200":
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - accounts
+                  - requested
+                properties:
+                  accounts:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Account.Account"
+                    description: List of accounts
+                  requested:
+                    type: integer
+                    format: int32
+        "400":
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v2/home/category:
+    get:
+      operationId: Category_getCategories
+      parameters:
+        - name: mapping
+          in: query
+          required: true
+          description: Required. Set to 1
+          schema:
+            type: number
+            enum:
+              - 1
+          explode: false
+      responses:
+        "200":
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - categories
+                  - requested
+                properties:
+                  categories:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Category.Category"
+                    description: List of categories
+                  requested:
+                    type: integer
+                    format: int32
+        "400":
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v2/home/genre:
+    get:
+      operationId: Genre_getGenres
+      parameters:
+        - name: mapping
+          in: query
+          required: true
+          description: Required. Set to 1
+          schema:
+            type: number
+            enum:
+              - 1
+          explode: false
+      responses:
+        "200":
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - genres
+                  - requested
+                properties:
+                  genres:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Genre.Genre"
+                    description: List of genres
+                  requested:
+                    type: integer
+                    format: int32
+        "400":
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v2/home/money:
+    get:
+      operationId: Money_getMoney
+      parameters:
+        - name: mapping
+          in: query
+          required: true
+          description: Required. Set to 1
+          schema:
+            type: number
+            enum:
+              - 1
+          explode: false
+        - name: category_id
+          in: query
+          required: false
+          description: Filter by category ID
+          schema:
+            type: integer
+            format: int32
+          explode: false
+        - name: genre_id
+          in: query
+          required: false
+          description: Filter by genre ID
+          schema:
+            type: integer
+            format: int32
+          explode: false
+        - name: mode
+          in: query
+          required: false
+          description: Filter by transaction type
+          schema:
+            type: string
+            enum:
+              - payment
+              - income
+              - transfer
+          explode: false
+        - name: order
+          in: query
+          required: false
+          description: "Sort by id or date (default: date)"
+          schema:
+            type: string
+            enum:
+              - id
+              - date
+          explode: false
+        - name: start_date
+          in: query
+          required: false
+          description: Start date in Y-m-d format
+          schema:
+            type: string
+          explode: false
+        - name: end_date
+          in: query
+          required: false
+          description: End date in Y-m-d format
+          schema:
+            type: string
+          explode: false
+        - name: page
+          in: query
+          required: false
+          description: "Page number (default: 1)"
+          schema:
+            type: integer
+            format: int32
+          explode: false
+        - name: limit
+          in: query
+          required: false
+          description: "Number of items per page (default: 20, max: 100)"
+          schema:
+            type: integer
+            format: int32
+          explode: false
+        - name: group_by
+          in: query
+          required: false
+          description: Group results by receipt_id
+          schema:
+            type: string
+            enum:
+              - receipt_id
+          explode: false
+      responses:
+        "200":
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - money
+                  - requested
+                properties:
+                  money:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Money.Money"
+                    description: List of money transactions
+                  requested:
+                    type: integer
+                    format: int32
+        "400":
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v2/home/money/income:
+    post:
+      operationId: IncomeOperations_create
+      parameters:
+        - $ref: "#/components/parameters/Money.IncomeData.mapping"
+        - $ref: "#/components/parameters/Money.IncomeData.category_id"
+        - $ref: "#/components/parameters/Money.IncomeData.amount"
+        - $ref: "#/components/parameters/Money.IncomeData.date"
+        - $ref: "#/components/parameters/Money.IncomeData.to_account_id"
+        - $ref: "#/components/parameters/Money.IncomeData.place"
+        - $ref: "#/components/parameters/Money.IncomeData.comment"
+      responses:
+        "200":
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - money
+                  - user
+                  - requested
+                properties:
+                  money:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        format: int32
+                        description: Unique ID given by Zaim for each input
+                      modified:
+                        type: string
+                        description: Modification timestamp
+                      place_uid:
+                        type: string
+                        description: Place UID (only present if a place was specified)
+                    required:
+                      - id
+                      - modified
+                  place:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        format: int32
+                      user_id:
+                        type: integer
+                        format: int32
+                      genre_id:
+                        type: integer
+                        format: int32
+                      category_id:
+                        type: integer
+                        format: int32
+                      account_id:
+                        type: integer
+                        format: int32
+                      transfer_account_id:
+                        type: integer
+                        format: int32
+                      mode:
+                        type: string
+                      place_uid:
+                        type: string
+                      service:
+                        type: string
+                      name:
+                        type: string
+                      original_name:
+                        type: string
+                      tel:
+                        type: string
+                      count:
+                        type: integer
+                        format: int32
+                      place_pattern_id:
+                        type: integer
+                        format: int32
+                      calc_flag:
+                        type: integer
+                        format: int32
+                      edit_flag:
+                        type: integer
+                        format: int32
+                      active:
+                        type: integer
+                        format: int32
+                      modified:
+                        type: string
+                      created:
+                        type: string
+                    required:
+                      - id
+                      - user_id
+                      - genre_id
+                      - category_id
+                      - account_id
+                      - transfer_account_id
+                      - mode
+                      - place_uid
+                      - service
+                      - name
+                      - original_name
+                      - tel
+                      - count
+                      - place_pattern_id
+                      - calc_flag
+                      - edit_flag
+                      - active
+                      - modified
+                      - created
+                    description: Place information (only present if a place was specified)
+                  user:
+                    type: object
+                    properties:
+                      repeat_count:
+                        type: integer
+                        format: int32
+                        description: Number of consecutive days of recording
+                      day_count:
+                        type: integer
+                        format: int32
+                        description: Total number of days with records
+                      input_count:
+                        type: integer
+                        format: int32
+                        description: Total number of inputs by the user
+                    required:
+                      - repeat_count
+                      - day_count
+                      - input_count
+                  requested:
+                    type: integer
+                    format: int32
+        "400":
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v2/home/money/income/{id}:
+    put:
+      operationId: IncomeOperations_update
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+        - $ref: "#/components/parameters/Money.IncomeData.mapping"
+        - $ref: "#/components/parameters/Money.IncomeData.category_id"
+        - $ref: "#/components/parameters/Money.IncomeData.amount"
+        - $ref: "#/components/parameters/Money.IncomeData.date"
+        - $ref: "#/components/parameters/Money.IncomeData.to_account_id"
+        - $ref: "#/components/parameters/Money.IncomeData.place"
+        - $ref: "#/components/parameters/Money.IncomeData.comment"
+      responses:
+        "200":
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - money
+                  - user
+                  - requested
+                properties:
+                  money:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        format: int32
+                        description: Unique ID given by Zaim for each input
+                      modified:
+                        type: string
+                        description: Modification timestamp
+                      place_uid:
+                        type: string
+                        description: Place UID (only present if a place was specified)
+                    required:
+                      - id
+                      - modified
+                  place:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        format: int32
+                      user_id:
+                        type: integer
+                        format: int32
+                      genre_id:
+                        type: integer
+                        format: int32
+                      category_id:
+                        type: integer
+                        format: int32
+                      account_id:
+                        type: integer
+                        format: int32
+                      transfer_account_id:
+                        type: integer
+                        format: int32
+                      mode:
+                        type: string
+                      place_uid:
+                        type: string
+                      service:
+                        type: string
+                      name:
+                        type: string
+                      original_name:
+                        type: string
+                      tel:
+                        type: string
+                      count:
+                        type: integer
+                        format: int32
+                      place_pattern_id:
+                        type: integer
+                        format: int32
+                      calc_flag:
+                        type: integer
+                        format: int32
+                      edit_flag:
+                        type: integer
+                        format: int32
+                      active:
+                        type: integer
+                        format: int32
+                      modified:
+                        type: string
+                      created:
+                        type: string
+                    required:
+                      - id
+                      - user_id
+                      - genre_id
+                      - category_id
+                      - account_id
+                      - transfer_account_id
+                      - mode
+                      - place_uid
+                      - service
+                      - name
+                      - original_name
+                      - tel
+                      - count
+                      - place_pattern_id
+                      - calc_flag
+                      - edit_flag
+                      - active
+                      - modified
+                      - created
+                    description: Place information (only present if a place was specified)
+                  user:
+                    type: object
+                    properties:
+                      repeat_count:
+                        type: integer
+                        format: int32
+                        description: Number of consecutive days of recording
+                      day_count:
+                        type: integer
+                        format: int32
+                        description: Total number of days with records
+                      input_count:
+                        type: integer
+                        format: int32
+                        description: Total number of inputs by the user
+                    required:
+                      - repeat_count
+                      - day_count
+                      - input_count
+                  requested:
+                    type: integer
+                    format: int32
+        "400":
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: IncomeOperations_delete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        "200":
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - money
+                  - user
+                  - requested
+                properties:
+                  money:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        format: int32
+                        description: Unique ID given by Zaim for each input
+                      modified:
+                        type: string
+                        description: Modification timestamp
+                      place_uid:
+                        type: string
+                        description: Place UID (only present if a place was specified)
+                    required:
+                      - id
+                      - modified
+                  place:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        format: int32
+                      user_id:
+                        type: integer
+                        format: int32
+                      genre_id:
+                        type: integer
+                        format: int32
+                      category_id:
+                        type: integer
+                        format: int32
+                      account_id:
+                        type: integer
+                        format: int32
+                      transfer_account_id:
+                        type: integer
+                        format: int32
+                      mode:
+                        type: string
+                      place_uid:
+                        type: string
+                      service:
+                        type: string
+                      name:
+                        type: string
+                      original_name:
+                        type: string
+                      tel:
+                        type: string
+                      count:
+                        type: integer
+                        format: int32
+                      place_pattern_id:
+                        type: integer
+                        format: int32
+                      calc_flag:
+                        type: integer
+                        format: int32
+                      edit_flag:
+                        type: integer
+                        format: int32
+                      active:
+                        type: integer
+                        format: int32
+                      modified:
+                        type: string
+                      created:
+                        type: string
+                    required:
+                      - id
+                      - user_id
+                      - genre_id
+                      - category_id
+                      - account_id
+                      - transfer_account_id
+                      - mode
+                      - place_uid
+                      - service
+                      - name
+                      - original_name
+                      - tel
+                      - count
+                      - place_pattern_id
+                      - calc_flag
+                      - edit_flag
+                      - active
+                      - modified
+                      - created
+                    description: Place information (only present if a place was specified)
+                  user:
+                    type: object
+                    properties:
+                      repeat_count:
+                        type: integer
+                        format: int32
+                        description: Number of consecutive days of recording
+                      day_count:
+                        type: integer
+                        format: int32
+                        description: Total number of days with records
+                      input_count:
+                        type: integer
+                        format: int32
+                        description: Total number of inputs by the user
+                    required:
+                      - repeat_count
+                      - day_count
+                      - input_count
+                  requested:
+                    type: integer
+                    format: int32
+        "400":
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v2/home/money/payment:
+    post:
+      operationId: PaymentOperations_create
+      parameters:
+        - $ref: "#/components/parameters/Money.PaymentData.mapping"
+        - $ref: "#/components/parameters/Money.PaymentData.category_id"
+        - $ref: "#/components/parameters/Money.PaymentData.genre_id"
+        - $ref: "#/components/parameters/Money.PaymentData.amount"
+        - $ref: "#/components/parameters/Money.PaymentData.date"
+        - $ref: "#/components/parameters/Money.PaymentData.from_account_id"
+        - $ref: "#/components/parameters/Money.PaymentData.comment"
+        - $ref: "#/components/parameters/Money.PaymentData.name"
+        - $ref: "#/components/parameters/Money.PaymentData.place"
+        - $ref: "#/components/parameters/Money.PaymentData.place_uid"
+        - $ref: "#/components/parameters/Money.PaymentData.receipt_id"
+      responses:
+        "200":
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - money
+                  - user
+                  - requested
+                properties:
+                  money:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        format: int32
+                        description: Unique ID given by Zaim for each input
+                      modified:
+                        type: string
+                        description: Modification timestamp
+                      place_uid:
+                        type: string
+                        description: Place UID (only present if a place was specified)
+                    required:
+                      - id
+                      - modified
+                  place:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        format: int32
+                      user_id:
+                        type: integer
+                        format: int32
+                      genre_id:
+                        type: integer
+                        format: int32
+                      category_id:
+                        type: integer
+                        format: int32
+                      account_id:
+                        type: integer
+                        format: int32
+                      transfer_account_id:
+                        type: integer
+                        format: int32
+                      mode:
+                        type: string
+                      place_uid:
+                        type: string
+                      service:
+                        type: string
+                      name:
+                        type: string
+                      original_name:
+                        type: string
+                      tel:
+                        type: string
+                      count:
+                        type: integer
+                        format: int32
+                      place_pattern_id:
+                        type: integer
+                        format: int32
+                      calc_flag:
+                        type: integer
+                        format: int32
+                      edit_flag:
+                        type: integer
+                        format: int32
+                      active:
+                        type: integer
+                        format: int32
+                      modified:
+                        type: string
+                      created:
+                        type: string
+                    required:
+                      - id
+                      - user_id
+                      - genre_id
+                      - category_id
+                      - account_id
+                      - transfer_account_id
+                      - mode
+                      - place_uid
+                      - service
+                      - name
+                      - original_name
+                      - tel
+                      - count
+                      - place_pattern_id
+                      - calc_flag
+                      - edit_flag
+                      - active
+                      - modified
+                      - created
+                    description: Place information (only present if a place was specified)
+                  user:
+                    type: object
+                    properties:
+                      repeat_count:
+                        type: integer
+                        format: int32
+                        description: Number of consecutive days of recording
+                      day_count:
+                        type: integer
+                        format: int32
+                        description: Total number of days with records
+                      input_count:
+                        type: integer
+                        format: int32
+                        description: Total number of inputs by the user
+                    required:
+                      - repeat_count
+                      - day_count
+                      - input_count
+                  requested:
+                    type: integer
+                    format: int32
+        "400":
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v2/home/money/payment/{id}:
+    put:
+      operationId: PaymentOperations_update
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+        - $ref: "#/components/parameters/Money.PaymentData.mapping"
+        - $ref: "#/components/parameters/Money.PaymentData.category_id"
+        - $ref: "#/components/parameters/Money.PaymentData.genre_id"
+        - $ref: "#/components/parameters/Money.PaymentData.amount"
+        - $ref: "#/components/parameters/Money.PaymentData.date"
+        - $ref: "#/components/parameters/Money.PaymentData.from_account_id"
+        - $ref: "#/components/parameters/Money.PaymentData.comment"
+        - $ref: "#/components/parameters/Money.PaymentData.name"
+        - $ref: "#/components/parameters/Money.PaymentData.place"
+        - $ref: "#/components/parameters/Money.PaymentData.place_uid"
+        - $ref: "#/components/parameters/Money.PaymentData.receipt_id"
+      responses:
+        "200":
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - money
+                  - user
+                  - requested
+                properties:
+                  money:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        format: int32
+                        description: Unique ID given by Zaim for each input
+                      modified:
+                        type: string
+                        description: Modification timestamp
+                      place_uid:
+                        type: string
+                        description: Place UID (only present if a place was specified)
+                    required:
+                      - id
+                      - modified
+                  place:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        format: int32
+                      user_id:
+                        type: integer
+                        format: int32
+                      genre_id:
+                        type: integer
+                        format: int32
+                      category_id:
+                        type: integer
+                        format: int32
+                      account_id:
+                        type: integer
+                        format: int32
+                      transfer_account_id:
+                        type: integer
+                        format: int32
+                      mode:
+                        type: string
+                      place_uid:
+                        type: string
+                      service:
+                        type: string
+                      name:
+                        type: string
+                      original_name:
+                        type: string
+                      tel:
+                        type: string
+                      count:
+                        type: integer
+                        format: int32
+                      place_pattern_id:
+                        type: integer
+                        format: int32
+                      calc_flag:
+                        type: integer
+                        format: int32
+                      edit_flag:
+                        type: integer
+                        format: int32
+                      active:
+                        type: integer
+                        format: int32
+                      modified:
+                        type: string
+                      created:
+                        type: string
+                    required:
+                      - id
+                      - user_id
+                      - genre_id
+                      - category_id
+                      - account_id
+                      - transfer_account_id
+                      - mode
+                      - place_uid
+                      - service
+                      - name
+                      - original_name
+                      - tel
+                      - count
+                      - place_pattern_id
+                      - calc_flag
+                      - edit_flag
+                      - active
+                      - modified
+                      - created
+                    description: Place information (only present if a place was specified)
+                  user:
+                    type: object
+                    properties:
+                      repeat_count:
+                        type: integer
+                        format: int32
+                        description: Number of consecutive days of recording
+                      day_count:
+                        type: integer
+                        format: int32
+                        description: Total number of days with records
+                      input_count:
+                        type: integer
+                        format: int32
+                        description: Total number of inputs by the user
+                    required:
+                      - repeat_count
+                      - day_count
+                      - input_count
+                  requested:
+                    type: integer
+                    format: int32
+        "400":
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: PaymentOperations_delete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        "200":
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - money
+                  - user
+                  - requested
+                properties:
+                  money:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        format: int32
+                        description: Unique ID given by Zaim for each input
+                      modified:
+                        type: string
+                        description: Modification timestamp
+                      place_uid:
+                        type: string
+                        description: Place UID (only present if a place was specified)
+                    required:
+                      - id
+                      - modified
+                  place:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        format: int32
+                      user_id:
+                        type: integer
+                        format: int32
+                      genre_id:
+                        type: integer
+                        format: int32
+                      category_id:
+                        type: integer
+                        format: int32
+                      account_id:
+                        type: integer
+                        format: int32
+                      transfer_account_id:
+                        type: integer
+                        format: int32
+                      mode:
+                        type: string
+                      place_uid:
+                        type: string
+                      service:
+                        type: string
+                      name:
+                        type: string
+                      original_name:
+                        type: string
+                      tel:
+                        type: string
+                      count:
+                        type: integer
+                        format: int32
+                      place_pattern_id:
+                        type: integer
+                        format: int32
+                      calc_flag:
+                        type: integer
+                        format: int32
+                      edit_flag:
+                        type: integer
+                        format: int32
+                      active:
+                        type: integer
+                        format: int32
+                      modified:
+                        type: string
+                      created:
+                        type: string
+                    required:
+                      - id
+                      - user_id
+                      - genre_id
+                      - category_id
+                      - account_id
+                      - transfer_account_id
+                      - mode
+                      - place_uid
+                      - service
+                      - name
+                      - original_name
+                      - tel
+                      - count
+                      - place_pattern_id
+                      - calc_flag
+                      - edit_flag
+                      - active
+                      - modified
+                      - created
+                    description: Place information (only present if a place was specified)
+                  user:
+                    type: object
+                    properties:
+                      repeat_count:
+                        type: integer
+                        format: int32
+                        description: Number of consecutive days of recording
+                      day_count:
+                        type: integer
+                        format: int32
+                        description: Total number of days with records
+                      input_count:
+                        type: integer
+                        format: int32
+                        description: Total number of inputs by the user
+                    required:
+                      - repeat_count
+                      - day_count
+                      - input_count
+                  requested:
+                    type: integer
+                    format: int32
+        "400":
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v2/home/money/transfer:
+    post:
+      operationId: TransferOperations_create
+      parameters:
+        - $ref: "#/components/parameters/Money.TransferData.mapping"
+        - $ref: "#/components/parameters/Money.TransferData.amount"
+        - $ref: "#/components/parameters/Money.TransferData.date"
+        - $ref: "#/components/parameters/Money.TransferData.from_account_id"
+        - $ref: "#/components/parameters/Money.TransferData.to_account_id"
+        - $ref: "#/components/parameters/Money.TransferData.comment"
+      responses:
+        "200":
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - money
+                  - user
+                  - requested
+                properties:
+                  money:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        format: int32
+                        description: Unique ID given by Zaim for each input
+                      modified:
+                        type: string
+                        description: Modification timestamp
+                      place_uid:
+                        type: string
+                        description: Place UID (only present if a place was specified)
+                    required:
+                      - id
+                      - modified
+                  place:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        format: int32
+                      user_id:
+                        type: integer
+                        format: int32
+                      genre_id:
+                        type: integer
+                        format: int32
+                      category_id:
+                        type: integer
+                        format: int32
+                      account_id:
+                        type: integer
+                        format: int32
+                      transfer_account_id:
+                        type: integer
+                        format: int32
+                      mode:
+                        type: string
+                      place_uid:
+                        type: string
+                      service:
+                        type: string
+                      name:
+                        type: string
+                      original_name:
+                        type: string
+                      tel:
+                        type: string
+                      count:
+                        type: integer
+                        format: int32
+                      place_pattern_id:
+                        type: integer
+                        format: int32
+                      calc_flag:
+                        type: integer
+                        format: int32
+                      edit_flag:
+                        type: integer
+                        format: int32
+                      active:
+                        type: integer
+                        format: int32
+                      modified:
+                        type: string
+                      created:
+                        type: string
+                    required:
+                      - id
+                      - user_id
+                      - genre_id
+                      - category_id
+                      - account_id
+                      - transfer_account_id
+                      - mode
+                      - place_uid
+                      - service
+                      - name
+                      - original_name
+                      - tel
+                      - count
+                      - place_pattern_id
+                      - calc_flag
+                      - edit_flag
+                      - active
+                      - modified
+                      - created
+                    description: Place information (only present if a place was specified)
+                  user:
+                    type: object
+                    properties:
+                      repeat_count:
+                        type: integer
+                        format: int32
+                        description: Number of consecutive days of recording
+                      day_count:
+                        type: integer
+                        format: int32
+                        description: Total number of days with records
+                      input_count:
+                        type: integer
+                        format: int32
+                        description: Total number of inputs by the user
+                    required:
+                      - repeat_count
+                      - day_count
+                      - input_count
+                  requested:
+                    type: integer
+                    format: int32
+        "400":
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v2/home/money/transfer/{id}:
+    put:
+      operationId: TransferOperations_update
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+        - $ref: "#/components/parameters/Money.TransferData.mapping"
+        - $ref: "#/components/parameters/Money.TransferData.amount"
+        - $ref: "#/components/parameters/Money.TransferData.date"
+        - $ref: "#/components/parameters/Money.TransferData.from_account_id"
+        - $ref: "#/components/parameters/Money.TransferData.to_account_id"
+        - $ref: "#/components/parameters/Money.TransferData.comment"
+      responses:
+        "200":
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - money
+                  - user
+                  - requested
+                properties:
+                  money:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        format: int32
+                        description: Unique ID given by Zaim for each input
+                      modified:
+                        type: string
+                        description: Modification timestamp
+                      place_uid:
+                        type: string
+                        description: Place UID (only present if a place was specified)
+                    required:
+                      - id
+                      - modified
+                  place:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        format: int32
+                      user_id:
+                        type: integer
+                        format: int32
+                      genre_id:
+                        type: integer
+                        format: int32
+                      category_id:
+                        type: integer
+                        format: int32
+                      account_id:
+                        type: integer
+                        format: int32
+                      transfer_account_id:
+                        type: integer
+                        format: int32
+                      mode:
+                        type: string
+                      place_uid:
+                        type: string
+                      service:
+                        type: string
+                      name:
+                        type: string
+                      original_name:
+                        type: string
+                      tel:
+                        type: string
+                      count:
+                        type: integer
+                        format: int32
+                      place_pattern_id:
+                        type: integer
+                        format: int32
+                      calc_flag:
+                        type: integer
+                        format: int32
+                      edit_flag:
+                        type: integer
+                        format: int32
+                      active:
+                        type: integer
+                        format: int32
+                      modified:
+                        type: string
+                      created:
+                        type: string
+                    required:
+                      - id
+                      - user_id
+                      - genre_id
+                      - category_id
+                      - account_id
+                      - transfer_account_id
+                      - mode
+                      - place_uid
+                      - service
+                      - name
+                      - original_name
+                      - tel
+                      - count
+                      - place_pattern_id
+                      - calc_flag
+                      - edit_flag
+                      - active
+                      - modified
+                      - created
+                    description: Place information (only present if a place was specified)
+                  user:
+                    type: object
+                    properties:
+                      repeat_count:
+                        type: integer
+                        format: int32
+                        description: Number of consecutive days of recording
+                      day_count:
+                        type: integer
+                        format: int32
+                        description: Total number of days with records
+                      input_count:
+                        type: integer
+                        format: int32
+                        description: Total number of inputs by the user
+                    required:
+                      - repeat_count
+                      - day_count
+                      - input_count
+                  requested:
+                    type: integer
+                    format: int32
+        "400":
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: TransferOperations_delete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        "200":
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - money
+                  - user
+                  - requested
+                properties:
+                  money:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        format: int32
+                        description: Unique ID given by Zaim for each input
+                      modified:
+                        type: string
+                        description: Modification timestamp
+                      place_uid:
+                        type: string
+                        description: Place UID (only present if a place was specified)
+                    required:
+                      - id
+                      - modified
+                  place:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        format: int32
+                      user_id:
+                        type: integer
+                        format: int32
+                      genre_id:
+                        type: integer
+                        format: int32
+                      category_id:
+                        type: integer
+                        format: int32
+                      account_id:
+                        type: integer
+                        format: int32
+                      transfer_account_id:
+                        type: integer
+                        format: int32
+                      mode:
+                        type: string
+                      place_uid:
+                        type: string
+                      service:
+                        type: string
+                      name:
+                        type: string
+                      original_name:
+                        type: string
+                      tel:
+                        type: string
+                      count:
+                        type: integer
+                        format: int32
+                      place_pattern_id:
+                        type: integer
+                        format: int32
+                      calc_flag:
+                        type: integer
+                        format: int32
+                      edit_flag:
+                        type: integer
+                        format: int32
+                      active:
+                        type: integer
+                        format: int32
+                      modified:
+                        type: string
+                      created:
+                        type: string
+                    required:
+                      - id
+                      - user_id
+                      - genre_id
+                      - category_id
+                      - account_id
+                      - transfer_account_id
+                      - mode
+                      - place_uid
+                      - service
+                      - name
+                      - original_name
+                      - tel
+                      - count
+                      - place_pattern_id
+                      - calc_flag
+                      - edit_flag
+                      - active
+                      - modified
+                      - created
+                    description: Place information (only present if a place was specified)
+                  user:
+                    type: object
+                    properties:
+                      repeat_count:
+                        type: integer
+                        format: int32
+                        description: Number of consecutive days of recording
+                      day_count:
+                        type: integer
+                        format: int32
+                        description: Total number of days with records
+                      input_count:
+                        type: integer
+                        format: int32
+                        description: Total number of inputs by the user
+                    required:
+                      - repeat_count
+                      - day_count
+                      - input_count
+                  requested:
+                    type: integer
+                    format: int32
+        "400":
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v2/home/user/verify:
+    get:
+      operationId: User_verifyUser
+      parameters: []
+      responses:
+        "200":
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - me
+                  - requested
+                properties:
+                  me:
+                    allOf:
+                      - $ref: "#/components/schemas/User.User"
+                    description: User information
+                  requested:
+                    type: integer
+                    format: int32
+        "400":
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  parameters:
+    Money.IncomeData.amount:
+      name: amount
+      in: query
+      required: true
+      description: Amount without decimal point
+      schema:
+        type: integer
+        format: int32
+      explode: false
+    Money.IncomeData.category_id:
+      name: category_id
+      in: query
+      required: true
+      description: Category ID for income
+      schema:
+        type: integer
+        format: int32
+      explode: false
+    Money.IncomeData.comment:
+      name: comment
+      in: query
+      required: false
+      description: Comment (within 100 characters)
+      schema:
+        type: string
+      explode: false
+    Money.IncomeData.date:
+      name: date
+      in: query
+      required: true
+      description: Date in Y-m-d format (past three months)
+      schema:
+        type: string
+      explode: false
+    Money.IncomeData.mapping:
+      name: mapping
+      in: query
+      required: true
+      description: Required. Set to 1
+      schema:
+        type: number
+        enum:
+          - 1
+      explode: false
+    Money.IncomeData.place:
+      name: place
+      in: query
+      required: false
+      description: Place name (within 100 characters)
+      schema:
+        type: string
+      explode: false
+    Money.IncomeData.to_account_id:
+      name: to_account_id
+      in: query
+      required: false
+      description: Account ID for income
+      schema:
+        type: integer
+        format: int32
+      explode: false
+    Money.PaymentData.amount:
+      name: amount
+      in: query
+      required: true
+      description: Amount without decimal point
+      schema:
+        type: integer
+        format: int32
+      explode: false
+    Money.PaymentData.category_id:
+      name: category_id
+      in: query
+      required: true
+      description: Category ID for payment
+      schema:
+        type: integer
+        format: int32
+      explode: false
+    Money.PaymentData.comment:
+      name: comment
+      in: query
+      required: false
+      description: Comment (within 100 characters)
+      schema:
+        type: string
+      explode: false
+    Money.PaymentData.date:
+      name: date
+      in: query
+      required: true
+      description: Date in Y-m-d format (past/future 5 years is valid)
+      schema:
+        type: string
+      explode: false
+    Money.PaymentData.from_account_id:
+      name: from_account_id
+      in: query
+      required: false
+      description: Account ID for payment
+      schema:
+        type: integer
+        format: int32
+      explode: false
+    Money.PaymentData.genre_id:
+      name: genre_id
+      in: query
+      required: true
+      description: Genre ID for payment
+      schema:
+        type: integer
+        format: int32
+      explode: false
+    Money.PaymentData.mapping:
+      name: mapping
+      in: query
+      required: true
+      description: Required. Set to 1
+      schema:
+        type: number
+        enum:
+          - 1
+      explode: false
+    Money.PaymentData.name:
+      name: name
+      in: query
+      required: false
+      description: Product name (within 100 characters)
+      schema:
+        type: string
+      explode: false
+    Money.PaymentData.place:
+      name: place
+      in: query
+      required: false
+      description: Place name (within 100 characters)
+      schema:
+        type: string
+      explode: false
+    Money.PaymentData.place_uid:
+      name: place_uid
+      in: query
+      required: false
+      description: (Undocumented) Place ID for payment
+      schema:
+        type: string
+      explode: false
+    Money.PaymentData.receipt_id:
+      name: receipt_id
+      in: query
+      required: false
+      description: (Undocumented) Receipt ID for payment
+      schema:
+        type: integer
+        format: int32
+      explode: false
+    Money.TransferData.amount:
+      name: amount
+      in: query
+      required: true
+      description: Amount without decimal point
+      schema:
+        type: integer
+        format: int32
+      explode: false
+    Money.TransferData.comment:
+      name: comment
+      in: query
+      required: false
+      description: Comment (within 100 characters)
+      schema:
+        type: string
+      explode: false
+    Money.TransferData.date:
+      name: date
+      in: query
+      required: true
+      description: Date in Y-m-d format (past/future 5 years is valid)
+      schema:
+        type: string
+      explode: false
+    Money.TransferData.from_account_id:
+      name: from_account_id
+      in: query
+      required: true
+      description: Account ID for transfer from
+      schema:
+        type: integer
+        format: int32
+      explode: false
+    Money.TransferData.mapping:
+      name: mapping
+      in: query
+      required: true
+      description: Required. Set to 1
+      schema:
+        type: number
+        enum:
+          - 1
+      explode: false
+    Money.TransferData.to_account_id:
+      name: to_account_id
+      in: query
+      required: true
+      description: Account ID for transfer to
+      schema:
+        type: integer
+        format: int32
+      explode: false
+  schemas:
+    Account.Account:
+      type: object
+      required:
+        - id
+        - name
+        - modified
+        - sort
+        - active
+        - local_id
+        - website_id
+        - parent_account_id
+      properties:
+        id:
+          type: integer
+          format: int32
+          description: Unique account ID
+        name:
+          type: string
+          description: Account name
+        modified:
+          type: string
+          description: Last modified timestamp
+        sort:
+          type: integer
+          format: int32
+          description: Sort order
+        active:
+          type: integer
+          format: int32
+          description: Active status
+        local_id:
+          type: integer
+          format: int32
+          description: Local account ID
+        website_id:
+          type: integer
+          format: int32
+          description: Website ID
+        parent_account_id:
+          type: integer
+          format: int32
+          description: Parent account ID
+    Category.Category:
+      type: object
+      required:
+        - id
+        - name
+        - mode
+        - sort
+        - parent_category_id
+        - active
+        - modified
+        - local_id
+      properties:
+        id:
+          type: integer
+          format: int32
+          description: Unique category ID
+        name:
+          type: string
+          description: Category name
+        mode:
+          type: string
+          enum:
+            - payment
+            - income
+          description: 'Type of category: "payment" or "income"'
+        sort:
+          type: integer
+          format: int32
+          description: Sort order
+        parent_category_id:
+          type: integer
+          format: int32
+          description: Parent category ID
+        active:
+          type: integer
+          format: int32
+          description: Active status
+        modified:
+          type: string
+          description: Last modified timestamp
+        local_id:
+          type: integer
+          format: int32
+          description: (Undocumented)
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: boolean
+          enum:
+            - true
+        message:
+          type: string
+    Genre.Genre:
+      type: object
+      required:
+        - id
+        - name
+        - sort
+        - active
+        - category_id
+        - parent_genre_id
+        - modified
+        - local_id
+      properties:
+        id:
+          type: integer
+          format: int32
+          description: Unique genre ID
+        name:
+          type: string
+          description: Genre name
+        sort:
+          type: integer
+          format: int32
+          description: Sort order
+        active:
+          type: integer
+          format: int32
+          description: Active status
+        category_id:
+          type: integer
+          format: int32
+          description: Category ID this genre belongs to
+        parent_genre_id:
+          type: integer
+          format: int32
+          description: Parent genre ID
+        modified:
+          type: string
+          description: Last modified timestamp
+        local_id:
+          type: integer
+          format: int32
+          description: (Undocumented)
+    Money.Money:
+      type: object
+      required:
+        - id
+        - mode
+        - user_id
+        - date
+        - category_id
+        - genre_id
+        - to_account_id
+        - from_account_id
+        - amount
+        - comment
+        - active
+        - name
+        - receipt_id
+        - place
+        - place_uid
+        - created
+        - currency_code
+      properties:
+        id:
+          type: integer
+          format: int32
+          description: Unique input id
+        mode:
+          type: string
+          enum:
+            - income
+            - payment
+            - transfer
+          description: "Type of transaction: income, payment, or transfer"
+        user_id:
+          type: integer
+          format: int32
+          description: User ID
+        date:
+          type: string
+          description: Date of the transaction in YYYY-MM-DD format
+        category_id:
+          type: integer
+          format: int32
+          description: Category ID
+        genre_id:
+          type: integer
+          format: int32
+          description: Genre ID
+        to_account_id:
+          type: integer
+          format: int32
+          description: Account ID for incoming transfer (for income or transfer)
+        from_account_id:
+          type: integer
+          format: int32
+          description: Account ID for outgoing transfer (for payment or transfer)
+        amount:
+          type: integer
+          format: int32
+          description: Amount without decimal point
+        comment:
+          type: string
+          description: Comment or memo
+        active:
+          type: integer
+          format: int32
+          description: Active status
+        name:
+          type: string
+          description: Name of the item or product
+        receipt_id:
+          type: integer
+          format: int32
+          description: Receipt ID
+        place:
+          type: string
+          description: Place name
+        place_uid:
+          type: string
+          description: (Undocumented) Place unique ID
+        created:
+          type: string
+          description: Creation timestamp
+        currency_code:
+          type: string
+          description: Currency code
+    Money.MoneyResponse:
+      type: object
+      required:
+        - money
+        - user
+      properties:
+        money:
+          type: object
+          properties:
+            id:
+              type: integer
+              format: int32
+              description: Unique ID given by Zaim for each input
+            modified:
+              type: string
+              description: Modification timestamp
+            place_uid:
+              type: string
+              description: Place UID (only present if a place was specified)
+          required:
+            - id
+            - modified
+        place:
+          type: object
+          properties:
+            id:
+              type: integer
+              format: int32
+            user_id:
+              type: integer
+              format: int32
+            genre_id:
+              type: integer
+              format: int32
+            category_id:
+              type: integer
+              format: int32
+            account_id:
+              type: integer
+              format: int32
+            transfer_account_id:
+              type: integer
+              format: int32
+            mode:
+              type: string
+            place_uid:
+              type: string
+            service:
+              type: string
+            name:
+              type: string
+            original_name:
+              type: string
+            tel:
+              type: string
+            count:
+              type: integer
+              format: int32
+            place_pattern_id:
+              type: integer
+              format: int32
+            calc_flag:
+              type: integer
+              format: int32
+            edit_flag:
+              type: integer
+              format: int32
+            active:
+              type: integer
+              format: int32
+            modified:
+              type: string
+            created:
+              type: string
+          required:
+            - id
+            - user_id
+            - genre_id
+            - category_id
+            - account_id
+            - transfer_account_id
+            - mode
+            - place_uid
+            - service
+            - name
+            - original_name
+            - tel
+            - count
+            - place_pattern_id
+            - calc_flag
+            - edit_flag
+            - active
+            - modified
+            - created
+          description: Place information (only present if a place was specified)
+        user:
+          type: object
+          properties:
+            repeat_count:
+              type: integer
+              format: int32
+              description: Number of consecutive days of recording
+            day_count:
+              type: integer
+              format: int32
+              description: Total number of days with records
+            input_count:
+              type: integer
+              format: int32
+              description: Total number of inputs by the user
+          required:
+            - repeat_count
+            - day_count
+            - input_count
+    Other.Currency:
+      type: object
+      required:
+        - currency_code
+        - unit
+        - name
+        - point
+      properties:
+        currency_code:
+          type: string
+          description: Currency code
+        unit:
+          type: string
+          description: Currency unit symbol
+        name:
+          type: string
+          description: Currency name
+        point:
+          type: integer
+          format: int32
+          description: Number of decimal points
+    Other.DefaultAccount:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+          format: int32
+          description: Unique account ID
+        name:
+          type: string
+          description: Account name
+    Other.DefaultCategory:
+      type: object
+      required:
+        - id
+        - mode
+        - name
+      properties:
+        id:
+          type: integer
+          format: int32
+          description: Unique category ID
+        mode:
+          type: string
+          enum:
+            - payment
+            - income
+          description: 'Type of category: "payment" or "income"'
+        name:
+          type: string
+          description: Category name
+    Other.DefaultGenre:
+      type: object
+      required:
+        - id
+        - category_id
+        - name
+      properties:
+        id:
+          type: integer
+          format: int32
+          description: Unique genre ID
+        category_id:
+          type: integer
+          format: int32
+          description: Category ID this genre belongs to
+        name:
+          type: string
+          description: Genre name
+    User.User:
+      type: object
+      required:
+        - id
+        - login
+        - name
+        - input_count
+        - day_count
+        - repeat_count
+        - day
+        - week
+        - month
+        - currency_code
+        - profile_image_url
+        - cover_image_url
+        - profile_modified
+        - created
+      properties:
+        id:
+          type: integer
+          format: int32
+          description: Unique user ID
+        login:
+          type: string
+          description: Unique string for user login
+        name:
+          type: string
+          description: User name
+        input_count:
+          type: integer
+          format: int32
+          description: Total number of inputs
+        day_count:
+          type: integer
+          format: int32
+          description: Total number of days
+        repeat_count:
+          type: integer
+          format: int32
+          description: Days of continuous recording
+        day:
+          type: integer
+          format: int32
+          description: Start date of the month
+        week:
+          type: integer
+          format: int32
+          description: First day of the week
+        month:
+          type: integer
+          format: int32
+          description: Start date of the year
+        currency_code:
+          type: string
+          description: Default currency code
+        profile_image_url:
+          type: string
+          format: uri
+          description: URL of the user's profile image
+        cover_image_url:
+          type: string
+          format: uri
+          description: URL of the user's cover image
+        profile_modified:
+          type: string
+          description: Last modified time of the user's profile
+        created:
+          type: string
+          description: (Undocumented) Createed time of user
