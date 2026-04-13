@@ -8,4 +8,10 @@ export default defineConfig({
     },
   },
   fmt: {},
+  pack: {
+    dts: {
+      sourcemap: true,
+    },
+    sourcemap: true,
+  },
 });

@@ -8,6 +8,8 @@
     "./client": "./src/client/client/index.ts"
   },
   "scripts": {
+    "build": "vp pack ./src/client/index.ts",
+    "dev": "vp pack --watch",
     "test": "vp test",
     "check": "vp check",
     "generate:openapi3": "tsp compile ./typespec",
