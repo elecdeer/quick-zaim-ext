@@ -1,0 +1,6 @@
+{
+  "name": "quick-zaim-server",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-04-13",
+  "compatibility_flags": ["nodejs_compat"],
+}

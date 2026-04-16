@@ -23,5 +23,9 @@ dist-ssr
 *.sln
 *.sw?
 
+# Wrangler
+.wrangler/
+.dev.vars
+
 # AI agent worktrees
 .claude/worktrees/
