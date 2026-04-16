@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import type { Env } from "./env.ts";
 import "./logger.ts";
 import { authRoutes } from "./routes/auth.ts";
+import { zaimRoutes } from "./routes/zaim.ts";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -18,8 +19,19 @@ app.use("/callback", oidcAuthMiddleware());
 app.use("/me", oidcAuthMiddleware());
 app.use("/api/*", oidcAuthMiddleware());
 
+// Zaim OAuth ルート
+// /zaim/auth/start, /zaim/auth/status, /zaim/auth/token は OIDC 認証が必要
+// /zaim/auth/callback は Zaim からのリダイレクトを受け取るため OIDC 不要
+//   （ユーザー識別は KV に保存した OIDC sub で行う）
+app.use("/zaim/auth/start", oidcAuthMiddleware());
+app.use("/zaim/auth/status", oidcAuthMiddleware());
+app.use("/zaim/auth/token", oidcAuthMiddleware());
+
 // 認証関連ルート（/logout, /me）
 app.route("/", authRoutes);
+
+// Zaim OAuth フロー（/zaim/auth/*）
+app.route("/", zaimRoutes);
 
 app.get("/api/health", (c) => c.json({ status: "ok" }));
 
