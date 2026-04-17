@@ -14,5 +14,4 @@ configureSync({
   reset: true,
 });
 
-export const serverLogger = getLogger(["quick-zaim", "server"]);
 export const authLogger = getLogger(["quick-zaim", "server", "auth"]);
