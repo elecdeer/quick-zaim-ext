@@ -1,9 +1,13 @@
 import { oidcAuthMiddleware } from "@hono/oidc-auth";
+import { honoLogger } from "@logtape/hono";
 import { Hono } from "hono";
 import type { Env } from "./env.ts";
+import "./logger.ts";
 import { authRoutes } from "./routes/auth.ts";
 
 const app = new Hono<{ Bindings: Env }>();
+
+app.use(honoLogger({ category: ["quick-zaim", "server"] }));
 
 // 公開ルート（認証不要）
 app.get("/", (c) => c.text("Hello World!"));
