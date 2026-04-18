@@ -15,7 +15,11 @@
 import { getAuth } from "@hono/oidc-auth";
 import { Hono } from "hono";
 import type { Env } from "../env.ts";
-import { buildZaimAuthorizeUrl, fetchZaimAccessToken, fetchZaimRequestToken } from "../oauth1.ts";
+import {
+  buildZaimAuthorizeUrl,
+  fetchZaimAccessToken,
+  fetchZaimRequestToken,
+} from "../zaim-oauth.ts";
 
 export const zaimRoutes = new Hono<{ Bindings: Env }>();
 
