@@ -42,7 +42,10 @@ export async function fetchZaimRequestToken(
 
   const response = await fetch(ZAIM_REQUEST_TOKEN_URL, {
     method: "POST",
-    headers: { Authorization: authHeader },
+    headers: {
+      Authorization: authHeader,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
   });
 
   if (!response.ok) {
@@ -81,7 +84,10 @@ export async function fetchZaimAccessToken(
 
   const response = await fetch(ZAIM_ACCESS_TOKEN_URL, {
     method: "POST",
-    headers: { Authorization: authHeader },
+    headers: {
+      Authorization: authHeader,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
   });
 
   if (!response.ok) {
