@@ -12,8 +12,10 @@
  *   zaim:token:{oidc_sub}       - Access Token（永続）
  */
 
+import { sValidator } from "@hono/standard-validator";
 import { getAuth } from "@hono/oidc-auth";
 import { Hono } from "hono";
+import * as v from "valibot";
 import type { Env } from "../env.ts";
 import {
   buildZaimAuthorizeUrl,
@@ -27,17 +29,25 @@ export const zaimRoutes = new Hono<{ Bindings: Env }>();
 /** Request Token の有効期限（秒） */
 const REQUEST_TOKEN_TTL = 600;
 
-interface RequestTokenState {
-  tokenSecret: string;
+const RequestTokenStateSchema = v.object({
+  tokenSecret: v.string(),
   /** Request Token 取得時点でのログインユーザーの OIDC sub */
-  userSub: string;
-}
+  userSub: v.string(),
+});
 
-interface StoredAccessToken {
-  oauthToken: string;
-  oauthTokenSecret: string;
-  zaimUserId: string;
-}
+const StoredAccessTokenSchema = v.object({
+  oauthToken: v.string(),
+  oauthTokenSecret: v.string(),
+  zaimUserId: v.string(),
+});
+
+const CallbackQuerySchema = v.object({
+  oauth_token: v.string(),
+  oauth_verifier: v.string(),
+});
+
+type RequestTokenState = v.InferOutput<typeof RequestTokenStateSchema>;
+type StoredAccessToken = v.InferOutput<typeof StoredAccessTokenSchema>;
 
 /**
  * Zaim OAuth 開始
@@ -81,56 +91,59 @@ zaimRoutes.get("/zaim/auth/start", async (c) => {
  * Access Token を取得してユーザーの KV に保存する。
  * ユーザー識別は Request Token 取得時に KV に保存した OIDC sub で行う。
  */
-zaimRoutes.get("/zaim/auth/callback", async (c) => {
-  const oauthToken = c.req.query("oauth_token");
-  const oauthVerifier = c.req.query("oauth_verifier");
+zaimRoutes.get(
+  "/zaim/auth/callback",
+  sValidator("query", CallbackQuerySchema, (result, c) => {
+    if (!result.success) {
+      return c.json({ error: "Missing oauth_token or oauth_verifier" }, 400);
+    }
+  }),
+  async (c) => {
+    const { oauth_token: oauthToken, oauth_verifier: oauthVerifier } = c.req.valid("query");
 
-  if (!oauthToken || !oauthVerifier) {
-    return c.json({ error: "Missing oauth_token or oauth_verifier" }, 400);
-  }
+    const stored = await c.env.ZAIM_KV.get(`zaim:request:${oauthToken}`);
+    if (!stored) {
+      return c.json({ error: "Request token not found or expired" }, 400);
+    }
 
-  const stored = await c.env.ZAIM_KV.get(`zaim:request:${oauthToken}`);
-  if (!stored) {
-    return c.json({ error: "Request token not found or expired" }, 400);
-  }
+    const { tokenSecret, userSub } = v.parse(RequestTokenStateSchema, JSON.parse(stored));
 
-  const { tokenSecret, userSub } = JSON.parse(stored) as RequestTokenState;
+    const accessConfig = {
+      consumerKey: c.env.ZAIM_CONSUMER_KEY,
+      consumerSecret: c.env.ZAIM_CONSUMER_SECRET,
+      token: oauthToken,
+      tokenSecret,
+    };
 
-  const accessConfig = {
-    consumerKey: c.env.ZAIM_CONSUMER_KEY,
-    consumerSecret: c.env.ZAIM_CONSUMER_SECRET,
-    token: oauthToken,
-    tokenSecret,
-  };
+    const { oauthToken: accessToken, oauthTokenSecret } = await fetchZaimAccessToken(
+      accessConfig,
+      oauthVerifier,
+    );
 
-  const { oauthToken: accessToken, oauthTokenSecret } = await fetchZaimAccessToken(
-    accessConfig,
-    oauthVerifier,
-  );
+    const accessTokenConfig = {
+      consumerKey: c.env.ZAIM_CONSUMER_KEY,
+      consumerSecret: c.env.ZAIM_CONSUMER_SECRET,
+      token: accessToken,
+      tokenSecret: oauthTokenSecret,
+    };
 
-  const accessTokenConfig = {
-    consumerKey: c.env.ZAIM_CONSUMER_KEY,
-    consumerSecret: c.env.ZAIM_CONSUMER_SECRET,
-    token: accessToken,
-    tokenSecret: oauthTokenSecret,
-  };
+    const zaimUserId = await fetchZaimUserId(accessTokenConfig);
 
-  const zaimUserId = await fetchZaimUserId(accessTokenConfig);
+    const tokenData: StoredAccessToken = {
+      oauthToken: accessToken,
+      oauthTokenSecret,
+      zaimUserId,
+    };
 
-  const tokenData: StoredAccessToken = {
-    oauthToken: accessToken,
-    oauthTokenSecret,
-    zaimUserId,
-  };
+    // アクセストークンを永続保存
+    await c.env.ZAIM_KV.put(`zaim:token:${userSub}`, JSON.stringify(tokenData));
 
-  // アクセストークンを永続保存
-  await c.env.ZAIM_KV.put(`zaim:token:${userSub}`, JSON.stringify(tokenData));
+    // 使用済み Request Token を削除
+    await c.env.ZAIM_KV.delete(`zaim:request:${oauthToken}`);
 
-  // 使用済み Request Token を削除
-  await c.env.ZAIM_KV.delete(`zaim:request:${oauthToken}`);
-
-  return c.json({ ok: true, zaimUserId });
-});
+    return c.json({ ok: true, zaimUserId });
+  },
+);
 
 /**
  * Zaim 連携状態確認
@@ -147,7 +160,7 @@ zaimRoutes.get("/zaim/auth/status", async (c) => {
     return c.json({ connected: false });
   }
 
-  const { zaimUserId } = JSON.parse(stored) as StoredAccessToken;
+  const { zaimUserId } = v.parse(StoredAccessTokenSchema, JSON.parse(stored));
   return c.json({ connected: true, zaimUserId });
 });
 
@@ -175,5 +188,5 @@ export async function getStoredZaimToken(
 ): Promise<StoredAccessToken | null> {
   const stored = await kv.get(`zaim:token:${userSub}`);
   if (!stored) return null;
-  return JSON.parse(stored) as StoredAccessToken;
+  return v.parse(StoredAccessTokenSchema, JSON.parse(stored));
 }

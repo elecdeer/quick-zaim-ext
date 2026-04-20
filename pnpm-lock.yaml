@@ -9,6 +9,9 @@ catalogs:
     '@hey-api/openapi-ts':
       specifier: ^0.96.0
       version: 0.96.0
+    '@hono/standard-validator':
+      specifier: ^0.2.2
+      version: 0.2.2
     '@logtape/hono':
       specifier: ^2.0.5
       version: 2.0.5
@@ -51,6 +54,9 @@ importers:
       '@hono/oidc-auth':
         specifier: ^1.8.1
         version: 1.8.1(hono@4.12.12)
+      '@hono/standard-validator':
+        specifier: 'catalog:'
+        version: 0.2.2(@standard-schema/spec@1.1.0)(hono@4.12.12)
       '@logtape/hono':
         specifier: 'catalog:'
         version: 2.0.5(@logtape/logtape@2.0.5)(hono@4.12.12)
@@ -347,6 +353,12 @@ packages:
     engines: {node: '>=18.0.0'}
     peerDependencies:
       hono: '>=3.0.0'
+
+  '@hono/standard-validator@0.2.2':
+    resolution: {integrity: sha512-mJ7W84Bt/rSvoIl63Ynew+UZOHAzzRAoAXb3JaWuxAkM/Lzg+ZHTCUiz77KOtn2e623WNN8LkD57Dk0szqUrIw==}
+    peerDependencies:
+      '@standard-schema/spec': ^1.0.0
+      hono: '>=3.9.0'
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -2280,6 +2292,11 @@ snapshots:
     dependencies:
       hono: 4.12.12
       oauth4webapi: 2.17.0
+
+  '@hono/standard-validator@0.2.2(@standard-schema/spec@1.1.0)(hono@4.12.12)':
+    dependencies:
+      '@standard-schema/spec': 1.1.0
+      hono: 4.12.12
 
   '@img/colour@1.1.0': {}
 

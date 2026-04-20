@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@hono/oidc-auth": "^1.8.1",
+    "@hono/standard-validator": "catalog:",
     "@logtape/hono": "catalog:",
     "@logtape/logtape": "catalog:",
     "hono": "^4.12.12",
