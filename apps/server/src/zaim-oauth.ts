@@ -89,13 +89,14 @@ export async function fetchZaimAccessToken(
     throw new Error(`Access token failed [${response.status}]: ${body}`);
   }
 
-  const params = new URLSearchParams(await response.text());
+  const body = await response.text();
+  const params = new URLSearchParams(body);
   const oauthToken = params.get("oauth_token");
   const oauthTokenSecret = params.get("oauth_token_secret");
   const userId = params.get("user_id");
 
   if (!oauthToken || !oauthTokenSecret || !userId) {
-    throw new Error("Invalid access token response: missing required fields");
+    throw new Error(`Invalid access token response: missing required fields. body=${body}`);
   }
 
   return { oauthToken, oauthTokenSecret, userId };
