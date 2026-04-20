@@ -8,6 +8,7 @@
  *   1. Request Token 取得: POST https://api.zaim.net/v2/auth/request
  *   2. ユーザー認可: https://auth.zaim.net/users/auth?oauth_token=...
  *   3. Access Token 取得: POST https://api.zaim.net/v2/auth/access
+ *   4. ユーザー ID 取得: GET https://api.zaim.net/v2/home/user/verify
  */
 
 import { buildOAuth1AuthorizationHeader, type OAuth1Config } from "./oauth1.ts";
@@ -15,6 +16,7 @@ import { buildOAuth1AuthorizationHeader, type OAuth1Config } from "./oauth1.ts";
 const ZAIM_REQUEST_TOKEN_URL = "https://api.zaim.net/v2/auth/request";
 const ZAIM_AUTHORIZE_URL = "https://auth.zaim.net/users/auth";
 const ZAIM_ACCESS_TOKEN_URL = "https://api.zaim.net/v2/auth/access";
+const ZAIM_USER_VERIFY_URL = "https://api.zaim.net/v2/home/user/verify";
 
 export interface RequestTokenResult {
   oauthToken: string;
@@ -24,7 +26,6 @@ export interface RequestTokenResult {
 export interface AccessTokenResult {
   oauthToken: string;
   oauthTokenSecret: string;
-  userId: string;
 }
 
 /**
@@ -71,6 +72,10 @@ export function buildZaimAuthorizeUrl(oauthToken: string): string {
 
 /**
  * Request Token と Verifier を使って Access Token を取得する
+ *
+ * Zaim の /v2/auth/access はレスポンスに user_id を含まないため、
+ * ユーザー ID が必要な場合は fetchZaimUserId を別途呼び出すこと。
+ *
  * @param config        - Consumer Key / Secret + Request Token / Secret
  * @param oauthVerifier - Zaim から受け取った oauth_verifier
  */
@@ -99,13 +104,34 @@ export async function fetchZaimAccessToken(
   const params = new URLSearchParams(body);
   const oauthToken = params.get("oauth_token");
   const oauthTokenSecret = params.get("oauth_token_secret");
-  const userId = params.get("user_id");
 
-  if (!oauthToken || !oauthTokenSecret || !userId) {
-    throw new Error(`Invalid access token response: missing required fields. body=${body}`);
+  if (!oauthToken || !oauthTokenSecret) {
+    throw new Error(
+      `Invalid access token response: missing oauth_token or oauth_token_secret. body=${body}`,
+    );
   }
 
-  return { oauthToken, oauthTokenSecret, userId };
+  return { oauthToken, oauthTokenSecret };
+}
+
+/**
+ * アクセストークンを使って Zaim のユーザー ID を取得する
+ * @param config - Consumer Key / Secret + Access Token / Secret
+ */
+export async function fetchZaimUserId(config: OAuth1Config): Promise<string> {
+  const authHeader = await buildOAuth1AuthorizationHeader("GET", ZAIM_USER_VERIFY_URL, config);
+
+  const response = await fetch(ZAIM_USER_VERIFY_URL, {
+    headers: { Authorization: authHeader },
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`User verify failed [${response.status}]: ${body}`);
+  }
+
+  const json = (await response.json()) as { me: { id: number } };
+  return String(json.me.id);
 }
 
 /**

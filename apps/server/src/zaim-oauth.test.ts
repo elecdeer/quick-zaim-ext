@@ -186,7 +186,7 @@ describe("fetchZaimRequestToken", () => {
 // ── fetchZaimAccessToken ─────────────────────────────────────────────────────
 
 describe("fetchZaimAccessToken", () => {
-  const SUCCESS_BODY = "oauth_token=access_token&oauth_token_secret=access_secret&user_id=12345";
+  const SUCCESS_BODY = "oauth_token=access_token&oauth_token_secret=access_secret";
 
   const REQ_CONFIG = {
     consumerKey: "key",
@@ -231,7 +231,6 @@ describe("fetchZaimAccessToken", () => {
       expect(result).toEqual({
         oauthToken: "access_token",
         oauthTokenSecret: "access_secret",
-        userId: "12345",
       });
     },
   );
@@ -248,12 +247,12 @@ describe("fetchZaimAccessToken", () => {
   );
 
   zaimTest(
-    "レスポンスにuser_idが欠ける場合にエラーをスローする",
+    "oauth_tokenが欠ける場合にエラーをスローする",
     async ({ fixedTime: _t, mockedNonce: _n, mockFetch }) => {
-      mockFetch.mockResolvedValue(new Response("oauth_token=tok&oauth_token_secret=sec"));
+      mockFetch.mockResolvedValue(new Response("oauth_token_secret=sec"));
 
       await expect(fetchZaimAccessToken(REQ_CONFIG, "verifier")).rejects.toThrow(
-        "missing required fields",
+        "missing oauth_token or oauth_token_secret",
       );
     },
   );

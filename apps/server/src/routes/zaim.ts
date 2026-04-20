@@ -19,6 +19,7 @@ import {
   buildZaimAuthorizeUrl,
   fetchZaimAccessToken,
   fetchZaimRequestToken,
+  fetchZaimUserId,
 } from "../zaim-oauth.ts";
 
 export const zaimRoutes = new Hono<{ Bindings: Env }>();
@@ -95,24 +96,31 @@ zaimRoutes.get("/zaim/auth/callback", async (c) => {
 
   const { tokenSecret, userSub } = JSON.parse(stored) as RequestTokenState;
 
-  const {
-    oauthToken: accessToken,
-    oauthTokenSecret,
-    userId,
-  } = await fetchZaimAccessToken(
-    {
-      consumerKey: c.env.ZAIM_CONSUMER_KEY,
-      consumerSecret: c.env.ZAIM_CONSUMER_SECRET,
-      token: oauthToken,
-      tokenSecret,
-    },
+  const accessConfig = {
+    consumerKey: c.env.ZAIM_CONSUMER_KEY,
+    consumerSecret: c.env.ZAIM_CONSUMER_SECRET,
+    token: oauthToken,
+    tokenSecret,
+  };
+
+  const { oauthToken: accessToken, oauthTokenSecret } = await fetchZaimAccessToken(
+    accessConfig,
     oauthVerifier,
   );
+
+  const accessTokenConfig = {
+    consumerKey: c.env.ZAIM_CONSUMER_KEY,
+    consumerSecret: c.env.ZAIM_CONSUMER_SECRET,
+    token: accessToken,
+    tokenSecret: oauthTokenSecret,
+  };
+
+  const zaimUserId = await fetchZaimUserId(accessTokenConfig);
 
   const tokenData: StoredAccessToken = {
     oauthToken: accessToken,
     oauthTokenSecret,
-    zaimUserId: userId,
+    zaimUserId,
   };
 
   // アクセストークンを永続保存
@@ -121,7 +129,7 @@ zaimRoutes.get("/zaim/auth/callback", async (c) => {
   // 使用済み Request Token を削除
   await c.env.ZAIM_KV.delete(`zaim:request:${oauthToken}`);
 
-  return c.json({ ok: true, zaimUserId: userId });
+  return c.json({ ok: true, zaimUserId });
 });
 
 /**
