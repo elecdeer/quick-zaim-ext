@@ -11,12 +11,29 @@
  *   4. ユーザー ID 取得: GET https://api.zaim.net/v2/home/user/verify
  */
 
+import * as v from "valibot";
 import { buildOAuth1AuthorizationHeader, type OAuth1Config } from "./oauth1.ts";
 
 const ZAIM_REQUEST_TOKEN_URL = "https://api.zaim.net/v2/auth/request";
 const ZAIM_AUTHORIZE_URL = "https://auth.zaim.net/users/auth";
 const ZAIM_ACCESS_TOKEN_URL = "https://api.zaim.net/v2/auth/access";
 const ZAIM_USER_VERIFY_URL = "https://api.zaim.net/v2/home/user/verify";
+
+const RequestTokenSchema = v.object({
+  oauth_token: v.string(),
+  oauth_token_secret: v.string(),
+});
+
+const AccessTokenSchema = v.object({
+  oauth_token: v.string(),
+  oauth_token_secret: v.string(),
+});
+
+const UserVerifySchema = v.object({
+  me: v.object({
+    id: v.number(),
+  }),
+});
 
 export interface RequestTokenResult {
   oauthToken: string;
@@ -54,15 +71,12 @@ export async function fetchZaimRequestToken(
     throw new Error(`Request token failed [${response.status}]: ${body}`);
   }
 
-  const params = new URLSearchParams(await response.text());
-  const oauthToken = params.get("oauth_token");
-  const oauthTokenSecret = params.get("oauth_token_secret");
+  const parsed = v.parse(
+    RequestTokenSchema,
+    Object.fromEntries(new URLSearchParams(await response.text())),
+  );
 
-  if (!oauthToken || !oauthTokenSecret) {
-    throw new Error("Invalid request token response: missing oauth_token or oauth_token_secret");
-  }
-
-  return { oauthToken, oauthTokenSecret };
+  return { oauthToken: parsed.oauth_token, oauthTokenSecret: parsed.oauth_token_secret };
 }
 
 /** Zaim ユーザー認可 URL を構築する */
@@ -100,18 +114,12 @@ export async function fetchZaimAccessToken(
     throw new Error(`Access token failed [${response.status}]: ${body}`);
   }
 
-  const body = await response.text();
-  const params = new URLSearchParams(body);
-  const oauthToken = params.get("oauth_token");
-  const oauthTokenSecret = params.get("oauth_token_secret");
+  const parsed = v.parse(
+    AccessTokenSchema,
+    Object.fromEntries(new URLSearchParams(await response.text())),
+  );
 
-  if (!oauthToken || !oauthTokenSecret) {
-    throw new Error(
-      `Invalid access token response: missing oauth_token or oauth_token_secret. body=${body}`,
-    );
-  }
-
-  return { oauthToken, oauthTokenSecret };
+  return { oauthToken: parsed.oauth_token, oauthTokenSecret: parsed.oauth_token_secret };
 }
 
 /**
@@ -130,8 +138,8 @@ export async function fetchZaimUserId(config: OAuth1Config): Promise<string> {
     throw new Error(`User verify failed [${response.status}]: ${body}`);
   }
 
-  const json = (await response.json()) as { me: { id: number } };
-  return String(json.me.id);
+  const parsed = v.parse(UserVerifySchema, await response.json());
+  return String(parsed.me.id);
 }
 
 /**

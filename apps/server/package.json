@@ -12,7 +12,8 @@
     "@hono/oidc-auth": "^1.8.1",
     "@logtape/hono": "catalog:",
     "@logtape/logtape": "catalog:",
-    "hono": "^4.12.12"
+    "hono": "^4.12.12",
+    "valibot": "catalog:"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260413.1",
