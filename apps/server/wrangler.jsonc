@@ -3,4 +3,14 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-04-13",
   "compatibility_flags": ["nodejs_compat"],
+  // KV ネームスペース
+  // 本番用 ID は `wrangler kv namespace create ZAIM_KV` で取得してください
+  "kv_namespaces": [
+    {
+      "binding": "ZAIM_KV",
+      "id": "REPLACE_WITH_KV_NAMESPACE_ID",
+      // ローカル開発用プレビュー ID（wrangler dev では自動的にローカル KV を使用）
+      "preview_id": "REPLACE_WITH_PREVIEW_KV_NAMESPACE_ID",
+    },
+  ],
 }
