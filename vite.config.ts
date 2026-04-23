@@ -5,9 +5,12 @@ export default defineConfig({
     "*": "vp check --fix",
   },
   fmt: {
-    exclude: ["**/.wrangler/**"],
+    exclude: ["**/.wrangler/**", "**/.output/**", "**/.wxt/**"],
   },
-  lint: { options: { typeAware: true, typeCheck: true } },
+  lint: {
+    ignorePatterns: ["**/.output/**", "**/.wxt/**"],
+    options: { typeAware: true, typeCheck: true },
+  },
   run: {
     cache: true,
   },

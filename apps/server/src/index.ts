@@ -1,6 +1,7 @@
 import { oidcAuthMiddleware } from "@hono/oidc-auth";
 import { honoLogger } from "@logtape/hono";
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import type { Env } from "./env.ts";
 import "./logger.ts";
 import { authRoutes } from "./routes/auth.ts";
@@ -9,6 +10,26 @@ import { zaimRoutes } from "./routes/zaim.ts";
 const app = new Hono<{ Bindings: Env }>();
 
 app.use(honoLogger({ category: ["quick-zaim", "server"] }));
+
+// Chrome拡張機能・ローカル開発からのクロスオリジンリクエストを許可
+app.use(
+  cors({
+    origin: (origin) => {
+      if (!origin) return null;
+      if (
+        origin.startsWith("chrome-extension://") ||
+        origin.startsWith("http://localhost") ||
+        origin.startsWith("http://127.0.0.1")
+      ) {
+        return origin;
+      }
+      return null;
+    },
+    credentials: true,
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 
 // 公開ルート（認証不要）
 app.get("/", (c) => c.text("Hello World!"));

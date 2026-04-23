@@ -1,0 +1,35 @@
+{
+  "name": "extension",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "build": "wxt build",
+    "check": "vp check",
+    "test": "vp test",
+    "prepare": "wxt prepare",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
+  },
+  "dependencies": {
+    "@cloudflare/kumo": "^1.19.0",
+    "@phosphor-icons/react": "^2.1.10",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
+  },
+  "devDependencies": {
+    "@storybook/react": "^10.3.5",
+    "@storybook/react-vite": "^10.3.5",
+    "@tailwindcss/vite": "^4.2.4",
+    "@types/chrome": "^0.1.40",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@wxt-dev/module-react": "^1.2.2",
+    "storybook": "^10.3.5",
+    "tailwindcss": "^4.2.4",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:",
+    "wxt": "^0.20.25"
+  }
+}
