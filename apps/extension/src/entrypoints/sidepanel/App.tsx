@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { createApiClient } from "../../lib/api-client.ts";
 import ServerLogin from "../../components/ServerLogin.tsx";
 import ZaimLogin from "../../components/ZaimLogin.tsx";
 
@@ -34,13 +35,12 @@ export default function App() {
     if (!url) return;
     setAuth((prev) => ({ ...prev, isLoading: true, error: null }));
 
+    const client = createApiClient(url);
+
     let meRes: Response;
     try {
       // redirect: "manual" でOIDCリダイレクト(302)をエラーなく検知する
-      meRes = await fetch(`${url}/me`, {
-        credentials: "include",
-        redirect: "manual",
-      });
+      meRes = await client.me.$get();
     } catch {
       // ネットワークエラー（サーバー未起動・URLが不正など）
       setAuth({
@@ -58,22 +58,19 @@ export default function App() {
     }
 
     try {
-      const user: ServerUser = await meRes.json();
+      const user = await meRes.json();
 
-      const zaimRes = await fetch(`${url}/zaim/auth/status`, {
-        credentials: "include",
-        redirect: "manual",
-      });
+      const zaimRes = await client.zaim.auth.status.$get();
       const zaim =
         zaimRes.ok && zaimRes.type !== "opaqueredirect"
           ? await zaimRes.json()
-          : { connected: false, zaimUserId: null };
+          : { connected: false as const };
 
       setAuth({
         isServerAuthenticated: true,
         serverUser: user,
-        isZaimConnected: zaim.connected ?? false,
-        zaimUserId: zaim.zaimUserId ?? null,
+        isZaimConnected: zaim.connected,
+        zaimUserId: zaim.connected ? zaim.zaimUserId : null,
         isLoading: false,
         error: null,
       });
@@ -116,10 +113,8 @@ export default function App() {
   async function handleZaimDisconnect() {
     setAuth((prev) => ({ ...prev, isLoading: true }));
     try {
-      await fetch(`${serverUrl}/zaim/auth/token`, {
-        method: "DELETE",
-        credentials: "include",
-      });
+      const client = createApiClient(serverUrl);
+      await client.zaim.auth.token.$delete();
       setAuth((prev) => ({
         ...prev,
         isZaimConnected: false,

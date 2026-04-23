@@ -13,7 +13,7 @@
     "@hono/standard-validator": "catalog:",
     "@logtape/hono": "catalog:",
     "@logtape/logtape": "catalog:",
-    "hono": "^4.12.14",
+    "hono": "catalog:",
     "valibot": "catalog:"
   },
   "devDependencies": {

@@ -6,6 +6,7 @@ packages:
 catalog:
   "@hey-api/openapi-ts": ^0.96.1
   "@hono/standard-validator": ^0.2.2
+  hono: ^4.12.14
   "@logtape/hono": ^2.0.5
   "@logtape/logtape": ^2.0.5
   "@types/node": ^25.6.0
