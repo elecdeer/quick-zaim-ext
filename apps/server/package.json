@@ -13,12 +13,12 @@
     "@hono/standard-validator": "catalog:",
     "@logtape/hono": "catalog:",
     "@logtape/logtape": "catalog:",
-    "hono": "^4.12.12",
+    "hono": "^4.12.14",
     "valibot": "catalog:"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260413.1",
+    "@cloudflare/workers-types": "^4.20260423.1",
     "typescript": "catalog:",
-    "wrangler": "^4.82.1"
+    "wrangler": "^4.84.1"
   }
 }
