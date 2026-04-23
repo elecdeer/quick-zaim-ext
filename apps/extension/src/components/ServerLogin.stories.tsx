@@ -1,7 +1,7 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import preview from "../../.storybook/preview";
 import ServerLogin from "./ServerLogin.tsx";
 
-const meta = {
+const meta = preview.meta({
   title: "Components/ServerLogin",
   component: ServerLogin,
   args: {
@@ -9,31 +9,30 @@ const meta = {
     onLogout: () => {},
     onRefresh: () => {},
   },
-} satisfies Meta<typeof ServerLogin>;
+});
 
 export default meta;
-type Story = StoryObj<typeof meta>;
 
-export const NotLoggedIn: Story = {
+export const NotLoggedIn = meta.story({
   args: {
     isAuthenticated: false,
     user: null,
     isLoading: false,
   },
-};
+});
 
-export const LoggedIn: Story = {
+export const LoggedIn = meta.story({
   args: {
     isAuthenticated: true,
     user: { email: "user@example.com", sub: "auth0|abc123" },
     isLoading: false,
   },
-};
+});
 
-export const ServerLoadingState: Story = {
+export const ServerLoadingState = meta.story({
   args: {
     isAuthenticated: false,
     user: null,
     isLoading: true,
   },
-};
+});
