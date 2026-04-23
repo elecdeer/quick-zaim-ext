@@ -34,23 +34,40 @@ export default function App() {
     if (!url) return;
     setAuth((prev) => ({ ...prev, isLoading: true, error: null }));
 
+    let meRes: Response;
     try {
-      const meRes = await fetch(`${url}/me`, { credentials: "include" });
+      // redirect: "manual" でOIDCリダイレクト(302)をエラーなく検知する
+      meRes = await fetch(`${url}/me`, {
+        credentials: "include",
+        redirect: "manual",
+      });
+    } catch {
+      // ネットワークエラー（サーバー未起動・URLが不正など）
+      setAuth({
+        ...DEFAULT_STATE,
+        isLoading: false,
+        error: "サーバーへの接続に失敗しました",
+      });
+      return;
+    }
 
-      if (!meRes.ok) {
-        setAuth({
-          ...DEFAULT_STATE,
-          isLoading: false,
-        });
-        return;
-      }
+    // opaqueredirect = 未認証でOIDCにリダイレクトされた状態
+    if (meRes.type === "opaqueredirect" || !meRes.ok) {
+      setAuth({ ...DEFAULT_STATE, isLoading: false });
+      return;
+    }
 
+    try {
       const user: ServerUser = await meRes.json();
 
       const zaimRes = await fetch(`${url}/zaim/auth/status`, {
         credentials: "include",
+        redirect: "manual",
       });
-      const zaim = zaimRes.ok ? await zaimRes.json() : { connected: false, zaimUserId: null };
+      const zaim =
+        zaimRes.ok && zaimRes.type !== "opaqueredirect"
+          ? await zaimRes.json()
+          : { connected: false, zaimUserId: null };
 
       setAuth({
         isServerAuthenticated: true,
@@ -61,11 +78,7 @@ export default function App() {
         error: null,
       });
     } catch {
-      setAuth({
-        ...DEFAULT_STATE,
-        isLoading: false,
-        error: "サーバーへの接続に失敗しました",
-      });
+      setAuth({ ...DEFAULT_STATE, isLoading: false, error: "レスポンスの解析に失敗しました" });
     }
   }, []);
 
@@ -87,7 +100,8 @@ export default function App() {
   }
 
   function handleServerLogin() {
-    void chrome.tabs.create({ url: serverUrl });
+    // /me はOIDC保護されているため、未認証時はAuth0にリダイレクトされてログインフローが始まる
+    void chrome.tabs.create({ url: `${serverUrl}/me` });
   }
 
   function handleServerLogout() {
