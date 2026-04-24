@@ -1,7 +1,7 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import preview from "../../.storybook/preview";
 import ZaimLogin from "./ZaimLogin.tsx";
 
-const meta = {
+const meta = preview.meta({
   title: "Components/ZaimLogin",
   component: ZaimLogin,
   args: {
@@ -9,31 +9,30 @@ const meta = {
     onDisconnect: () => {},
     onRefresh: () => {},
   },
-} satisfies Meta<typeof ZaimLogin>;
+});
 
 export default meta;
-type Story = StoryObj<typeof meta>;
 
-export const NotConnected: Story = {
+export const NotConnected = meta.story({
   args: {
     isConnected: false,
     zaimUserId: null,
     isLoading: false,
   },
-};
+});
 
-export const Connected: Story = {
+export const Connected = meta.story({
   args: {
     isConnected: true,
     zaimUserId: "zaim_user_123456",
     isLoading: false,
   },
-};
+});
 
-export const ZaimLoadingState: Story = {
+export const ZaimLoadingState = meta.story({
   args: {
     isConnected: false,
     zaimUserId: null,
     isLoading: true,
   },
-};
+});

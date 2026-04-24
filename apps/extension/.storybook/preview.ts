@@ -1,9 +1,9 @@
-import type { Preview } from "@storybook/react";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+import { definePreview } from "@storybook/react-vite";
 // @ts-expect-error -- CSS import is handled by Vite; TS doesn't know the module
 import "../src/assets/global.css";
 
-const preview: Preview = {
+export default definePreview({
+  addons: [],
   parameters: {
     controls: {
       matchers: {
@@ -13,6 +13,4 @@ const preview: Preview = {
     },
     layout: "padded",
   },
-};
-
-export default preview;
+});

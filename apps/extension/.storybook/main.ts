@@ -1,7 +1,7 @@
 import tailwindcss from "@tailwindcss/vite";
-import type { StorybookConfig } from "@storybook/react-vite";
+import { defineMain } from "@storybook/react-vite/node";
 
-const config: StorybookConfig = {
+export default defineMain({
   stories: ["../src/**/*.stories.{ts,tsx}"],
   addons: [],
   framework: {
@@ -12,6 +12,4 @@ const config: StorybookConfig = {
     ...config,
     plugins: [...(config.plugins ?? []), tailwindcss()],
   }),
-};
-
-export default config;
+});
