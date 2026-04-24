@@ -45,15 +45,20 @@ base.use("/zaim/auth/start", oidcAuthMiddleware());
 base.use("/zaim/auth/status", oidcAuthMiddleware());
 base.use("/zaim/auth/token", oidcAuthMiddleware());
 
-// ルートをチェーンして AppType に正確なスキーマ型を持たせる
+// 公開ルート（認証不要）
+const rootRoute = new Hono<{ Bindings: Env }>().get("/", (c) => c.text("Hello World!"));
+const healthRoute = new Hono<{ Bindings: Env }>().get("/api/health", (c) =>
+  c.json({ status: "ok" }),
+);
+
+// ルートを集約して AppType に正確なスキーマ型を持たせる
 const app = base
-  // 公開ルート（認証不要）
-  .get("/", (c) => c.text("Hello World!"))
+  .route("/", rootRoute)
   // 認証関連ルート（/logout, /me）
   .route("/", authRoutes)
   // Zaim OAuth フロー（/zaim/auth/*）
   .route("/", zaimRoutes)
-  .get("/api/health", (c) => c.json({ status: "ok" }));
+  .route("/", healthRoute);
 
 export default app;
 export type AppType = typeof app;
