@@ -5,6 +5,7 @@ import { cors } from "hono/cors";
 import type { Env } from "./env.ts";
 import "./logger.ts";
 import { authRoutes } from "./routes/auth.ts";
+import { categoriesRoutes } from "./routes/categories.ts";
 import { zaimRoutes } from "./routes/zaim.ts";
 
 const base = new Hono<{ Bindings: Env }>();
@@ -58,6 +59,8 @@ const app = base
   .route("/", authRoutes)
   // Zaim OAuth フロー（/zaim/auth/*）
   .route("/", zaimRoutes)
+  // Zaim データ取得（/api/zaim/*）- /api/* の OIDC ミドルウェアで保護済み
+  .route("/", categoriesRoutes)
   .route("/", healthRoute);
 
 export default app;
