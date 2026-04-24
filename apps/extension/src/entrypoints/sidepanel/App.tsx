@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { createClient } from "server/client";
 import ServerLogin from "../../components/ServerLogin.tsx";
 import ZaimLogin from "../../components/ZaimLogin.tsx";
 
@@ -34,13 +35,12 @@ export default function App() {
     if (!url) return;
     setAuth((prev) => ({ ...prev, isLoading: true, error: null }));
 
+    const client = createClient(url);
+
     let meRes: Response;
     try {
       // redirect: "manual" でOIDCリダイレクト(302)をエラーなく検知する
-      meRes = await fetch(`${url}/me`, {
-        credentials: "include",
-        redirect: "manual",
-      });
+      meRes = await client.me.$get({}, { init: { credentials: "include", redirect: "manual" } });
     } catch {
       // ネットワークエラー（サーバー未起動・URLが不正など）
       setAuth({
@@ -58,22 +58,22 @@ export default function App() {
     }
 
     try {
-      const user: ServerUser = await meRes.json();
+      const user = await meRes.json();
 
-      const zaimRes = await fetch(`${url}/zaim/auth/status`, {
-        credentials: "include",
-        redirect: "manual",
-      });
+      const zaimRes = await client.zaim.auth.status.$get(
+        {},
+        { init: { credentials: "include", redirect: "manual" } },
+      );
       const zaim =
         zaimRes.ok && zaimRes.type !== "opaqueredirect"
           ? await zaimRes.json()
-          : { connected: false, zaimUserId: null };
+          : { connected: false as const };
 
       setAuth({
         isServerAuthenticated: true,
         serverUser: user,
-        isZaimConnected: zaim.connected ?? false,
-        zaimUserId: zaim.zaimUserId ?? null,
+        isZaimConnected: zaim.connected,
+        zaimUserId: "zaimUserId" in zaim ? zaim.zaimUserId : null,
         isLoading: false,
         error: null,
       });
@@ -115,11 +115,9 @@ export default function App() {
 
   async function handleZaimDisconnect() {
     setAuth((prev) => ({ ...prev, isLoading: true }));
+    const client = createClient(serverUrl);
     try {
-      await fetch(`${serverUrl}/zaim/auth/token`, {
-        method: "DELETE",
-        credentials: "include",
-      });
+      await client.zaim.auth.token.$delete({}, { init: { credentials: "include" } });
       setAuth((prev) => ({
         ...prev,
         isZaimConnected: false,

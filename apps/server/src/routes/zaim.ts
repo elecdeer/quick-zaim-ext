@@ -24,8 +24,6 @@ import {
   fetchZaimUserId,
 } from "../zaim-oauth.ts";
 
-export const zaimRoutes = new Hono<{ Bindings: Env }>();
-
 /** Request Token の有効期限（秒） */
 const REQUEST_TOKEN_TTL = 600;
 
@@ -56,7 +54,7 @@ type StoredAccessToken = v.InferOutput<typeof StoredAccessTokenSchema>;
  * 2. Request Token シークレットとユーザー sub を KV に一時保存
  * 3. Zaim 認可画面へリダイレクト
  */
-zaimRoutes.get("/zaim/auth/start", async (c) => {
+const startRoute = new Hono<{ Bindings: Env }>().get("/zaim/auth/start", async (c) => {
   const auth = await getAuth(c);
   if (!auth?.sub) {
     return c.json({ error: "Unauthorized" }, 401);
@@ -91,7 +89,7 @@ zaimRoutes.get("/zaim/auth/start", async (c) => {
  * Access Token を取得してユーザーの KV に保存する。
  * ユーザー識別は Request Token 取得時に KV に保存した OIDC sub で行う。
  */
-zaimRoutes.get(
+const callbackRoute = new Hono<{ Bindings: Env }>().get(
   "/zaim/auth/callback",
   sValidator("query", CallbackQuerySchema, (result, c) => {
     if (!result.success) {
@@ -149,7 +147,7 @@ zaimRoutes.get(
  * Zaim 連携状態確認
  * アクセストークンが保存されているかどうかを返す。
  */
-zaimRoutes.get("/zaim/auth/status", async (c) => {
+const statusRoute = new Hono<{ Bindings: Env }>().get("/zaim/auth/status", async (c) => {
   const auth = await getAuth(c);
   if (!auth) {
     return c.json({ error: "Unauthorized" }, 401);
@@ -168,7 +166,7 @@ zaimRoutes.get("/zaim/auth/status", async (c) => {
  * Zaim 連携解除
  * KV に保存されたアクセストークンを削除する。
  */
-zaimRoutes.delete("/zaim/auth/token", async (c) => {
+const tokenRoute = new Hono<{ Bindings: Env }>().delete("/zaim/auth/token", async (c) => {
   const auth = await getAuth(c);
   if (!auth) {
     return c.json({ error: "Unauthorized" }, 401);
@@ -177,6 +175,12 @@ zaimRoutes.delete("/zaim/auth/token", async (c) => {
   await c.env.ZAIM_KV.delete(`zaim:token:${auth.sub}`);
   return c.json({ ok: true });
 });
+
+export const zaimRoutes = new Hono<{ Bindings: Env }>()
+  .route("/", startRoute)
+  .route("/", callbackRoute)
+  .route("/", statusRoute)
+  .route("/", tokenRoute);
 
 /**
  * 指定ユーザーの Zaim アクセストークンを KV から取得するヘルパー

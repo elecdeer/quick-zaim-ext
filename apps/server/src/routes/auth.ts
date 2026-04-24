@@ -3,15 +3,13 @@ import { Hono } from "hono";
 import type { Env } from "../env.ts";
 import { authLogger } from "../logger.ts";
 
-export const authRoutes = new Hono<{ Bindings: Env }>();
-
 /**
  * ログアウトエンドポイント
  * アプリのセッションを破棄し、Auth0側のセッションもクリアする。
  * Auth0のログアウトエンドポイントにリダイレクトすることで、
  * 次回アクセス時に別アカウントを選択できるようになる。
  */
-authRoutes.get("/logout", async (c) => {
+const logoutRoute = new Hono<{ Bindings: Env }>().get("/logout", async (c) => {
   authLogger.info("Logout requested");
 
   await revokeSession(c);
@@ -30,7 +28,7 @@ authRoutes.get("/logout", async (c) => {
  * 認証済みユーザーの情報をJSONで返す
  * oidcAuthMiddleware() によって認証が保証されているため auth は非 null
  */
-authRoutes.get("/me", async (c) => {
+const meRoute = new Hono<{ Bindings: Env }>().get("/me", async (c) => {
   const auth = await getAuth(c);
   authLogger
     .with({ email: auth?.email, sub: auth?.sub })
@@ -40,3 +38,5 @@ authRoutes.get("/me", async (c) => {
     sub: auth?.sub,
   });
 });
+
+export const authRoutes = new Hono<{ Bindings: Env }>().route("/", logoutRoute).route("/", meRoute);
