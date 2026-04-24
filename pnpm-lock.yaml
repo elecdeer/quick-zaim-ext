@@ -57,12 +57,18 @@ importers:
       '@phosphor-icons/react':
         specifier: ^2.1.10
         version: 2.1.10(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      hono:
+        specifier: ^4.12.14
+        version: 4.12.14
       react:
         specifier: ^19.2.5
         version: 19.2.5
       react-dom:
         specifier: ^19.2.5
         version: 19.2.5(react@19.2.5)
+      server:
+        specifier: workspace:*
+        version: link:../server
     devDependencies:
       '@storybook/react':
         specifier: ^10.3.5

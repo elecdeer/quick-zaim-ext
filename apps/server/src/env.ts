@@ -1,3 +1,5 @@
+import type { KVNamespace } from "@cloudflare/workers-types";
+
 /**
  * Cloudflare Workers の環境変数（バインディング）の型定義
  */

@@ -7,12 +7,12 @@ import "./logger.ts";
 import { authRoutes } from "./routes/auth.ts";
 import { zaimRoutes } from "./routes/zaim.ts";
 
-const app = new Hono<{ Bindings: Env }>();
+const base = new Hono<{ Bindings: Env }>();
 
-app.use(honoLogger({ category: ["quick-zaim", "server"] }));
+base.use(honoLogger({ category: ["quick-zaim", "server"] }));
 
 // Chrome拡張機能・ローカル開発からのクロスオリジンリクエストを許可
-app.use(
+base.use(
   cors({
     origin: (origin) => {
       if (!origin) return null;
@@ -31,29 +31,29 @@ app.use(
   }),
 );
 
-// 公開ルート（認証不要）
-app.get("/", (c) => c.text("Hello World!"));
-
 // 認証ミドルウェアをルートハンドラより前に登録する（Honoは登録順にマッチするため）
 // /callback は oidcAuthMiddleware() 内部で OIDC_REDIRECT_URI と照合して自動処理する
-app.use("/callback", oidcAuthMiddleware());
-app.use("/me", oidcAuthMiddleware());
-app.use("/api/*", oidcAuthMiddleware());
+base.use("/callback", oidcAuthMiddleware());
+base.use("/me", oidcAuthMiddleware());
+base.use("/api/*", oidcAuthMiddleware());
 
 // Zaim OAuth ルート
 // /zaim/auth/start, /zaim/auth/status, /zaim/auth/token は OIDC 認証が必要
 // /zaim/auth/callback は Zaim からのリダイレクトを受け取るため OIDC 不要
 //   （ユーザー識別は KV に保存した OIDC sub で行う）
-app.use("/zaim/auth/start", oidcAuthMiddleware());
-app.use("/zaim/auth/status", oidcAuthMiddleware());
-app.use("/zaim/auth/token", oidcAuthMiddleware());
+base.use("/zaim/auth/start", oidcAuthMiddleware());
+base.use("/zaim/auth/status", oidcAuthMiddleware());
+base.use("/zaim/auth/token", oidcAuthMiddleware());
 
-// 認証関連ルート（/logout, /me）
-app.route("/", authRoutes);
-
-// Zaim OAuth フロー（/zaim/auth/*）
-app.route("/", zaimRoutes);
-
-app.get("/api/health", (c) => c.json({ status: "ok" }));
+// ルートをチェーンして AppType に正確なスキーマ型を持たせる
+const app = base
+  // 公開ルート（認証不要）
+  .get("/", (c) => c.text("Hello World!"))
+  // 認証関連ルート（/logout, /me）
+  .route("/", authRoutes)
+  // Zaim OAuth フロー（/zaim/auth/*）
+  .route("/", zaimRoutes)
+  .get("/api/health", (c) => c.json({ status: "ok" }));
 
 export default app;
+export type AppType = typeof app;
