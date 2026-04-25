@@ -11,8 +11,8 @@
  *   4. ユーザー ID 取得: GET https://api.zaim.net/v2/home/user/verify
  */
 
+import { type OAuth1Config, buildOAuth1AuthorizationHeader } from "@repo/zaim-api/oauth/oauth1";
 import * as v from "valibot";
-import { buildOAuth1AuthorizationHeader, type OAuth1Config } from "./oauth1.ts";
 
 const ZAIM_REQUEST_TOKEN_URL = "https://api.zaim.net/v2/auth/request";
 const ZAIM_AUTHORIZE_URL = "https://auth.zaim.net/users/auth";
