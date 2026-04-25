@@ -7,7 +7,9 @@ export default defineConfig({
       typeCheck: true,
     },
   },
-  fmt: {},
+  fmt: {
+    ignorePatterns: ["src/generated/**", "tsp-output/**"],
+  },
   pack: {
     dts: {
       sourcemap: true,
@@ -18,7 +20,6 @@ export default defineConfig({
     tasks: {
       generate: {
         command: "pnpm run generate:openapi3 && pnpm run generate:ts-client",
-        input: ["typespec/**", "tspconfig.yaml", "openapi-ts.config.ts"],
       },
     },
   },
