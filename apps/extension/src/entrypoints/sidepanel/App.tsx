@@ -51,10 +51,15 @@ export default function App() {
   const fetchCategories = useCallback(async (url: string) => {
     setCategoriesLoading(true);
     try {
-      const res = await fetch(`${url}/api/zaim/categories`, {
-        credentials: "include",
-        redirect: "manual",
-      });
+      const client = createClient(url);
+      const res = await client.api.zaim.categories.$get(
+        {
+          query: {
+            no_cache: "1",
+          },
+        },
+        { init: { credentials: "include", redirect: "manual" } },
+      );
       if (res.ok && res.type !== "opaqueredirect") {
         const data = (await res.json()) as { fetchedAt: string; categories: Category[] };
         setCategories(data.categories);

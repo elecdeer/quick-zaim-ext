@@ -16,7 +16,7 @@ import { Hono } from "hono";
 import * as v from "valibot";
 import type { Env } from "../env.ts";
 import { buildZaimApiAuthHeader } from "../zaim-oauth.ts";
-import type { OAuth1Config } from "../oauth1.ts";
+import { buildOAuth1AuthorizationHeader, type OAuth1Config } from "../oauth1.ts";
 import { getStoredZaimToken } from "./zaim.ts";
 
 const CategoriesQuerySchema = v.object({
@@ -42,23 +42,29 @@ export type CategoriesResponse = {
 };
 
 async function fetchCategoriesFromZaim(oauthConfig: OAuth1Config): Promise<CategoriesResponse> {
-  const [categoryAuthHeader, genreAuthHeader] = await Promise.all([
-    buildZaimApiAuthHeader(oauthConfig, "GET", `${ZAIM_API_BASE}/v2/home/category`, {
-      mapping: "1",
-    }),
-    buildZaimApiAuthHeader(oauthConfig, "GET", `${ZAIM_API_BASE}/v2/home/genre`, { mapping: "1" }),
-  ]);
+  const client = createClient({ baseUrl: ZAIM_API_BASE });
+  client.interceptors.request.use(async (req) => {
+    const url = new URL(req.url);
+
+    const authHeader = await buildOAuth1AuthorizationHeader(
+      req.method,
+      `${url.origin}${url.pathname}`,
+      oauthConfig,
+      Object.fromEntries(url.searchParams.entries()),
+    );
+    console.log("Generated OAuth1 header:", authHeader);
+
+    req.headers.set("Authorization", authHeader);
+    return req;
+  });
 
   const [categoriesResult, genresResult] = await Promise.all([
     categoryGetCategories({
-      client: createClient({
-        baseUrl: ZAIM_API_BASE,
-        headers: { Authorization: categoryAuthHeader },
-      }),
+      client,
       query: { mapping: 1 },
     }),
     genreGetGenres({
-      client: createClient({ baseUrl: ZAIM_API_BASE, headers: { Authorization: genreAuthHeader } }),
+      client,
       query: { mapping: 1 },
     }),
   ]);
