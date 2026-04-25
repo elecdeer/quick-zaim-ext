@@ -15,9 +15,9 @@ import { getAuth } from "@hono/oidc-auth";
 import { Hono } from "hono";
 import * as v from "valibot";
 import type { Env } from "../env.ts";
-import { buildZaimApiAuthHeader } from "../zaim-oauth.ts";
-import { buildOAuth1AuthorizationHeader, type OAuth1Config } from "../oauth1.ts";
 import { getStoredZaimToken } from "./zaim.ts";
+import { createZaimAuthInterceptor } from "@repo/zaim-api/oauth/interceptor";
+import type { OAuth1Config } from "@repo/zaim-api/oauth/oauth1";
 
 const CategoriesQuerySchema = v.object({
   no_cache: v.optional(v.string()),
@@ -43,20 +43,7 @@ export type CategoriesResponse = {
 
 async function fetchCategoriesFromZaim(oauthConfig: OAuth1Config): Promise<CategoriesResponse> {
   const client = createClient({ baseUrl: ZAIM_API_BASE });
-  client.interceptors.request.use(async (req) => {
-    const url = new URL(req.url);
-
-    const authHeader = await buildOAuth1AuthorizationHeader(
-      req.method,
-      `${url.origin}${url.pathname}`,
-      oauthConfig,
-      Object.fromEntries(url.searchParams.entries()),
-    );
-    console.log("Generated OAuth1 header:", authHeader);
-
-    req.headers.set("Authorization", authHeader);
-    return req;
-  });
+  client.interceptors.request.use(createZaimAuthInterceptor(oauthConfig));
 
   const [categoriesResult, genresResult] = await Promise.all([
     categoryGetCategories({
