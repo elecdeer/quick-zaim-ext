@@ -121,6 +121,9 @@ importers:
       '@logtape/logtape':
         specifier: 'catalog:'
         version: 2.0.5
+      '@repo/zaim-api':
+        specifier: workspace:*
+        version: link:../../packages/zaim-api
       hono:
         specifier: ^4.12.14
         version: 4.12.14

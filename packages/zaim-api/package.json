@@ -4,17 +4,15 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/client/index.ts",
-    "./client": "./src/client/client/index.ts"
+    ".": "./src/generated/index.ts",
+    "./client": "./src/generated/client/index.ts"
   },
   "scripts": {
-    "build": "vp pack ./src/client/index.ts",
     "dev": "vp pack --watch",
     "test": "vp test",
     "check": "vp check",
     "generate:openapi3": "tsp compile ./typespec",
-    "generate:ts-client": "openapi-ts",
-    "generate": "pnpm run generate:openapi3 && pnpm run generate:ts-client"
+    "generate:ts-client": "openapi-ts"
   },
   "devDependencies": {
     "@hey-api/openapi-ts": "catalog:",

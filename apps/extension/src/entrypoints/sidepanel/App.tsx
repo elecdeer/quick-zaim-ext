@@ -17,6 +17,18 @@ interface AuthState {
   error: string | null;
 }
 
+interface SubCategory {
+  id: number;
+  name: string;
+}
+
+interface Category {
+  id: number;
+  name: string;
+  mode: "payment" | "income";
+  subCategories: SubCategory[];
+}
+
 const DEFAULT_STATE: AuthState = {
   isServerAuthenticated: false,
   serverUser: null,
@@ -30,57 +42,91 @@ export default function App() {
   const [serverUrl, setServerUrl] = useState("");
   const [serverUrlInput, setServerUrlInput] = useState("");
   const [auth, setAuth] = useState<AuthState>(DEFAULT_STATE);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesFetchedAt, setCategoriesFetchedAt] = useState<string | null>(null);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
 
-  const checkAuthStatus = useCallback(async (url: string) => {
-    if (!url) return;
-    setAuth((prev) => ({ ...prev, isLoading: true, error: null }));
-
-    const client = createClient(url);
-
-    let meRes: Response;
+  const fetchCategories = useCallback(async (url: string) => {
+    setCategoriesLoading(true);
     try {
-      // redirect: "manual" でOIDCリダイレクト(302)をエラーなく検知する
-      meRes = await client.me.$get({}, { init: { credentials: "include", redirect: "manual" } });
-    } catch {
-      // ネットワークエラー（サーバー未起動・URLが不正など）
-      setAuth({
-        ...DEFAULT_STATE,
-        isLoading: false,
-        error: "サーバーへの接続に失敗しました",
+      const res = await fetch(`${url}/api/zaim/categories`, {
+        credentials: "include",
+        redirect: "manual",
       });
-      return;
-    }
-
-    // opaqueredirect = 未認証でOIDCにリダイレクトされた状態
-    if (meRes.type === "opaqueredirect" || !meRes.ok) {
-      setAuth({ ...DEFAULT_STATE, isLoading: false });
-      return;
-    }
-
-    try {
-      const user = await meRes.json();
-
-      const zaimRes = await client.zaim.auth.status.$get(
-        {},
-        { init: { credentials: "include", redirect: "manual" } },
-      );
-      const zaim =
-        zaimRes.ok && zaimRes.type !== "opaqueredirect"
-          ? await zaimRes.json()
-          : { connected: false as const };
-
-      setAuth({
-        isServerAuthenticated: true,
-        serverUser: user,
-        isZaimConnected: zaim.connected,
-        zaimUserId: "zaimUserId" in zaim ? zaim.zaimUserId : null,
-        isLoading: false,
-        error: null,
-      });
-    } catch {
-      setAuth({ ...DEFAULT_STATE, isLoading: false, error: "レスポンスの解析に失敗しました" });
+      if (res.ok && res.type !== "opaqueredirect") {
+        const data = (await res.json()) as { fetchedAt: string; categories: Category[] };
+        setCategories(data.categories);
+        setCategoriesFetchedAt(data.fetchedAt);
+      }
+    } finally {
+      setCategoriesLoading(false);
     }
   }, []);
+
+  const checkAuthStatus = useCallback(
+    async (url: string) => {
+      if (!url) return;
+      setAuth((prev) => ({ ...prev, isLoading: true, error: null }));
+
+      const client = createClient(url);
+
+      let meRes: Response;
+      try {
+        // redirect: "manual" でOIDCリダイレクト(302)をエラーなく検知する
+        meRes = await client.me.$get({}, { init: { credentials: "include", redirect: "manual" } });
+      } catch {
+        // ネットワークエラー（サーバー未起動・URLが不正など）
+        setAuth({
+          ...DEFAULT_STATE,
+          isLoading: false,
+          error: "サーバーへの接続に失敗しました",
+        });
+        return;
+      }
+
+      // opaqueredirect = 未認証でOIDCにリダイレクトされた状態
+      if (meRes.type === "opaqueredirect" || !meRes.ok) {
+        setAuth({ ...DEFAULT_STATE, isLoading: false });
+        setCategories([]);
+        setCategoriesFetchedAt(null);
+        return;
+      }
+
+      try {
+        const user = await meRes.json();
+
+        const zaimRes = await client.zaim.auth.status.$get(
+          {},
+          { init: { credentials: "include", redirect: "manual" } },
+        );
+        const zaim =
+          zaimRes.ok && zaimRes.type !== "opaqueredirect"
+            ? await zaimRes.json()
+            : { connected: false as const };
+
+        const isConnected = zaim.connected;
+
+        setAuth({
+          isServerAuthenticated: true,
+          serverUser: user,
+          isZaimConnected: isConnected,
+          zaimUserId: "zaimUserId" in zaim ? zaim.zaimUserId : null,
+          isLoading: false,
+          error: null,
+        });
+
+        if (isConnected) {
+          void fetchCategories(url);
+        } else {
+          setCategories([]);
+          setCategoriesFetchedAt(null);
+        }
+      } catch {
+        setAuth({ ...DEFAULT_STATE, isLoading: false, error: "レスポンスの解析に失敗しました" });
+      }
+    },
+    [fetchCategories],
+  );
 
   useEffect(() => {
     chrome.storage.local.get("serverUrl", (result) => {
@@ -107,6 +153,8 @@ export default function App() {
   function handleServerLogout() {
     void chrome.tabs.create({ url: `${serverUrl}/logout` });
     setAuth(DEFAULT_STATE);
+    setCategories([]);
+    setCategoriesFetchedAt(null);
   }
 
   function handleZaimConnect() {
@@ -124,10 +172,14 @@ export default function App() {
         zaimUserId: null,
         isLoading: false,
       }));
+      setCategories([]);
+      setCategoriesFetchedAt(null);
     } catch {
       setAuth((prev) => ({ ...prev, isLoading: false }));
     }
   }
+
+  const paymentCategories = categories.filter((c) => c.mode === "payment");
 
   return (
     <div className="flex min-h-screen flex-col gap-4 bg-gray-50 p-4">
@@ -177,6 +229,44 @@ export default function App() {
               onDisconnect={handleZaimDisconnect}
               onRefresh={() => checkAuthStatus(serverUrl)}
             />
+          )}
+
+          {auth.isZaimConnected && (
+            <section className="flex flex-col gap-2">
+              <div className="flex items-baseline gap-2">
+                <label className="text-xs font-semibold text-gray-500">カテゴリ</label>
+                {categoriesFetchedAt && (
+                  <span className="text-xs text-gray-400">
+                    {new Date(categoriesFetchedAt).toLocaleString("ja-JP")} 取得
+                  </span>
+                )}
+              </div>
+              {categoriesLoading ? (
+                <p className="text-xs text-gray-400">読み込み中...</p>
+              ) : paymentCategories.length === 0 ? (
+                <p className="text-xs text-gray-400">カテゴリがありません</p>
+              ) : (
+                <ul className="flex flex-col gap-1">
+                  {paymentCategories.map((cat) => (
+                    <li key={cat.id} className="rounded-md bg-white px-3 py-2 text-sm shadow-sm">
+                      <span className="font-medium text-gray-800">{cat.name}</span>
+                      {cat.subCategories.length > 0 && (
+                        <ul className="mt-1 flex flex-wrap gap-1">
+                          {cat.subCategories.map((sub) => (
+                            <li
+                              key={sub.id}
+                              className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
+                            >
+                              {sub.name}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
           )}
         </>
       )}
