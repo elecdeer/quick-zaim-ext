@@ -55,7 +55,7 @@ export default function App() {
       const res = await client.api.zaim.categories.$get(
         {
           query: {
-            no_cache: "1",
+            // no_cache: "1",
           },
         },
         { init: { credentials: "include", redirect: "manual" } },

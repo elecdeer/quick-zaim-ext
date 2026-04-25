@@ -9,6 +9,7 @@ export const createZaimAuthInterceptor = (oauthConfig: OAuth1Config) => {
       req.method,
       `${url.protocol}//${url.host}${url.pathname}`,
       oauthConfig,
+      {},
       Object.fromEntries(url.searchParams.entries()),
     );
 
