@@ -17,7 +17,7 @@ import { buildZaimApiAuthHeader } from "../zaim-oauth.ts";
 import type { OAuth1Config } from "../oauth1.ts";
 import { getStoredZaimToken } from "./zaim.ts";
 
-const ZAIM_API_BASE = "https://api.zaim.net/v2";
+const ZAIM_API_BASE = "https://api.zaim.net";
 const CACHE_TTL = 86400;
 
 type SubCategory = { id: number; name: string };
@@ -37,8 +37,8 @@ export type CategoriesResponse = {
 
 async function fetchCategoriesFromZaim(oauthConfig: OAuth1Config): Promise<CategoriesResponse> {
   const [categoryAuthHeader, genreAuthHeader] = await Promise.all([
-    buildZaimApiAuthHeader(oauthConfig, "GET", `${ZAIM_API_BASE}/home/category`, { mapping: "1" }),
-    buildZaimApiAuthHeader(oauthConfig, "GET", `${ZAIM_API_BASE}/home/genre`, { mapping: "1" }),
+    buildZaimApiAuthHeader(oauthConfig, "GET", `${ZAIM_API_BASE}/v2/home/category`, { mapping: "1" }),
+    buildZaimApiAuthHeader(oauthConfig, "GET", `${ZAIM_API_BASE}/v2/home/genre`, { mapping: "1" }),
   ]);
 
   const [categoriesResult, genresResult] = await Promise.all([
