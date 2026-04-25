@@ -81,6 +81,12 @@ For GitHub Actions, consider using [`voidzero-dev/setup-vp`](https://github.com/
 - run: vp test
 ```
 
+## Review Checklist for Agents
+
+- [ ] Run `vp install` after pulling remote changes and before getting started.
+- [ ] Run `vp check` and `vp test` to validate changes.
+<!--VITE PLUS END-->
+
 ## Server (Hono) Coding Conventions
 
 - **Query/body parameter parsing:** Always use `sValidator` from `@hono/standard-validator` with `valibot` schemas. Do not use `c.req.query()` or `c.req.json()` directly for validated input. Access validated values via `c.req.valid("query")` or `c.req.valid("json")`.
@@ -90,7 +96,7 @@ import { sValidator } from "@hono/standard-validator";
 import * as v from "valibot";
 
 const QuerySchema = v.object({
-  foo: v.optional(v.literal("1")),
+  foo: v.optional(v.string()),
 });
 
 app.get(
@@ -103,9 +109,3 @@ app.get(
   },
 );
 ```
-
-## Review Checklist for Agents
-
-- [ ] Run `vp install` after pulling remote changes and before getting started.
-- [ ] Run `vp check` and `vp test` to validate changes.
-<!--VITE PLUS END-->
