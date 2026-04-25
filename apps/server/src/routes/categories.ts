@@ -43,7 +43,9 @@ export type CategoriesResponse = {
 
 async function fetchCategoriesFromZaim(oauthConfig: OAuth1Config): Promise<CategoriesResponse> {
   const [categoryAuthHeader, genreAuthHeader] = await Promise.all([
-    buildZaimApiAuthHeader(oauthConfig, "GET", `${ZAIM_API_BASE}/v2/home/category`, { mapping: "1" }),
+    buildZaimApiAuthHeader(oauthConfig, "GET", `${ZAIM_API_BASE}/v2/home/category`, {
+      mapping: "1",
+    }),
     buildZaimApiAuthHeader(oauthConfig, "GET", `${ZAIM_API_BASE}/v2/home/genre`, { mapping: "1" }),
   ]);
 
