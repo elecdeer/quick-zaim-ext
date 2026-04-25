@@ -18,7 +18,8 @@
     "hono": "^4.12.14",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
-    "server": "workspace:*"
+    "server": "workspace:*",
+    "valibot": "catalog:"
   },
   "devDependencies": {
     "@storybook/react": "^10.3.5",
