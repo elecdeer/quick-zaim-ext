@@ -9,6 +9,7 @@
     "prepare": "vp config"
   },
   "devDependencies": {
+    "@hono/cli": "catalog:",
     "vite-plus": "catalog:"
   },
   "engines": {
