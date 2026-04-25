@@ -10,12 +10,18 @@
 
 import { categoryGetCategories, genreGetGenres } from "@repo/zaim-api";
 import { createClient } from "@repo/zaim-api/client";
+import { sValidator } from "@hono/standard-validator";
 import { getAuth } from "@hono/oidc-auth";
 import { Hono } from "hono";
+import * as v from "valibot";
 import type { Env } from "../env.ts";
 import { buildZaimApiAuthHeader } from "../zaim-oauth.ts";
 import type { OAuth1Config } from "../oauth1.ts";
 import { getStoredZaimToken } from "./zaim.ts";
+
+const CategoriesQuerySchema = v.object({
+  no_cache: v.optional(v.literal("1")),
+});
 
 const ZAIM_API_BASE = "https://api.zaim.net";
 const CACHE_TTL = 86400;
@@ -77,39 +83,47 @@ async function fetchCategoriesFromZaim(oauthConfig: OAuth1Config): Promise<Categ
  *
  * カテゴリとジャンルを並行取得してネスト構造に変換し、KV に 1 日間キャッシュする。
  */
-const getCategoriesRoute = new Hono<{ Bindings: Env }>().get("/api/zaim/categories", async (c) => {
-  const auth = await getAuth(c);
-  if (!auth?.sub) {
-    return c.json({ error: "Unauthorized" }, 401);
-  }
-
-  const token = await getStoredZaimToken(c.env.ZAIM_KV, auth.sub);
-  if (!token) {
-    return c.json({ error: "Zaim not connected" }, 403);
-  }
-
-  const noCache = c.req.query("no_cache") === "1";
-  const cacheKey = `zaim:cache:categories:${token.zaimUserId}`;
-
-  if (!noCache) {
-    const cached = await c.env.ZAIM_KV.get(cacheKey);
-    if (cached) {
-      return c.json(JSON.parse(cached) as CategoriesResponse);
+const getCategoriesRoute = new Hono<{ Bindings: Env }>().get(
+  "/api/zaim/categories",
+  sValidator("query", CategoriesQuerySchema, (result, c) => {
+    if (!result.success) {
+      return c.json({ error: "Invalid query parameters" }, 400);
     }
-  }
+  }),
+  async (c) => {
+    const auth = await getAuth(c);
+    if (!auth?.sub) {
+      return c.json({ error: "Unauthorized" }, 401);
+    }
 
-  const oauthConfig: OAuth1Config = {
-    consumerKey: c.env.ZAIM_CONSUMER_KEY,
-    consumerSecret: c.env.ZAIM_CONSUMER_SECRET,
-    token: token.oauthToken,
-    tokenSecret: token.oauthTokenSecret,
-  };
+    const token = await getStoredZaimToken(c.env.ZAIM_KV, auth.sub);
+    if (!token) {
+      return c.json({ error: "Zaim not connected" }, 403);
+    }
 
-  const result = await fetchCategoriesFromZaim(oauthConfig);
+    const { no_cache } = c.req.valid("query");
+    const cacheKey = `zaim:cache:categories:${token.zaimUserId}`;
 
-  await c.env.ZAIM_KV.put(cacheKey, JSON.stringify(result), { expirationTtl: CACHE_TTL });
+    if (!no_cache) {
+      const cached = await c.env.ZAIM_KV.get(cacheKey);
+      if (cached) {
+        return c.json(JSON.parse(cached) as CategoriesResponse);
+      }
+    }
 
-  return c.json(result);
-});
+    const oauthConfig: OAuth1Config = {
+      consumerKey: c.env.ZAIM_CONSUMER_KEY,
+      consumerSecret: c.env.ZAIM_CONSUMER_SECRET,
+      token: token.oauthToken,
+      tokenSecret: token.oauthTokenSecret,
+    };
+
+    const result = await fetchCategoriesFromZaim(oauthConfig);
+
+    await c.env.ZAIM_KV.put(cacheKey, JSON.stringify(result), { expirationTtl: CACHE_TTL });
+
+    return c.json(result);
+  },
+);
 
 export const categoriesRoutes = new Hono<{ Bindings: Env }>().route("/", getCategoriesRoute);
