@@ -101,10 +101,10 @@ const getCategoriesRoute = new Hono<{ Bindings: Env }>().get(
       return c.json({ error: "Zaim not connected" }, 403);
     }
 
-    const { no_cache } = c.req.valid("query");
+    const { no_cache: noCache } = c.req.valid("query");
     const cacheKey = `zaim:cache:categories:${token.zaimUserId}`;
 
-    if (no_cache !== "1") {
+    if (noCache !== "1") {
       const cached = await c.env.ZAIM_KV.get(cacheKey);
       if (cached) {
         return c.json(JSON.parse(cached) as CategoriesResponse);
