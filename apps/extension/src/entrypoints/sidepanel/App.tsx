@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "server/client";
+import { launchServerLogin } from "../../auth/serverAuth.ts";
+import { launchZaimConnect } from "../../auth/zaimAuth.ts";
 import ServerLogin from "../../components/ServerLogin.tsx";
 import ZaimLogin from "../../components/ZaimLogin.tsx";
 
@@ -145,9 +147,13 @@ export default function App() {
     });
   }
 
-  function handleServerLogin() {
-    // /me はOIDC保護されているため、未認証時はAuth0にリダイレクトされてログインフローが始まる
-    void chrome.tabs.create({ url: `${serverUrl}/me` });
+  async function handleServerLogin() {
+    try {
+      await launchServerLogin(serverUrl);
+      await checkAuthStatus(serverUrl);
+    } catch {
+      // ユーザーがポップアップを閉じた場合など
+    }
   }
 
   function handleServerLogout() {
@@ -157,8 +163,18 @@ export default function App() {
     setCategoriesFetchedAt(null);
   }
 
-  function handleZaimConnect() {
-    void chrome.tabs.create({ url: `${serverUrl}/zaim/auth/start` });
+  async function handleZaimConnect() {
+    setAuth((prev) => ({ ...prev, isLoading: true, error: null }));
+    try {
+      await launchZaimConnect(serverUrl);
+      await checkAuthStatus(serverUrl);
+    } catch (e) {
+      setAuth((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: e instanceof Error ? e.message : "エラーが発生しました",
+      }));
+    }
   }
 
   async function handleZaimDisconnect() {

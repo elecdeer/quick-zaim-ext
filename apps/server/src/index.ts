@@ -36,6 +36,7 @@ base.use(
 // /callback は oidcAuthMiddleware() 内部で OIDC_REDIRECT_URI と照合して自動処理する
 base.use("/callback", oidcAuthMiddleware());
 base.use("/me", oidcAuthMiddleware());
+base.use("/auth/launch", oidcAuthMiddleware());
 base.use("/api/*", oidcAuthMiddleware());
 
 // Zaim OAuth ルート

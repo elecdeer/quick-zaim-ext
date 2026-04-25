@@ -8,7 +8,7 @@ export default defineConfig({
   manifest: {
     name: "Quick Zaim",
     description: "Zaimへの支出を素早く記録するChrome拡張機能",
-    permissions: ["storage", "sidePanel", "tabs"],
+    permissions: ["storage", "sidePanel", "tabs", "identity"],
     host_permissions: ["<all_urls>"],
     action: {},
     side_panel: {

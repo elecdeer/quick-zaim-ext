@@ -2,7 +2,7 @@
  * Zaim OAuth 1.0a 認可フロー用ルート
  *
  * エンドポイント一覧:
- *   GET  /zaim/auth/start    - Zaim OAuth 開始（Zaim 認可画面へリダイレクト）
+ *   GET  /zaim/auth/start    - Zaim OAuth 開始（Zaim 認可画面へリダイレクト、または authorizeUrl を返す）
  *   GET  /zaim/auth/callback - Zaim からのコールバック（アクセストークン取得・保存）
  *   GET  /zaim/auth/status   - Zaim 連携状態確認
  *   DELETE /zaim/auth/token  - Zaim 連携解除（トークン削除）
@@ -31,6 +31,8 @@ const RequestTokenStateSchema = v.object({
   tokenSecret: v.string(),
   /** Request Token 取得時点でのログインユーザーの OIDC sub */
   userSub: v.string(),
+  /** 拡張機能フロー時のみ: トークン交換後にリダイレクトする chromiumapp.org URL */
+  extRedirectUri: v.optional(v.string()),
 });
 
 const StoredAccessTokenSchema = v.object({
@@ -44,50 +46,139 @@ const CallbackQuerySchema = v.object({
   oauth_verifier: v.string(),
 });
 
+const StartQuerySchema = v.object({
+  ext_redirect_uri: v.optional(v.string()),
+});
+
 type RequestTokenState = v.InferOutput<typeof RequestTokenStateSchema>;
 type StoredAccessToken = v.InferOutput<typeof StoredAccessTokenSchema>;
+
+function isValidExtensionRedirectUri(uri: string): boolean {
+  try {
+    const url = new URL(uri);
+    return url.protocol === "https:" && url.hostname.endsWith(".chromiumapp.org");
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * oauth_token + oauth_verifier からアクセストークンを取得して KV に保存する共通処理。
+ * callbackRoute から呼ばれる。
+ */
+async function performZaimTokenExchange(
+  env: Env,
+  oauthToken: string,
+  oauthVerifier: string,
+): Promise<{ zaimUserId: string; extRedirectUri?: string }> {
+  const stored = await env.ZAIM_KV.get(`zaim:request:${oauthToken}`);
+  if (!stored) {
+    throw new Error("Request token not found or expired");
+  }
+
+  const { tokenSecret, userSub, extRedirectUri } = v.parse(
+    RequestTokenStateSchema,
+    JSON.parse(stored),
+  );
+
+  const accessConfig = {
+    consumerKey: env.ZAIM_CONSUMER_KEY,
+    consumerSecret: env.ZAIM_CONSUMER_SECRET,
+    token: oauthToken,
+    tokenSecret,
+  };
+
+  const { oauthToken: accessToken, oauthTokenSecret } = await fetchZaimAccessToken(
+    accessConfig,
+    oauthVerifier,
+  );
+
+  const accessTokenConfig = {
+    consumerKey: env.ZAIM_CONSUMER_KEY,
+    consumerSecret: env.ZAIM_CONSUMER_SECRET,
+    token: accessToken,
+    tokenSecret: oauthTokenSecret,
+  };
+
+  const zaimUserId = await fetchZaimUserId(accessTokenConfig);
+
+  const tokenData: StoredAccessToken = {
+    oauthToken: accessToken,
+    oauthTokenSecret,
+    zaimUserId,
+  };
+
+  await env.ZAIM_KV.put(`zaim:token:${userSub}`, JSON.stringify(tokenData));
+  await env.ZAIM_KV.delete(`zaim:request:${oauthToken}`);
+
+  return { zaimUserId, extRedirectUri };
+}
 
 /**
  * Zaim OAuth 開始
  *
- * 1. Zaim から Request Token を取得
- * 2. Request Token シークレットとユーザー sub を KV に一時保存
- * 3. Zaim 認可画面へリダイレクト
+ * ext_redirect_uri が指定された場合（拡張機能フロー）:
+ *   - oauth_callback は常にサーバーの /zaim/auth/callback を使用
+ *   - ext_redirect_uri を KV に保存し、callback 完了後にそこへリダイレクト
+ *   - JSON { authorizeUrl } を返す（拡張機能が launchWebAuthFlow に渡す用）
+ *
+ * ext_redirect_uri が未指定の場合（従来フロー）:
+ *   - Zaim 認可画面へリダイレクト
  */
-const startRoute = new Hono<{ Bindings: Env }>().get("/zaim/auth/start", async (c) => {
-  const auth = await getAuth(c);
-  if (!auth?.sub) {
-    return c.json({ error: "Unauthorized" }, 401);
-  }
+const startRoute = new Hono<{ Bindings: Env }>().get(
+  "/zaim/auth/start",
+  sValidator("query", StartQuerySchema, (result, c) => {
+    if (!result.success) return c.json({ error: "Invalid query" }, 400);
+  }),
+  async (c) => {
+    const auth = await getAuth(c);
+    if (!auth?.sub) {
+      return c.json({ error: "Unauthorized" }, 401);
+    }
 
-  const callbackUrl = new URL("/zaim/auth/callback", c.req.url).toString();
+    const { ext_redirect_uri } = c.req.valid("query");
+    if (ext_redirect_uri !== undefined && !isValidExtensionRedirectUri(ext_redirect_uri)) {
+      return c.json({ error: "Invalid ext_redirect_uri" }, 400);
+    }
 
-  const { oauthToken, oauthTokenSecret } = await fetchZaimRequestToken(
-    {
-      consumerKey: c.env.ZAIM_CONSUMER_KEY,
-      consumerSecret: c.env.ZAIM_CONSUMER_SECRET,
-    },
-    callbackUrl,
-  );
+    const callbackUrl = new URL("/zaim/auth/callback", c.req.url).toString();
 
-  const state: RequestTokenState = {
-    tokenSecret: oauthTokenSecret,
-    userSub: auth.sub,
-  };
+    const { oauthToken, oauthTokenSecret } = await fetchZaimRequestToken(
+      {
+        consumerKey: c.env.ZAIM_CONSUMER_KEY,
+        consumerSecret: c.env.ZAIM_CONSUMER_SECRET,
+      },
+      callbackUrl,
+    );
 
-  await c.env.ZAIM_KV.put(`zaim:request:${oauthToken}`, JSON.stringify(state), {
-    expirationTtl: REQUEST_TOKEN_TTL,
-  });
+    const state: RequestTokenState = {
+      tokenSecret: oauthTokenSecret,
+      userSub: auth.sub,
+      extRedirectUri: ext_redirect_uri,
+    };
 
-  return c.redirect(buildZaimAuthorizeUrl(oauthToken));
-});
+    await c.env.ZAIM_KV.put(`zaim:request:${oauthToken}`, JSON.stringify(state), {
+      expirationTtl: REQUEST_TOKEN_TTL,
+    });
+
+    const authorizeUrl = buildZaimAuthorizeUrl(oauthToken);
+
+    if (ext_redirect_uri !== undefined) {
+      return c.json({ authorizeUrl });
+    }
+
+    return c.redirect(authorizeUrl);
+  },
+);
 
 /**
  * Zaim OAuth コールバック
  *
  * Zaim 認可後に oauth_token と oauth_verifier を受け取り、
  * Access Token を取得してユーザーの KV に保存する。
- * ユーザー識別は Request Token 取得時に KV に保存した OIDC sub で行う。
+ *
+ * 拡張機能フローの場合は extRedirectUri（chromiumapp.org）にリダイレクトし、
+ * launchWebAuthFlow にフロー完了を通知する。
  */
 const callbackRoute = new Hono<{ Bindings: Env }>().get(
   "/zaim/auth/callback",
@@ -99,47 +190,22 @@ const callbackRoute = new Hono<{ Bindings: Env }>().get(
   async (c) => {
     const { oauth_token: oauthToken, oauth_verifier: oauthVerifier } = c.req.valid("query");
 
-    const stored = await c.env.ZAIM_KV.get(`zaim:request:${oauthToken}`);
-    if (!stored) {
-      return c.json({ error: "Request token not found or expired" }, 400);
+    try {
+      const { zaimUserId, extRedirectUri } = await performZaimTokenExchange(
+        c.env,
+        oauthToken,
+        oauthVerifier,
+      );
+
+      if (extRedirectUri) {
+        return c.redirect(extRedirectUri);
+      }
+
+      return c.json({ ok: true, zaimUserId });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Token exchange failed";
+      return c.json({ error: message }, 400);
     }
-
-    const { tokenSecret, userSub } = v.parse(RequestTokenStateSchema, JSON.parse(stored));
-
-    const accessConfig = {
-      consumerKey: c.env.ZAIM_CONSUMER_KEY,
-      consumerSecret: c.env.ZAIM_CONSUMER_SECRET,
-      token: oauthToken,
-      tokenSecret,
-    };
-
-    const { oauthToken: accessToken, oauthTokenSecret } = await fetchZaimAccessToken(
-      accessConfig,
-      oauthVerifier,
-    );
-
-    const accessTokenConfig = {
-      consumerKey: c.env.ZAIM_CONSUMER_KEY,
-      consumerSecret: c.env.ZAIM_CONSUMER_SECRET,
-      token: accessToken,
-      tokenSecret: oauthTokenSecret,
-    };
-
-    const zaimUserId = await fetchZaimUserId(accessTokenConfig);
-
-    const tokenData: StoredAccessToken = {
-      oauthToken: accessToken,
-      oauthTokenSecret,
-      zaimUserId,
-    };
-
-    // アクセストークンを永続保存
-    await c.env.ZAIM_KV.put(`zaim:token:${userSub}`, JSON.stringify(tokenData));
-
-    // 使用済み Request Token を削除
-    await c.env.ZAIM_KV.delete(`zaim:request:${oauthToken}`);
-
-    return c.json({ ok: true, zaimUserId });
   },
 );
 

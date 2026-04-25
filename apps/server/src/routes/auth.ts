@@ -1,7 +1,18 @@
+import { sValidator } from "@hono/standard-validator";
 import { getAuth, revokeSession } from "@hono/oidc-auth";
 import { Hono } from "hono";
+import * as v from "valibot";
 import type { Env } from "../env.ts";
 import { authLogger } from "../logger.ts";
+
+function isValidExtensionRedirectUri(uri: string): boolean {
+  try {
+    const url = new URL(uri);
+    return url.protocol === "https:" && url.hostname.endsWith(".chromiumapp.org");
+  } catch {
+    return false;
+  }
+}
 
 /**
  * ログアウトエンドポイント
@@ -39,4 +50,30 @@ const meRoute = new Hono<{ Bindings: Env }>().get("/me", async (c) => {
   });
 });
 
-export const authRoutes = new Hono<{ Bindings: Env }>().route("/", logoutRoute).route("/", meRoute);
+const LaunchQuerySchema = v.object({ redirect_uri: v.string() });
+
+/**
+ * 拡張機能向け認証起動エンドポイント
+ * chrome.identity.launchWebAuthFlow からアクセスされる。
+ * OIDC 認証完了後、redirect_uri（chromiumapp.org）にリダイレクトして
+ * launchWebAuthFlow にフロー完了を通知する。
+ */
+const launchRoute = new Hono<{ Bindings: Env }>().get(
+  "/auth/launch",
+  sValidator("query", LaunchQuerySchema, (result, c) => {
+    if (!result.success) return c.json({ error: "Missing redirect_uri" }, 400);
+  }),
+  async (c) => {
+    const { redirect_uri } = c.req.valid("query");
+    if (!isValidExtensionRedirectUri(redirect_uri)) {
+      return c.json({ error: "Invalid redirect_uri" }, 400);
+    }
+    authLogger.info("Extension auth launch: redirecting to extension");
+    return c.redirect(redirect_uri);
+  },
+);
+
+export const authRoutes = new Hono<{ Bindings: Env }>()
+  .route("/", logoutRoute)
+  .route("/", meRoute)
+  .route("/", launchRoute);
