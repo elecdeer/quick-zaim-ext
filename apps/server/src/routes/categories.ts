@@ -20,7 +20,7 @@ import type { OAuth1Config } from "../oauth1.ts";
 import { getStoredZaimToken } from "./zaim.ts";
 
 const CategoriesQuerySchema = v.object({
-  no_cache: v.optional(v.literal("1")),
+  no_cache: v.optional(v.string()),
 });
 
 const ZAIM_API_BASE = "https://api.zaim.net";
@@ -104,7 +104,7 @@ const getCategoriesRoute = new Hono<{ Bindings: Env }>().get(
     const { no_cache } = c.req.valid("query");
     const cacheKey = `zaim:cache:categories:${token.zaimUserId}`;
 
-    if (!no_cache) {
+    if (no_cache !== "1") {
       const cached = await c.env.ZAIM_KV.get(cacheKey);
       if (cached) {
         return c.json(JSON.parse(cached) as CategoriesResponse);
