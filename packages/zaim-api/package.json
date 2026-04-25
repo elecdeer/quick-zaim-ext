@@ -8,7 +8,6 @@
     "./client": "./src/generated/client/index.ts"
   },
   "scripts": {
-    "build": "vp pack ./src/generated/client/index.ts",
     "dev": "vp pack --watch",
     "test": "vp test",
     "check": "vp check",

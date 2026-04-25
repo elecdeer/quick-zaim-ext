@@ -21,6 +21,10 @@ export default defineConfig({
       generate: {
         command: "pnpm run generate:openapi3 && pnpm run generate:ts-client",
       },
+      build: {
+        command: "vp pack ./src/generated/client/index.ts",
+        dependsOn: ["generate"],
+      },
     },
   },
 });
