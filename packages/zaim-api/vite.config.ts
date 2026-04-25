@@ -14,4 +14,12 @@ export default defineConfig({
     },
     sourcemap: true,
   },
+  run: {
+    tasks: {
+      generate: {
+        command: "pnpm run generate:openapi3 && pnpm run generate:ts-client",
+        input: ["typespec/**", "tspconfig.yaml", "openapi-ts.config.ts"],
+      },
+    },
+  },
 });

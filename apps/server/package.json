@@ -17,6 +17,7 @@
     "@hono/standard-validator": "catalog:",
     "@logtape/hono": "catalog:",
     "@logtape/logtape": "catalog:",
+    "@repo/zaim-api": "workspace:*",
     "hono": "^4.12.14",
     "valibot": "catalog:"
   },

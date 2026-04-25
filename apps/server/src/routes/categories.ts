@@ -8,85 +8,68 @@
  *   zaim:cache:categories:{zaim_user_id} - カテゴリ＋サブカテゴリキャッシュ（TTL 1日）
  */
 
+import { categoryGetCategories, genreGetGenres } from "@repo/zaim-api";
+import { createClient } from "@repo/zaim-api/client";
 import { getAuth } from "@hono/oidc-auth";
 import { Hono } from "hono";
-import * as v from "valibot";
 import type { Env } from "../env.ts";
 import { buildZaimApiAuthHeader } from "../zaim-oauth.ts";
+import type { OAuth1Config } from "../oauth1.ts";
 import { getStoredZaimToken } from "./zaim.ts";
 
 const ZAIM_API_BASE = "https://api.zaim.net/v2";
 const CACHE_TTL = 86400;
 
-const CategorySchema = v.object({
-  id: v.number(),
-  name: v.string(),
-  mode: v.union([v.literal("payment"), v.literal("income")]),
-  sort: v.number(),
-  parent_category_id: v.number(),
-  active: v.number(),
-  modified: v.string(),
-  local_id: v.number(),
-});
+type SubCategory = { id: number; name: string };
 
-const GenreSchema = v.object({
-  id: v.number(),
-  name: v.string(),
-  sort: v.number(),
-  active: v.number(),
-  category_id: v.number(),
-  parent_genre_id: v.number(),
-  modified: v.string(),
-  local_id: v.number(),
-});
+type CategoryWithSubCategories = {
+  id: number;
+  name: string;
+  mode: "payment" | "income";
+  subCategories: SubCategory[];
+};
 
-const CategoriesResponseSchema = v.object({
-  categories: v.array(CategorySchema),
-});
-
-const GenresResponseSchema = v.object({
-  genres: v.array(GenreSchema),
-});
-
-const CategoryWithSubCategoriesSchema = v.object({
-  id: v.number(),
-  name: v.string(),
-  mode: v.union([v.literal("payment"), v.literal("income")]),
-  subCategories: v.array(
-    v.object({
-      id: v.number(),
-      name: v.string(),
-    }),
-  ),
-});
-
-const CategoriesWithSubCategoriesResponseSchema = v.object({
+export type CategoriesResponse = {
   /** Zaim API からデータを取得した日時（ISO 8601） */
-  fetchedAt: v.string(),
-  categories: v.array(CategoryWithSubCategoriesSchema),
-});
+  fetchedAt: string;
+  categories: CategoryWithSubCategories[];
+};
 
-export type CategoryWithSubCategories = v.InferOutput<typeof CategoryWithSubCategoriesSchema>;
-export type CategoriesWithSubCategoriesResponse = v.InferOutput<
-  typeof CategoriesWithSubCategoriesResponseSchema
->;
+async function fetchCategoriesFromZaim(oauthConfig: OAuth1Config): Promise<CategoriesResponse> {
+  const [categoryAuthHeader, genreAuthHeader] = await Promise.all([
+    buildZaimApiAuthHeader(oauthConfig, "GET", `${ZAIM_API_BASE}/home/category`, { mapping: "1" }),
+    buildZaimApiAuthHeader(oauthConfig, "GET", `${ZAIM_API_BASE}/home/genre`, { mapping: "1" }),
+  ]);
 
-type OAuthConfig = Parameters<typeof buildZaimApiAuthHeader>[0];
+  const [categoriesResult, genresResult] = await Promise.all([
+    categoryGetCategories({
+      client: createClient({
+        baseUrl: ZAIM_API_BASE,
+        headers: { Authorization: categoryAuthHeader },
+      }),
+      query: { mapping: 1 },
+    }),
+    genreGetGenres({
+      client: createClient({ baseUrl: ZAIM_API_BASE, headers: { Authorization: genreAuthHeader } }),
+      query: { mapping: 1 },
+    }),
+  ]);
 
-async function fetchZaimJson<T>(
-  url: string,
-  oauthConfig: OAuthConfig,
-  schema: v.GenericSchema<unknown, T>,
-): Promise<T> {
-  const authHeader = await buildZaimApiAuthHeader(oauthConfig, "GET", url, { mapping: "1" });
-  const response = await fetch(`${url}?mapping=1`, {
-    headers: { Authorization: authHeader },
-  });
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`Zaim API error [${response.status}]: ${body}`);
+  if (!categoriesResult.data || !genresResult.data) {
+    throw new Error("Failed to fetch categories from Zaim API");
   }
-  return v.parse(schema, await response.json());
+
+  return {
+    fetchedAt: new Date().toISOString(),
+    categories: categoriesResult.data.categories.map((category) => ({
+      id: category.id,
+      name: category.name,
+      mode: category.mode,
+      subCategories: genresResult
+        .data!.genres.filter((genre) => genre.category_id === category.id)
+        .map((genre) => ({ id: genre.id, name: genre.name })),
+    })),
+  };
 }
 
 /**
@@ -108,35 +91,17 @@ const getCategoriesRoute = new Hono<{ Bindings: Env }>().get("/api/zaim/categori
   const cacheKey = `zaim:cache:categories:${token.zaimUserId}`;
   const cached = await c.env.ZAIM_KV.get(cacheKey);
   if (cached) {
-    return c.json(JSON.parse(cached) as CategoriesWithSubCategoriesResponse);
+    return c.json(JSON.parse(cached) as CategoriesResponse);
   }
 
-  const oauthConfig: OAuthConfig = {
+  const oauthConfig: OAuth1Config = {
     consumerKey: c.env.ZAIM_CONSUMER_KEY,
     consumerSecret: c.env.ZAIM_CONSUMER_SECRET,
     token: token.oauthToken,
     tokenSecret: token.oauthTokenSecret,
   };
 
-  const [categoriesData, genresData] = await Promise.all([
-    fetchZaimJson(`${ZAIM_API_BASE}/home/category`, oauthConfig, CategoriesResponseSchema),
-    fetchZaimJson(`${ZAIM_API_BASE}/home/genre`, oauthConfig, GenresResponseSchema),
-  ]);
-
-  const result: CategoriesWithSubCategoriesResponse = {
-    fetchedAt: new Date().toISOString(),
-    categories: categoriesData.categories.map((category) => ({
-      id: category.id,
-      name: category.name,
-      mode: category.mode,
-      subCategories: genresData.genres
-        .filter((genre) => genre.category_id === category.id)
-        .map((genre) => ({
-          id: genre.id,
-          name: genre.name,
-        })),
-    })),
-  };
+  const result = await fetchCategoriesFromZaim(oauthConfig);
 
   await c.env.ZAIM_KV.put(cacheKey, JSON.stringify(result), { expirationTtl: CACHE_TTL });
 
