@@ -3,10 +3,11 @@ import * as v from "valibot";
 const StartResponseSchema = v.object({ authorizeUrl: v.string() });
 
 export async function launchZaimConnect(serverUrl: string): Promise<void> {
-  const redirectUri = chrome.identity.getRedirectURL("zaim");
+  const extRedirectUri = chrome.identity.getRedirectURL("zaim");
 
+  // Step 1: サーバーから Zaim 認可 URL を取得（OIDC セッションは通常の fetch で送信）
   const res = await fetch(
-    `${serverUrl}/zaim/auth/start?ext_callback_uri=${encodeURIComponent(redirectUri)}`,
+    `${serverUrl}/zaim/auth/start?ext_redirect_uri=${encodeURIComponent(extRedirectUri)}`,
     { credentials: "include", redirect: "manual" },
   );
   if (!res.ok || res.type === "opaqueredirect") {
@@ -14,26 +15,14 @@ export async function launchZaimConnect(serverUrl: string): Promise<void> {
   }
   const { authorizeUrl } = v.parse(StartResponseSchema, await res.json());
 
-  const callbackUrl = await chrome.identity.launchWebAuthFlow({
+  // Step 2: Zaim 認可フロー
+  // popup: Zaim 認可画面 → /zaim/auth/callback（サーバーがトークン交換）→ extRedirectUri
+  // launchWebAuthFlow が chromiumapp.org へのリダイレクトを検知して完了
+  const result = await chrome.identity.launchWebAuthFlow({
     url: authorizeUrl,
     interactive: true,
   });
-  if (!callbackUrl) {
+  if (!result) {
     throw new Error("Zaim 認証に失敗しました");
-  }
-
-  const params = new URL(callbackUrl).searchParams;
-  const oauthToken = params.get("oauth_token");
-  const oauthVerifier = params.get("oauth_verifier");
-  if (!oauthToken || !oauthVerifier) {
-    throw new Error("Zaim 認証に失敗しました");
-  }
-
-  const exchangeRes = await fetch(
-    `${serverUrl}/zaim/auth/exchange?oauth_token=${encodeURIComponent(oauthToken)}&oauth_verifier=${encodeURIComponent(oauthVerifier)}`,
-    { credentials: "include" },
-  );
-  if (!exchangeRes.ok) {
-    throw new Error("Zaim トークン交換に失敗しました");
   }
 }

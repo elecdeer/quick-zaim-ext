@@ -4,7 +4,6 @@
  * エンドポイント一覧:
  *   GET  /zaim/auth/start    - Zaim OAuth 開始（Zaim 認可画面へリダイレクト、または authorizeUrl を返す）
  *   GET  /zaim/auth/callback - Zaim からのコールバック（アクセストークン取得・保存）
- *   GET  /zaim/auth/exchange - 拡張機能向け: oauth_token + verifier からアクセストークン取得・保存
  *   GET  /zaim/auth/status   - Zaim 連携状態確認
  *   DELETE /zaim/auth/token  - Zaim 連携解除（トークン削除）
  *
@@ -32,6 +31,8 @@ const RequestTokenStateSchema = v.object({
   tokenSecret: v.string(),
   /** Request Token 取得時点でのログインユーザーの OIDC sub */
   userSub: v.string(),
+  /** 拡張機能フロー時のみ: トークン交換後にリダイレクトする chromiumapp.org URL */
+  extRedirectUri: v.optional(v.string()),
 });
 
 const StoredAccessTokenSchema = v.object({
@@ -46,12 +47,7 @@ const CallbackQuerySchema = v.object({
 });
 
 const StartQuerySchema = v.object({
-  ext_callback_uri: v.optional(v.string()),
-});
-
-const ExchangeQuerySchema = v.object({
-  oauth_token: v.string(),
-  oauth_verifier: v.string(),
+  ext_redirect_uri: v.optional(v.string()),
 });
 
 type RequestTokenState = v.InferOutput<typeof RequestTokenStateSchema>;
@@ -68,19 +64,22 @@ function isValidExtensionRedirectUri(uri: string): boolean {
 
 /**
  * oauth_token + oauth_verifier からアクセストークンを取得して KV に保存する共通処理。
- * callbackRoute と exchangeRoute の両方から呼ばれる。
+ * callbackRoute から呼ばれる。
  */
 async function performZaimTokenExchange(
   env: Env,
   oauthToken: string,
   oauthVerifier: string,
-): Promise<{ zaimUserId: string }> {
+): Promise<{ zaimUserId: string; extRedirectUri?: string }> {
   const stored = await env.ZAIM_KV.get(`zaim:request:${oauthToken}`);
   if (!stored) {
     throw new Error("Request token not found or expired");
   }
 
-  const { tokenSecret, userSub } = v.parse(RequestTokenStateSchema, JSON.parse(stored));
+  const { tokenSecret, userSub, extRedirectUri } = v.parse(
+    RequestTokenStateSchema,
+    JSON.parse(stored),
+  );
 
   const accessConfig = {
     consumerKey: env.ZAIM_CONSUMER_KEY,
@@ -112,18 +111,18 @@ async function performZaimTokenExchange(
   await env.ZAIM_KV.put(`zaim:token:${userSub}`, JSON.stringify(tokenData));
   await env.ZAIM_KV.delete(`zaim:request:${oauthToken}`);
 
-  return { zaimUserId };
+  return { zaimUserId, extRedirectUri };
 }
 
 /**
  * Zaim OAuth 開始
  *
- * ext_callback_uri が指定された場合（拡張機能フロー）:
- *   - oauth_callback に ext_callback_uri を使用
- *   - JSON { authorizeUrl } を返す
+ * ext_redirect_uri が指定された場合（拡張機能フロー）:
+ *   - oauth_callback は常にサーバーの /zaim/auth/callback を使用
+ *   - ext_redirect_uri を KV に保存し、callback 完了後にそこへリダイレクト
+ *   - JSON { authorizeUrl } を返す（拡張機能が launchWebAuthFlow に渡す用）
  *
- * ext_callback_uri が未指定の場合（従来フロー）:
- *   - oauth_callback にサーバーの /zaim/auth/callback を使用
+ * ext_redirect_uri が未指定の場合（従来フロー）:
  *   - Zaim 認可画面へリダイレクト
  */
 const startRoute = new Hono<{ Bindings: Env }>().get(
@@ -137,12 +136,12 @@ const startRoute = new Hono<{ Bindings: Env }>().get(
       return c.json({ error: "Unauthorized" }, 401);
     }
 
-    const { ext_callback_uri } = c.req.valid("query");
-    if (ext_callback_uri !== undefined && !isValidExtensionRedirectUri(ext_callback_uri)) {
-      return c.json({ error: "Invalid ext_callback_uri" }, 400);
+    const { ext_redirect_uri } = c.req.valid("query");
+    if (ext_redirect_uri !== undefined && !isValidExtensionRedirectUri(ext_redirect_uri)) {
+      return c.json({ error: "Invalid ext_redirect_uri" }, 400);
     }
 
-    const callbackUrl = ext_callback_uri ?? new URL("/zaim/auth/callback", c.req.url).toString();
+    const callbackUrl = new URL("/zaim/auth/callback", c.req.url).toString();
 
     const { oauthToken, oauthTokenSecret } = await fetchZaimRequestToken(
       {
@@ -155,6 +154,7 @@ const startRoute = new Hono<{ Bindings: Env }>().get(
     const state: RequestTokenState = {
       tokenSecret: oauthTokenSecret,
       userSub: auth.sub,
+      extRedirectUri: ext_redirect_uri,
     };
 
     await c.env.ZAIM_KV.put(`zaim:request:${oauthToken}`, JSON.stringify(state), {
@@ -163,7 +163,7 @@ const startRoute = new Hono<{ Bindings: Env }>().get(
 
     const authorizeUrl = buildZaimAuthorizeUrl(oauthToken);
 
-    if (ext_callback_uri !== undefined) {
+    if (ext_redirect_uri !== undefined) {
       return c.json({ authorizeUrl });
     }
 
@@ -172,10 +172,13 @@ const startRoute = new Hono<{ Bindings: Env }>().get(
 );
 
 /**
- * Zaim OAuth コールバック（従来フロー）
+ * Zaim OAuth コールバック
  *
  * Zaim 認可後に oauth_token と oauth_verifier を受け取り、
  * Access Token を取得してユーザーの KV に保存する。
+ *
+ * 拡張機能フローの場合は extRedirectUri（chromiumapp.org）にリダイレクトし、
+ * launchWebAuthFlow にフロー完了を通知する。
  */
 const callbackRoute = new Hono<{ Bindings: Env }>().get(
   "/zaim/auth/callback",
@@ -188,33 +191,16 @@ const callbackRoute = new Hono<{ Bindings: Env }>().get(
     const { oauth_token: oauthToken, oauth_verifier: oauthVerifier } = c.req.valid("query");
 
     try {
-      const { zaimUserId } = await performZaimTokenExchange(c.env, oauthToken, oauthVerifier);
-      return c.json({ ok: true, zaimUserId });
-    } catch (e) {
-      const message = e instanceof Error ? e.message : "Token exchange failed";
-      return c.json({ error: message }, 400);
-    }
-  },
-);
+      const { zaimUserId, extRedirectUri } = await performZaimTokenExchange(
+        c.env,
+        oauthToken,
+        oauthVerifier,
+      );
 
-/**
- * Zaim OAuth トークン交換（拡張機能フロー）
- *
- * chrome.identity.launchWebAuthFlow で取得した oauth_token と oauth_verifier を受け取り、
- * Access Token を取得して KV に保存する。OIDC 認証不要（userSub は KV 内の state から取得）。
- */
-const exchangeRoute = new Hono<{ Bindings: Env }>().get(
-  "/zaim/auth/exchange",
-  sValidator("query", ExchangeQuerySchema, (result, c) => {
-    if (!result.success) {
-      return c.json({ error: "Missing oauth_token or oauth_verifier" }, 400);
-    }
-  }),
-  async (c) => {
-    const { oauth_token: oauthToken, oauth_verifier: oauthVerifier } = c.req.valid("query");
+      if (extRedirectUri) {
+        return c.redirect(extRedirectUri);
+      }
 
-    try {
-      const { zaimUserId } = await performZaimTokenExchange(c.env, oauthToken, oauthVerifier);
       return c.json({ ok: true, zaimUserId });
     } catch (e) {
       const message = e instanceof Error ? e.message : "Token exchange failed";
@@ -259,7 +245,6 @@ const tokenRoute = new Hono<{ Bindings: Env }>().delete("/zaim/auth/token", asyn
 export const zaimRoutes = new Hono<{ Bindings: Env }>()
   .route("/", startRoute)
   .route("/", callbackRoute)
-  .route("/", exchangeRoute)
   .route("/", statusRoute)
   .route("/", tokenRoute);
 
