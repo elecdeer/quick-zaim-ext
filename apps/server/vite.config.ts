@@ -13,6 +13,10 @@ export default defineConfig({
         command: "wrangler dev",
         dependsOn: ["@repo/zaim-api#generate"],
       },
+      build: {
+        command: "wrangler deploy --dry-run --outdir dist",
+        dependsOn: ["@repo/zaim-api#generate"],
+      },
     },
   },
 });
