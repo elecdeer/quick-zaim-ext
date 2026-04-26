@@ -15,6 +15,9 @@
     "generate:openapi3": "tsp compile ./typespec",
     "generate:ts-client": "openapi-ts"
   },
+  "dependencies": {
+    "@tanstack/react-query": "catalog:"
+  },
   "devDependencies": {
     "@hey-api/openapi-ts": "catalog:",
     "@typespec/compiler": "catalog:",
