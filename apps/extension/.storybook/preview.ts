@@ -1,6 +1,11 @@
 import { definePreview } from "@storybook/react-vite";
-// @ts-expect-error -- CSS import is handled by Vite; TS doesn't know the module
+import { initialize, mswLoader } from "msw-storybook-addon";
+
 import "../src/assets/global.css";
+
+initialize({
+  onUnhandledRequest: "warn",
+});
 
 export default definePreview({
   addons: [],
@@ -13,4 +18,5 @@ export default definePreview({
     },
     layout: "padded",
   },
+  loaders: [mswLoader],
 });
