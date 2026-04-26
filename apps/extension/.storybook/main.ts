@@ -12,4 +12,5 @@ export default defineMain({
     ...config,
     plugins: [...(config.plugins ?? []), tailwindcss()],
   }),
+  staticDirs: ["../storybook-public"],
 });

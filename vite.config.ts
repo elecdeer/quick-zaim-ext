@@ -5,11 +5,14 @@ export default defineConfig({
     "*": "vp check --fix",
   },
   fmt: {
-    exclude: ["**/.wrangler/**", "**/.output/**", "**/.wxt/**"],
+    ignorePatterns: ["**/.wrangler/**", "**/.output/**", "**/.wxt/**", "**/mockServiceWorker.js"],
   },
   lint: {
     ignorePatterns: ["**/.output/**", "**/.wxt/**"],
-    options: { typeAware: true, typeCheck: true },
+    options: {
+      typeAware: true,
+      typeCheck: true,
+    },
   },
   run: {
     cache: true,

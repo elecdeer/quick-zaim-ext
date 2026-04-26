@@ -23,6 +23,7 @@
     "@typespec/compiler": "catalog:",
     "@typespec/http": "catalog:",
     "@typespec/openapi3": "catalog:",
+    "msw": "catalog:",
     "vite-plus": "catalog:"
   }
 }
