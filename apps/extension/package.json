@@ -15,6 +15,7 @@
   "dependencies": {
     "@cloudflare/kumo": "^1.19.0",
     "@phosphor-icons/react": "^2.1.10",
+    "@tanstack/react-query": "catalog:",
     "hono": "^4.12.14",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
