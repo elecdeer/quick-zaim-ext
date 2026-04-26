@@ -4,8 +4,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wxt",
-    "build": "wxt build",
     "check": "vp check",
     "test": "vp test",
     "prepare": "wxt prepare",
@@ -35,6 +33,7 @@
     "storybook": "^10.3.5",
     "tailwindcss": "^4.2.4",
     "typescript": "catalog:",
+    "vite": "catalog:",
     "vite-plus": "catalog:",
     "wxt": "^0.20.25"
   },
