@@ -30,6 +30,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@wxt-dev/module-react": "^1.2.2",
+    "msw": "catalog:",
     "storybook": "^10.3.5",
     "tailwindcss": "^4.2.4",
     "typescript": "catalog:",

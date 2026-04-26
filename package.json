@@ -19,8 +19,12 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild",
+      "msw",
       "sharp",
       "workerd"
+    ],
+    "ignoredBuiltDependencies": [
+      "spawn-sync"
     ]
   }
 }

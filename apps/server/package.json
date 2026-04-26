@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260423.1",
+    "msw": "catalog:",
     "typescript": "catalog:",
     "wrangler": "^4.84.1"
   }
