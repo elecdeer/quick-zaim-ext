@@ -18,6 +18,7 @@ import type { Env } from "../env.ts";
 import { getStoredZaimToken } from "./zaim.ts";
 import { createZaimAuthInterceptor } from "@repo/zaim-api/oauth/interceptor";
 import type { OAuth1Config } from "@repo/zaim-api/oauth/oauth1";
+import { categoriesLogger } from "../logger.ts";
 
 const CategoriesQuerySchema = v.object({
   no_cache: v.optional(v.string()),
@@ -45,6 +46,8 @@ async function fetchCategoriesFromZaim(oauthConfig: OAuth1Config): Promise<Categ
   const client = createClient({ baseUrl: ZAIM_API_BASE });
   client.interceptors.request.use(createZaimAuthInterceptor(oauthConfig));
 
+  categoriesLogger.debug("Fetching categories and genres from Zaim API in parallel");
+
   const [categoriesResult, genresResult] = await Promise.all([
     categoryGetCategories({
       client,
@@ -57,8 +60,20 @@ async function fetchCategoriesFromZaim(oauthConfig: OAuth1Config): Promise<Categ
   ]);
 
   if (!categoriesResult.data || !genresResult.data) {
+    categoriesLogger
+      .with({
+        categoriesStatus: categoriesResult.response?.status,
+        genresStatus: genresResult.response?.status,
+      })
+      .error("Failed to fetch categories or genres from Zaim API");
     throw new Error("Failed to fetch categories from Zaim API");
   }
+
+  const categoryCount = categoriesResult.data.categories.length;
+  const genreCount = genresResult.data.genres.length;
+  categoriesLogger
+    .with({ categoryCount, genreCount })
+    .debug("Zaim API returned {categoryCount} categories and {genreCount} genres");
 
   return {
     fetchedAt: new Date().toISOString(),
@@ -88,11 +103,13 @@ const getCategoriesRoute = new Hono<{ Bindings: Env }>().get(
   async (c) => {
     const auth = await getAuth(c);
     if (!auth?.sub) {
+      categoriesLogger.warn("Categories: unauthorized (no OIDC session)");
       return c.json({ error: "Unauthorized" }, 401);
     }
 
     const token = await getStoredZaimToken(c.env.ZAIM_KV, auth.sub);
     if (!token) {
+      categoriesLogger.with({ userSub: auth.sub }).warn("Categories: Zaim not connected for {userSub}");
       return c.json({ error: "Zaim not connected" }, 403);
     }
 
@@ -102,8 +119,18 @@ const getCategoriesRoute = new Hono<{ Bindings: Env }>().get(
     if (noCache !== "1") {
       const cached = await c.env.ZAIM_KV.get(cacheKey);
       if (cached) {
+        categoriesLogger
+          .with({ zaimUserId: token.zaimUserId })
+          .debug("Categories cache hit for Zaim user {zaimUserId}");
         return c.json(JSON.parse(cached) as CategoriesResponse);
       }
+      categoriesLogger
+        .with({ zaimUserId: token.zaimUserId })
+        .debug("Categories cache miss for Zaim user {zaimUserId}, fetching from API");
+    } else {
+      categoriesLogger
+        .with({ zaimUserId: token.zaimUserId })
+        .debug("Categories cache bypassed (no_cache=1) for Zaim user {zaimUserId}");
     }
 
     const oauthConfig: OAuth1Config = {
@@ -116,6 +143,9 @@ const getCategoriesRoute = new Hono<{ Bindings: Env }>().get(
     const result = await fetchCategoriesFromZaim(oauthConfig);
 
     await c.env.ZAIM_KV.put(cacheKey, JSON.stringify(result), { expirationTtl: CACHE_TTL });
+    categoriesLogger
+      .with({ zaimUserId: token.zaimUserId, ttl: CACHE_TTL })
+      .debug("Categories cached for Zaim user {zaimUserId} (TTL={ttl}s)");
 
     return c.json(result);
   },

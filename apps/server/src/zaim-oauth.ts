@@ -13,6 +13,7 @@
 
 import { type OAuth1Config, buildOAuth1AuthorizationHeader } from "@repo/zaim-api/oauth/oauth1";
 import * as v from "valibot";
+import { zaimOAuthLogger } from "./logger.ts";
 
 const ZAIM_REQUEST_TOKEN_URL = "https://api.zaim.net/v2/auth/request";
 const ZAIM_AUTHORIZE_URL = "https://auth.zaim.net/users/auth";
@@ -58,6 +59,10 @@ export async function fetchZaimRequestToken(
     oauth_callback: callbackUrl,
   });
 
+  zaimOAuthLogger
+    .with({ url: ZAIM_REQUEST_TOKEN_URL, callbackUrl })
+    .debug("Fetching Zaim request token");
+
   const response = await fetch(ZAIM_REQUEST_TOKEN_URL, {
     method: "POST",
     headers: {
@@ -68,6 +73,9 @@ export async function fetchZaimRequestToken(
 
   if (!response.ok) {
     const body = await response.text();
+    zaimOAuthLogger
+      .with({ status: response.status, body })
+      .error("Zaim request token fetch failed [{status}]: {body}");
     throw new Error(`Request token failed [${response.status}]: ${body}`);
   }
 
@@ -75,6 +83,10 @@ export async function fetchZaimRequestToken(
     RequestTokenSchema,
     Object.fromEntries(new URLSearchParams(await response.text())),
   );
+
+  zaimOAuthLogger
+    .with({ oauthToken: parsed.oauth_token })
+    .debug("Zaim request token obtained: {oauthToken}");
 
   return { oauthToken: parsed.oauth_token, oauthTokenSecret: parsed.oauth_token_secret };
 }
@@ -101,6 +113,10 @@ export async function fetchZaimAccessToken(
     oauth_verifier: oauthVerifier,
   });
 
+  zaimOAuthLogger
+    .with({ url: ZAIM_ACCESS_TOKEN_URL })
+    .debug("Fetching Zaim access token");
+
   const response = await fetch(ZAIM_ACCESS_TOKEN_URL, {
     method: "POST",
     headers: {
@@ -111,6 +127,9 @@ export async function fetchZaimAccessToken(
 
   if (!response.ok) {
     const body = await response.text();
+    zaimOAuthLogger
+      .with({ status: response.status, body })
+      .error("Zaim access token fetch failed [{status}]: {body}");
     throw new Error(`Access token failed [${response.status}]: ${body}`);
   }
 
@@ -118,6 +137,8 @@ export async function fetchZaimAccessToken(
     AccessTokenSchema,
     Object.fromEntries(new URLSearchParams(await response.text())),
   );
+
+  zaimOAuthLogger.debug("Zaim access token obtained");
 
   return { oauthToken: parsed.oauth_token, oauthTokenSecret: parsed.oauth_token_secret };
 }
@@ -129,17 +150,28 @@ export async function fetchZaimAccessToken(
 export async function fetchZaimUserId(config: OAuth1Config): Promise<string> {
   const authHeader = await buildOAuth1AuthorizationHeader("GET", ZAIM_USER_VERIFY_URL, config);
 
+  zaimOAuthLogger
+    .with({ url: ZAIM_USER_VERIFY_URL })
+    .debug("Fetching Zaim user ID");
+
   const response = await fetch(ZAIM_USER_VERIFY_URL, {
     headers: { Authorization: authHeader },
   });
 
   if (!response.ok) {
     const body = await response.text();
+    zaimOAuthLogger
+      .with({ status: response.status, body })
+      .error("Zaim user verify failed [{status}]: {body}");
     throw new Error(`User verify failed [${response.status}]: ${body}`);
   }
 
   const parsed = v.parse(UserVerifySchema, await response.json());
-  return String(parsed.me.id);
+  const userId = String(parsed.me.id);
+
+  zaimOAuthLogger.with({ zaimUserId: userId }).debug("Zaim user ID obtained: {zaimUserId}");
+
+  return userId;
 }
 
 /**
