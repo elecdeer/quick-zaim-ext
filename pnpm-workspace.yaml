@@ -4,7 +4,7 @@ packages:
   - tools/*
 
 catalog:
-  "@hey-api/openapi-ts": ^0.96.1
+  "@hey-api/openapi-ts": https://pkg.pr.new/@hey-api/openapi-ts@3570
   "@hono/cli": ^0.1.10
   "@hono/standard-validator": ^0.2.2
   "@logtape/hono": ^2.0.5
