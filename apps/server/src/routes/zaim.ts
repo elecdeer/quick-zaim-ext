@@ -224,9 +224,7 @@ const callbackRoute = new Hono<{ Bindings: Env }>().get(
   async (c) => {
     const { oauth_token: oauthToken, oauth_verifier: oauthVerifier } = c.req.valid("query");
 
-    zaimRoutesLogger
-      .with({ oauthToken })
-      .info("Zaim auth callback received: {oauthToken}");
+    zaimRoutesLogger.with({ oauthToken }).info("Zaim auth callback received: {oauthToken}");
 
     try {
       const { zaimUserId, extRedirectUri } = await performZaimTokenExchange(

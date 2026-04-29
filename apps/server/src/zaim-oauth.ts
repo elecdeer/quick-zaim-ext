@@ -113,9 +113,7 @@ export async function fetchZaimAccessToken(
     oauth_verifier: oauthVerifier,
   });
 
-  zaimOAuthLogger
-    .with({ url: ZAIM_ACCESS_TOKEN_URL })
-    .debug("Fetching Zaim access token");
+  zaimOAuthLogger.with({ url: ZAIM_ACCESS_TOKEN_URL }).debug("Fetching Zaim access token");
 
   const response = await fetch(ZAIM_ACCESS_TOKEN_URL, {
     method: "POST",
@@ -150,9 +148,7 @@ export async function fetchZaimAccessToken(
 export async function fetchZaimUserId(config: OAuth1Config): Promise<string> {
   const authHeader = await buildOAuth1AuthorizationHeader("GET", ZAIM_USER_VERIFY_URL, config);
 
-  zaimOAuthLogger
-    .with({ url: ZAIM_USER_VERIFY_URL })
-    .debug("Fetching Zaim user ID");
+  zaimOAuthLogger.with({ url: ZAIM_USER_VERIFY_URL }).debug("Fetching Zaim user ID");
 
   const response = await fetch(ZAIM_USER_VERIFY_URL, {
     headers: { Authorization: authHeader },
