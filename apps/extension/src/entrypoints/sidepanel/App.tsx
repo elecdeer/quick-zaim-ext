@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { browser } from "wxt/browser";
 import { createClient } from "server/client";
 import { launchServerLogin } from "../../auth/serverAuth.ts";
@@ -9,15 +10,6 @@ import ZaimLogin from "../../components/ZaimLogin.tsx";
 interface ServerUser {
   email?: string;
   sub?: string;
-}
-
-interface AuthState {
-  isServerAuthenticated: boolean;
-  serverUser: ServerUser | null;
-  isZaimConnected: boolean;
-  zaimUserId: string | null;
-  isLoading: boolean;
-  error: string | null;
 }
 
 interface SubCategory {
@@ -32,145 +24,137 @@ interface Category {
   subCategories: SubCategory[];
 }
 
-const DEFAULT_STATE: AuthState = {
+interface AuthStatus {
+  isServerAuthenticated: boolean;
+  serverUser: ServerUser | null;
+  isZaimConnected: boolean;
+  zaimUserId: string | null;
+}
+
+const UNAUTHENTICATED: AuthStatus = {
   isServerAuthenticated: false,
   serverUser: null,
   isZaimConnected: false,
   zaimUserId: null,
-  isLoading: false,
-  error: null,
 };
 
-export default function App() {
-  const [serverUrl, setServerUrl] = useState("");
-  const [serverUrlInput, setServerUrlInput] = useState("");
-  const [auth, setAuth] = useState<AuthState>(DEFAULT_STATE);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [categoriesFetchedAt, setCategoriesFetchedAt] = useState<string | null>(null);
-  const [categoriesLoading, setCategoriesLoading] = useState(false);
+async function fetchAuthStatus(url: string): Promise<AuthStatus> {
+  const client = createClient(url);
+  let meRes: Response;
+  try {
+    meRes = await client.me.$get({}, { init: { credentials: "include", redirect: "manual" } });
+  } catch {
+    throw new Error("サーバーへの接続に失敗しました");
+  }
 
-  const fetchCategories = useCallback(async (url: string) => {
-    setCategoriesLoading(true);
-    try {
-      const client = createClient(url);
-      const res = await client.api.zaim.categories.$get(
-        {
-          query: {
-            // no_cache: "1",
-          },
-        },
-        { init: { credentials: "include", redirect: "manual" } },
-      );
-      if (res.ok && res.type !== "opaqueredirect") {
-        const data = (await res.json()) as { fetchedAt: string; categories: Category[] };
-        setCategories(data.categories);
-        setCategoriesFetchedAt(data.fetchedAt);
-      }
-    } finally {
-      setCategoriesLoading(false);
-    }
-  }, []);
+  if (meRes.type === "opaqueredirect" || !meRes.ok) {
+    return UNAUTHENTICATED;
+  }
 
-  const checkAuthStatus = useCallback(
-    async (url: string) => {
-      if (!url) return;
-      setAuth((prev) => ({ ...prev, isLoading: true, error: null }));
-
-      const client = createClient(url);
-
-      let meRes: Response;
-      try {
-        // redirect: "manual" でOIDCリダイレクト(302)をエラーなく検知する
-        meRes = await client.me.$get({}, { init: { credentials: "include", redirect: "manual" } });
-      } catch {
-        // ネットワークエラー（サーバー未起動・URLが不正など）
-        setAuth({
-          ...DEFAULT_STATE,
-          isLoading: false,
-          error: "サーバーへの接続に失敗しました",
-        });
-        return;
-      }
-
-      // opaqueredirect = 未認証でOIDCにリダイレクトされた状態
-      if (meRes.type === "opaqueredirect" || !meRes.ok) {
-        setAuth({ ...DEFAULT_STATE, isLoading: false });
-        setCategories([]);
-        setCategoriesFetchedAt(null);
-        return;
-      }
-
-      try {
-        const user = await meRes.json();
-
-        const zaimRes = await client.zaim.auth.status.$get(
-          {},
-          { init: { credentials: "include", redirect: "manual" } },
-        );
-        const zaim =
-          zaimRes.ok && zaimRes.type !== "opaqueredirect"
-            ? await zaimRes.json()
-            : { connected: false as const };
-
-        const isConnected = zaim.connected;
-
-        setAuth({
-          isServerAuthenticated: true,
-          serverUser: user,
-          isZaimConnected: isConnected,
-          zaimUserId: "zaimUserId" in zaim ? zaim.zaimUserId : null,
-          isLoading: false,
-          error: null,
-        });
-
-        if (isConnected) {
-          void fetchCategories(url);
-        } else {
-          setCategories([]);
-          setCategoriesFetchedAt(null);
-        }
-      } catch {
-        setAuth({ ...DEFAULT_STATE, isLoading: false, error: "レスポンスの解析に失敗しました" });
-      }
-    },
-    [fetchCategories],
+  const user = await meRes.json();
+  const zaimRes = await client.zaim.auth.status.$get(
+    {},
+    { init: { credentials: "include", redirect: "manual" } },
   );
+  const zaim =
+    zaimRes.ok && zaimRes.type !== "opaqueredirect"
+      ? await zaimRes.json()
+      : { connected: false as const };
+
+  return {
+    isServerAuthenticated: true,
+    serverUser: user as ServerUser,
+    isZaimConnected: zaim.connected,
+    zaimUserId: "zaimUserId" in zaim ? (zaim.zaimUserId as string) : null,
+  };
+}
+
+async function fetchCategoriesData(url: string) {
+  const client = createClient(url);
+  const res = await client.api.zaim.categories.$get(
+    { query: {} },
+    { init: { credentials: "include", redirect: "manual" } },
+  );
+  if (res.ok && res.type !== "opaqueredirect") {
+    return res.json() as Promise<{ fetchedAt: string; categories: Category[] }>;
+  }
+  throw new Error("カテゴリの取得に失敗しました");
+}
+
+export default function App() {
+  const queryClient = useQueryClient();
+  const [serverUrlInput, setServerUrlInput] = useState("");
+  const [storageError, setStorageError] = useState<string | null>(null);
+
+  const { data: serverUrl = "" } = useQuery({
+    queryKey: ["serverUrl"],
+    queryFn: async () => {
+      const result = await browser.storage.local.get("serverUrl");
+      return (result.serverUrl as string) || "";
+    },
+  });
 
   useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const result = await browser.storage.local.get("serverUrl");
-        if (cancelled) return;
-        const url = (result.serverUrl as string) || "";
-        setServerUrl(url);
-        setServerUrlInput(url);
-        if (url) void checkAuthStatus(url);
-      } catch {
-        if (cancelled) return;
-        setAuth((prev) => ({ ...prev, error: "サーバー URL の読み込みに失敗しました" }));
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [checkAuthStatus]);
+    setServerUrlInput(serverUrl);
+  }, [serverUrl]);
+
+  const {
+    data: auth = UNAUTHENTICATED,
+    isFetching: authFetching,
+    error: authError,
+  } = useQuery({
+    queryKey: ["authStatus", serverUrl],
+    queryFn: () => fetchAuthStatus(serverUrl),
+    enabled: !!serverUrl,
+    retry: false,
+  });
+
+  const { data: categoriesData, isFetching: categoriesFetching } = useQuery({
+    queryKey: ["categories", serverUrl],
+    queryFn: () => fetchCategoriesData(serverUrl),
+    enabled: !!serverUrl && auth.isZaimConnected,
+  });
+
+  const zaimConnectMutation = useMutation({
+    mutationFn: () => launchZaimConnect(serverUrl),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["authStatus", serverUrl] }),
+  });
+
+  const zaimDisconnectMutation = useMutation({
+    mutationFn: async () => {
+      const client = createClient(serverUrl);
+      await client.zaim.auth.token.$delete({}, { init: { credentials: "include" } });
+    },
+    onSuccess: () => {
+      queryClient.setQueryData(["authStatus", serverUrl], UNAUTHENTICATED);
+      queryClient.removeQueries({ queryKey: ["categories", serverUrl] });
+    },
+  });
+
+  const categories = categoriesData?.categories ?? [];
+  const categoriesFetchedAt = categoriesData?.fetchedAt ?? null;
+  const isLoading =
+    authFetching || zaimConnectMutation.isPending || zaimDisconnectMutation.isPending;
+  const errorMessage =
+    storageError ??
+    (authError instanceof Error ? authError.message : null) ??
+    (zaimConnectMutation.error instanceof Error ? zaimConnectMutation.error.message : null);
 
   async function handleSaveServerUrl() {
     const url = serverUrlInput.replace(/\/$/, "");
     try {
       await browser.storage.local.set({ serverUrl: url });
-      setServerUrl(url);
-      void checkAuthStatus(url);
+      queryClient.setQueryData(["serverUrl"], url);
+      setStorageError(null);
     } catch {
-      setAuth((prev) => ({ ...prev, error: "サーバー URL の保存に失敗しました" }));
+      setStorageError("サーバー URL の保存に失敗しました");
     }
   }
 
   async function handleServerLogin() {
     try {
       await launchServerLogin(serverUrl);
-      await checkAuthStatus(serverUrl);
+      await queryClient.invalidateQueries({ queryKey: ["authStatus", serverUrl] });
     } catch {
       // ユーザーがポップアップを閉じた場合など
     }
@@ -178,41 +162,8 @@ export default function App() {
 
   function handleServerLogout() {
     void browser.tabs.create({ url: `${serverUrl}/logout` });
-    setAuth(DEFAULT_STATE);
-    setCategories([]);
-    setCategoriesFetchedAt(null);
-  }
-
-  async function handleZaimConnect() {
-    setAuth((prev) => ({ ...prev, isLoading: true, error: null }));
-    try {
-      await launchZaimConnect(serverUrl);
-      await checkAuthStatus(serverUrl);
-    } catch (e) {
-      setAuth((prev) => ({
-        ...prev,
-        isLoading: false,
-        error: e instanceof Error ? e.message : "エラーが発生しました",
-      }));
-    }
-  }
-
-  async function handleZaimDisconnect() {
-    setAuth((prev) => ({ ...prev, isLoading: true }));
-    const client = createClient(serverUrl);
-    try {
-      await client.zaim.auth.token.$delete({}, { init: { credentials: "include" } });
-      setAuth((prev) => ({
-        ...prev,
-        isZaimConnected: false,
-        zaimUserId: null,
-        isLoading: false,
-      }));
-      setCategories([]);
-      setCategoriesFetchedAt(null);
-    } catch {
-      setAuth((prev) => ({ ...prev, isLoading: false }));
-    }
+    queryClient.setQueryData(["authStatus", serverUrl], UNAUTHENTICATED);
+    queryClient.removeQueries({ queryKey: ["categories", serverUrl] });
   }
 
   const paymentCategories = categories.filter((c) => c.mode === "payment");
@@ -243,27 +194,31 @@ export default function App() {
         </div>
       </section>
 
-      {auth.error && <p className="rounded-md bg-red-50 p-2 text-xs text-red-600">{auth.error}</p>}
+      {errorMessage && (
+        <p className="rounded-md bg-red-50 p-2 text-xs text-red-600">{errorMessage}</p>
+      )}
 
       {serverUrl && (
         <>
           <ServerLogin
             isAuthenticated={auth.isServerAuthenticated}
             user={auth.serverUser}
-            isLoading={auth.isLoading}
+            isLoading={isLoading}
             onLogin={handleServerLogin}
             onLogout={handleServerLogout}
-            onRefresh={() => checkAuthStatus(serverUrl)}
+            onRefresh={() => queryClient.invalidateQueries({ queryKey: ["authStatus", serverUrl] })}
           />
 
           {auth.isServerAuthenticated && (
             <ZaimLogin
               isConnected={auth.isZaimConnected}
               zaimUserId={auth.zaimUserId}
-              isLoading={auth.isLoading}
-              onConnect={handleZaimConnect}
-              onDisconnect={handleZaimDisconnect}
-              onRefresh={() => checkAuthStatus(serverUrl)}
+              isLoading={isLoading}
+              onConnect={() => zaimConnectMutation.mutate()}
+              onDisconnect={() => zaimDisconnectMutation.mutate()}
+              onRefresh={() =>
+                queryClient.invalidateQueries({ queryKey: ["authStatus", serverUrl] })
+              }
             />
           )}
 
@@ -277,7 +232,7 @@ export default function App() {
                   </span>
                 )}
               </div>
-              {categoriesLoading ? (
+              {categoriesFetching ? (
                 <p className="text-xs text-gray-400">読み込み中...</p>
               ) : paymentCategories.length === 0 ? (
                 <p className="text-xs text-gray-400">カテゴリがありません</p>
