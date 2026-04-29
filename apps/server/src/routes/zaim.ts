@@ -23,6 +23,7 @@ import {
   fetchZaimRequestToken,
   fetchZaimUserId,
 } from "../zaim-oauth.ts";
+import { zaimRoutesLogger } from "../logger.ts";
 
 /** Request Token の有効期限（秒） */
 const REQUEST_TOKEN_TTL = 600;
@@ -71,8 +72,15 @@ async function performZaimTokenExchange(
   oauthToken: string,
   oauthVerifier: string,
 ): Promise<{ zaimUserId: string; extRedirectUri?: string }> {
+  zaimRoutesLogger
+    .with({ oauthToken })
+    .debug("Looking up request token state from KV: {oauthToken}");
+
   const stored = await env.ZAIM_KV.get(`zaim:request:${oauthToken}`);
   if (!stored) {
+    zaimRoutesLogger
+      .with({ oauthToken })
+      .warn("Request token not found or expired in KV: {oauthToken}");
     throw new Error("Request token not found or expired");
   }
 
@@ -80,6 +88,10 @@ async function performZaimTokenExchange(
     RequestTokenStateSchema,
     JSON.parse(stored),
   );
+
+  zaimRoutesLogger
+    .with({ userSub, oauthToken })
+    .debug("Request token state found for user {userSub}, starting access token exchange");
 
   const accessConfig = {
     consumerKey: env.ZAIM_CONSUMER_KEY,
@@ -102,6 +114,10 @@ async function performZaimTokenExchange(
 
   const zaimUserId = await fetchZaimUserId(accessTokenConfig);
 
+  zaimRoutesLogger
+    .with({ userSub, zaimUserId })
+    .info("Access token obtained for user {userSub} (Zaim user {zaimUserId}), saving to KV");
+
   const tokenData: StoredAccessToken = {
     oauthToken: accessToken,
     oauthTokenSecret,
@@ -110,6 +126,10 @@ async function performZaimTokenExchange(
 
   await env.ZAIM_KV.put(`zaim:token:${userSub}`, JSON.stringify(tokenData));
   await env.ZAIM_KV.delete(`zaim:request:${oauthToken}`);
+
+  zaimRoutesLogger
+    .with({ userSub, zaimUserId })
+    .debug("Token exchange complete: access token stored, request token deleted");
 
   return { zaimUserId, extRedirectUri };
 }
@@ -133,13 +153,21 @@ const startRoute = new Hono<{ Bindings: Env }>().get(
   async (c) => {
     const auth = await getAuth(c);
     if (!auth?.sub) {
+      zaimRoutesLogger.warn("Zaim auth start: unauthorized (no OIDC session)");
       return c.json({ error: "Unauthorized" }, 401);
     }
 
     const { ext_redirect_uri } = c.req.valid("query");
     if (ext_redirect_uri !== undefined && !isValidExtensionRedirectUri(ext_redirect_uri)) {
+      zaimRoutesLogger
+        .with({ extRedirectUri: ext_redirect_uri })
+        .warn("Zaim auth start: invalid ext_redirect_uri: {extRedirectUri}");
       return c.json({ error: "Invalid ext_redirect_uri" }, 400);
     }
+
+    zaimRoutesLogger
+      .with({ userSub: auth.sub, extFlow: ext_redirect_uri !== undefined })
+      .info("Zaim auth start for user {userSub} (ext_flow={extFlow})");
 
     const callbackUrl = new URL("/zaim/auth/callback", c.req.url).toString();
 
@@ -161,12 +189,18 @@ const startRoute = new Hono<{ Bindings: Env }>().get(
       expirationTtl: REQUEST_TOKEN_TTL,
     });
 
+    zaimRoutesLogger
+      .with({ oauthToken, userSub: auth.sub, ttl: REQUEST_TOKEN_TTL })
+      .debug("Request token stored in KV: {oauthToken} (TTL={ttl}s)");
+
     const authorizeUrl = buildZaimAuthorizeUrl(oauthToken);
 
     if (ext_redirect_uri !== undefined) {
+      zaimRoutesLogger.debug("Returning authorizeUrl for extension flow");
       return c.json({ authorizeUrl });
     }
 
+    zaimRoutesLogger.debug("Redirecting to Zaim authorize URL");
     return c.redirect(authorizeUrl);
   },
 );
@@ -190,6 +224,8 @@ const callbackRoute = new Hono<{ Bindings: Env }>().get(
   async (c) => {
     const { oauth_token: oauthToken, oauth_verifier: oauthVerifier } = c.req.valid("query");
 
+    zaimRoutesLogger.with({ oauthToken }).info("Zaim auth callback received: {oauthToken}");
+
     try {
       const { zaimUserId, extRedirectUri } = await performZaimTokenExchange(
         c.env,
@@ -197,13 +233,21 @@ const callbackRoute = new Hono<{ Bindings: Env }>().get(
         oauthVerifier,
       );
 
+      zaimRoutesLogger
+        .with({ zaimUserId, extFlow: !!extRedirectUri })
+        .info("Zaim token exchange successful for Zaim user {zaimUserId}");
+
       if (extRedirectUri) {
+        zaimRoutesLogger.debug("Redirecting to extension callback URL");
         return c.redirect(extRedirectUri);
       }
 
       return c.json({ ok: true, zaimUserId });
     } catch (e) {
       const message = e instanceof Error ? e.message : "Token exchange failed";
+      zaimRoutesLogger
+        .with({ oauthToken, error: message })
+        .error("Zaim token exchange failed: {error}");
       return c.json({ error: message }, 400);
     }
   },
@@ -216,15 +260,24 @@ const callbackRoute = new Hono<{ Bindings: Env }>().get(
 const statusRoute = new Hono<{ Bindings: Env }>().get("/zaim/auth/status", async (c) => {
   const auth = await getAuth(c);
   if (!auth) {
+    zaimRoutesLogger.warn("Zaim auth status: unauthorized (no OIDC session)");
     return c.json({ error: "Unauthorized" }, 401);
   }
 
+  zaimRoutesLogger
+    .with({ userSub: auth.sub })
+    .debug("Checking Zaim connection status for {userSub}");
+
   const stored = await c.env.ZAIM_KV.get(`zaim:token:${auth.sub}`);
   if (!stored) {
+    zaimRoutesLogger.with({ userSub: auth.sub }).debug("Zaim not connected for {userSub}");
     return c.json({ connected: false });
   }
 
   const { zaimUserId } = v.parse(StoredAccessTokenSchema, JSON.parse(stored));
+  zaimRoutesLogger
+    .with({ userSub: auth.sub, zaimUserId })
+    .debug("Zaim connected for {userSub} (Zaim user {zaimUserId})");
   return c.json({ connected: true, zaimUserId });
 });
 
@@ -235,10 +288,13 @@ const statusRoute = new Hono<{ Bindings: Env }>().get("/zaim/auth/status", async
 const tokenRoute = new Hono<{ Bindings: Env }>().delete("/zaim/auth/token", async (c) => {
   const auth = await getAuth(c);
   if (!auth) {
+    zaimRoutesLogger.warn("Zaim token delete: unauthorized (no OIDC session)");
     return c.json({ error: "Unauthorized" }, 401);
   }
 
+  zaimRoutesLogger.with({ userSub: auth.sub }).info("Deleting Zaim access token for {userSub}");
   await c.env.ZAIM_KV.delete(`zaim:token:${auth.sub}`);
+  zaimRoutesLogger.with({ userSub: auth.sub }).info("Zaim access token deleted for {userSub}");
   return c.json({ ok: true });
 });
 

@@ -66,9 +66,14 @@ const launchRoute = new Hono<{ Bindings: Env }>().get(
   async (c) => {
     const { redirect_uri } = c.req.valid("query");
     if (!isValidExtensionRedirectUri(redirect_uri)) {
+      authLogger
+        .with({ redirectUri: redirect_uri })
+        .warn("Extension auth launch: invalid redirect_uri: {redirectUri}");
       return c.json({ error: "Invalid redirect_uri" }, 400);
     }
-    authLogger.info("Extension auth launch: redirecting to extension");
+    authLogger
+      .with({ redirectUri: redirect_uri })
+      .info("Extension auth launch: redirecting to {redirectUri}");
     return c.redirect(redirect_uri);
   },
 );
