@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { browser } from "wxt/browser";
 import { createClient } from "server/client";
 import { launchServerLogin } from "../../auth/serverAuth.ts";
 import { launchZaimConnect } from "../../auth/zaimAuth.ts";
@@ -136,20 +137,34 @@ export default function App() {
   );
 
   useEffect(() => {
-    chrome.storage.local.get("serverUrl", (result) => {
-      const url = (result.serverUrl as string) || "";
-      setServerUrl(url);
-      setServerUrlInput(url);
-      if (url) void checkAuthStatus(url);
-    });
+    let cancelled = false;
+    void (async () => {
+      try {
+        const result = await browser.storage.local.get("serverUrl");
+        if (cancelled) return;
+        const url = (result.serverUrl as string) || "";
+        setServerUrl(url);
+        setServerUrlInput(url);
+        if (url) void checkAuthStatus(url);
+      } catch {
+        if (cancelled) return;
+        setAuth((prev) => ({ ...prev, error: "サーバー URL の読み込みに失敗しました" }));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [checkAuthStatus]);
 
-  function handleSaveServerUrl() {
+  async function handleSaveServerUrl() {
     const url = serverUrlInput.replace(/\/$/, "");
-    chrome.storage.local.set({ serverUrl: url }, () => {
+    try {
+      await browser.storage.local.set({ serverUrl: url });
       setServerUrl(url);
       void checkAuthStatus(url);
-    });
+    } catch {
+      setAuth((prev) => ({ ...prev, error: "サーバー URL の保存に失敗しました" }));
+    }
   }
 
   async function handleServerLogin() {
@@ -162,7 +177,7 @@ export default function App() {
   }
 
   function handleServerLogout() {
-    void chrome.tabs.create({ url: `${serverUrl}/logout` });
+    void browser.tabs.create({ url: `${serverUrl}/logout` });
     setAuth(DEFAULT_STATE);
     setCategories([]);
     setCategoriesFetchedAt(null);
