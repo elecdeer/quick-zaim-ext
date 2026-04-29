@@ -12,7 +12,6 @@
     "dev": "vp pack --watch",
     "test": "vp test",
     "check": "vp check",
-    "generate": "tsp compile ./typespec && openapi-ts",
     "generate:openapi3": "tsp compile ./typespec",
     "generate:ts-client": "openapi-ts"
   },

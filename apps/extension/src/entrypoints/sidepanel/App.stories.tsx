@@ -4,13 +4,15 @@ import { setupChromeMock } from "../../test-utils/chrome.ts";
 import App from "./App.tsx";
 
 const MOCK_SERVER_URL = "http://mock-server.test";
+const FIXED_FETCHED_AT = "2024-01-01T00:00:00.000Z";
 
 const meta = preview.meta({
   title: "Sidebar/App",
   component: App,
   decorators: [
-    (Story) => {
-      setupChromeMock({ serverUrl: MOCK_SERVER_URL });
+    (Story, ctx) => {
+      const serverUrl = (ctx.parameters.serverUrl as string | undefined) ?? MOCK_SERVER_URL;
+      setupChromeMock({ serverUrl });
       return <Story />;
     },
   ],
@@ -20,13 +22,8 @@ export default meta;
 
 export const NoServerUrl = meta.story({
   name: "URLなし",
-  decorators: [
-    (Story) => {
-      setupChromeMock({ serverUrl: "" });
-      return <Story />;
-    },
-  ],
   parameters: {
+    serverUrl: "",
     msw: { handlers: [] },
   },
 });
@@ -69,7 +66,7 @@ export const FullyConnected = meta.story({
         ),
         http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, () =>
           HttpResponse.json({
-            fetchedAt: new Date().toISOString(),
+            fetchedAt: FIXED_FETCHED_AT,
             categories: [
               {
                 id: 101,
@@ -129,7 +126,8 @@ export const CategoriesLoading = meta.story({
           HttpResponse.json({ connected: true, zaimUserId: "zaim_user_123456" }),
         ),
         http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, async () => {
-          await new Promise((resolve) => setTimeout(resolve, 60_000));
+          // Never resolves to keep loading state visible indefinitely
+          await new Promise<never>(() => {});
           return HttpResponse.json({ fetchedAt: "", categories: [] });
         }),
       ],
