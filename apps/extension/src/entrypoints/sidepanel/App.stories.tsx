@@ -1,6 +1,6 @@
 import { http, HttpResponse } from "msw";
 import preview from "../../../.storybook/preview";
-import { setupChromeMock } from "../../test-utils/chrome.ts";
+import { setupBrowserMock } from "../../test-utils/browser-mock.ts";
 import App from "./App.tsx";
 
 const MOCK_SERVER_URL = "http://mock-server.test";
@@ -9,11 +9,10 @@ const FIXED_FETCHED_AT = "2024-01-01T00:00:00.000Z";
 const meta = preview.meta({
   title: "Sidebar/App",
   component: App,
-  decorators: [
-    (Story, ctx) => {
+  loaders: [
+    async (ctx) => {
       const serverUrl = (ctx.parameters.serverUrl as string | undefined) ?? MOCK_SERVER_URL;
-      setupChromeMock({ serverUrl });
-      return <Story />;
+      await setupBrowserMock({ serverUrl });
     },
   ],
 });
