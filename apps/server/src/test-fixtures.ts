@@ -5,7 +5,8 @@
  * nonce・タイムスタンプをモックする test.extend フィクスチャを提供する。
  */
 
-import { test, vi } from "vite-plus/test";
+import { type MockedFunction, test, vi } from "vite-plus/test";
+import type { KVNamespace } from "@cloudflare/workers-types";
 
 /** RFC 5849 Appendix A.2 テストベクター */
 export const RFC = {
@@ -43,6 +44,42 @@ export interface OAuthTestFixtures {
   fixedTime: void;
   /** `crypto.randomUUID()` を RFC nonce に固定する */
   mockedNonce: void;
+}
+
+export interface KVNamespaceMock {
+  /** Cloudflare KV 互換オブジェクト（Env に渡す用） */
+  kv: KVNamespace;
+  /** get のモック関数（mockResolvedValueOnce などで制御する） */
+  mockGet: MockedFunction<(key: string) => Promise<string | null>>;
+  /** put のモック関数 */
+  mockPut: MockedFunction<(key: string, value: string) => Promise<void>>;
+  /** delete のモック関数 */
+  mockDelete: MockedFunction<(key: string) => Promise<void>>;
+}
+
+/**
+ * インメモリ KV ネームスペースモック
+ *
+ * get / put / delete のみ実装。TTL は無視する（テストでは期限切れを再現しない）。
+ * 返り値の mockGet / mockPut / mockDelete を使って挙動を制御する。
+ */
+export function createKVNamespaceMock(): KVNamespaceMock {
+  const store = new Map<string, string>();
+  const mockGet = vi.fn(async (key: string): Promise<string | null> => store.get(key) ?? null);
+  const mockPut = vi.fn(async (key: string, value: string): Promise<void> => {
+    store.set(key, value);
+  });
+  const mockDelete = vi.fn(async (key: string): Promise<void> => {
+    store.delete(key);
+  });
+  const kv = {
+    get: mockGet,
+    put: mockPut,
+    delete: mockDelete,
+    list: vi.fn(),
+    getWithMetadata: vi.fn(),
+  } as unknown as KVNamespace;
+  return { kv, mockGet, mockPut, mockDelete };
 }
 
 /**
