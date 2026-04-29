@@ -60,12 +60,7 @@ async function fetchCategoriesFromZaim(oauthConfig: OAuth1Config): Promise<Categ
   ]);
 
   if (!categoriesResult.data || !genresResult.data) {
-    categoriesLogger
-      .with({
-        categoriesStatus: categoriesResult.response?.status,
-        genresStatus: genresResult.response?.status,
-      })
-      .error("Failed to fetch categories or genres from Zaim API");
+    categoriesLogger.error("Failed to fetch categories or genres from Zaim API");
     throw new Error("Failed to fetch categories from Zaim API");
   }
 
@@ -109,7 +104,9 @@ const getCategoriesRoute = new Hono<{ Bindings: Env }>().get(
 
     const token = await getStoredZaimToken(c.env.ZAIM_KV, auth.sub);
     if (!token) {
-      categoriesLogger.with({ userSub: auth.sub }).warn("Categories: Zaim not connected for {userSub}");
+      categoriesLogger
+        .with({ userSub: auth.sub })
+        .warn("Categories: Zaim not connected for {userSub}");
       return c.json({ error: "Zaim not connected" }, 403);
     }
 

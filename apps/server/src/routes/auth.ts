@@ -71,7 +71,9 @@ const launchRoute = new Hono<{ Bindings: Env }>().get(
         .warn("Extension auth launch: invalid redirect_uri: {redirectUri}");
       return c.json({ error: "Invalid redirect_uri" }, 400);
     }
-    authLogger.with({ redirectUri: redirect_uri }).info("Extension auth launch: redirecting to {redirectUri}");
+    authLogger
+      .with({ redirectUri: redirect_uri })
+      .info("Extension auth launch: redirecting to {redirectUri}");
     return c.redirect(redirect_uri);
   },
 );

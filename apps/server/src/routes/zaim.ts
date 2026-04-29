@@ -247,7 +247,9 @@ const callbackRoute = new Hono<{ Bindings: Env }>().get(
       return c.json({ ok: true, zaimUserId });
     } catch (e) {
       const message = e instanceof Error ? e.message : "Token exchange failed";
-      zaimRoutesLogger.with({ oauthToken, error: message }).error("Zaim token exchange failed: {error}");
+      zaimRoutesLogger
+        .with({ oauthToken, error: message })
+        .error("Zaim token exchange failed: {error}");
       return c.json({ error: message }, 400);
     }
   },
@@ -264,7 +266,9 @@ const statusRoute = new Hono<{ Bindings: Env }>().get("/zaim/auth/status", async
     return c.json({ error: "Unauthorized" }, 401);
   }
 
-  zaimRoutesLogger.with({ userSub: auth.sub }).debug("Checking Zaim connection status for {userSub}");
+  zaimRoutesLogger
+    .with({ userSub: auth.sub })
+    .debug("Checking Zaim connection status for {userSub}");
 
   const stored = await c.env.ZAIM_KV.get(`zaim:token:${auth.sub}`);
   if (!stored) {
