@@ -137,20 +137,34 @@ export default function App() {
   );
 
   useEffect(() => {
+    let cancelled = false;
     void (async () => {
-      const result = await browser.storage.local.get("serverUrl");
-      const url = (result.serverUrl as string) || "";
-      setServerUrl(url);
-      setServerUrlInput(url);
-      if (url) void checkAuthStatus(url);
+      try {
+        const result = await browser.storage.local.get("serverUrl");
+        if (cancelled) return;
+        const url = (result.serverUrl as string) || "";
+        setServerUrl(url);
+        setServerUrlInput(url);
+        if (url) void checkAuthStatus(url);
+      } catch {
+        if (cancelled) return;
+        setAuth((prev) => ({ ...prev, error: "サーバー URL の読み込みに失敗しました" }));
+      }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [checkAuthStatus]);
 
   async function handleSaveServerUrl() {
     const url = serverUrlInput.replace(/\/$/, "");
-    await browser.storage.local.set({ serverUrl: url });
-    setServerUrl(url);
-    void checkAuthStatus(url);
+    try {
+      await browser.storage.local.set({ serverUrl: url });
+      setServerUrl(url);
+      void checkAuthStatus(url);
+    } catch {
+      setAuth((prev) => ({ ...prev, error: "サーバー URL の保存に失敗しました" }));
+    }
   }
 
   async function handleServerLogin() {
