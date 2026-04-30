@@ -52,14 +52,19 @@ async function fetchAuthStatus(url: string): Promise<AuthStatus> {
   }
 
   const user = await meRes.json();
-  const zaimRes = await client.zaim.auth.status.$get(
-    {},
-    { init: { credentials: "include", redirect: "manual" } },
-  );
-  const zaim =
-    zaimRes.ok && zaimRes.type !== "opaqueredirect"
-      ? await zaimRes.json()
-      : { connected: false as const };
+  let zaim: { connected: boolean; zaimUserId?: string };
+  try {
+    const zaimRes = await client.zaim.auth.status.$get(
+      {},
+      { init: { credentials: "include", redirect: "manual" } },
+    );
+    zaim =
+      zaimRes.ok && zaimRes.type !== "opaqueredirect"
+        ? await zaimRes.json()
+        : { connected: false as const };
+  } catch {
+    zaim = { connected: false as const };
+  }
 
   return {
     isServerAuthenticated: true,
@@ -109,7 +114,11 @@ export default function App() {
     retry: false,
   });
 
-  const { data: categoriesData, isFetching: categoriesFetching } = useQuery({
+  const {
+    data: categoriesData,
+    isFetching: categoriesFetching,
+    error: categoriesError,
+  } = useQuery({
     queryKey: ["categories", serverUrl],
     queryFn: () => fetchCategoriesData(serverUrl),
     enabled: !!serverUrl && auth.isZaimConnected,
@@ -123,7 +132,13 @@ export default function App() {
   const zaimDisconnectMutation = useMutation({
     mutationFn: async () => {
       const client = createClient(serverUrl);
-      await client.zaim.auth.token.$delete({}, { init: { credentials: "include" } });
+      const res = await client.zaim.auth.token.$delete(
+        {},
+        { init: { credentials: "include", redirect: "manual" } },
+      );
+      if (!res.ok || res.type === "opaqueredirect") {
+        throw new Error("Zaim 連携解除に失敗しました");
+      }
     },
     onSuccess: () => {
       queryClient.setQueryData(["authStatus", serverUrl], UNAUTHENTICATED);
@@ -138,7 +153,9 @@ export default function App() {
   const errorMessage =
     storageError ??
     (authError instanceof Error ? authError.message : null) ??
-    (zaimConnectMutation.error instanceof Error ? zaimConnectMutation.error.message : null);
+    (zaimConnectMutation.error instanceof Error ? zaimConnectMutation.error.message : null) ??
+    (zaimDisconnectMutation.error instanceof Error ? zaimDisconnectMutation.error.message : null) ??
+    (categoriesError instanceof Error ? categoriesError.message : null);
 
   async function handleSaveServerUrl() {
     const url = serverUrlInput.replace(/\/$/, "");
