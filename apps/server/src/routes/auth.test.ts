@@ -7,6 +7,7 @@
  */
 
 import { beforeEach, describe, expect, test, vi } from "vite-plus/test";
+import { testClient } from "hono/testing";
 import { createKVNamespaceMock } from "../test-fixtures.ts";
 import { authRoutes } from "./auth.ts";
 import type { Env } from "../env.ts";
@@ -57,8 +58,7 @@ describe("GET /logout", () => {
   });
 
   test("Auth0のログアウトURLにリダイレクトする", async () => {
-    const env = makeEnv();
-    const res = await authRoutes.request("http://localhost/logout", {}, env);
+    const res = await testClient(authRoutes, makeEnv()).logout.$get();
 
     expect(res.status).toBe(302);
     const location = res.headers.get("Location") ?? "";
@@ -68,15 +68,16 @@ describe("GET /logout", () => {
   });
 
   test("ログアウトURL末尾スラッシュが重複しない", async () => {
-    const env = makeEnv({ OIDC_ISSUER: "https://example.auth0.com/" });
-    const res = await authRoutes.request("http://localhost/logout", {}, env);
+    const res = await testClient(
+      authRoutes,
+      makeEnv({ OIDC_ISSUER: "https://example.auth0.com/" }),
+    ).logout.$get();
     const location = res.headers.get("Location") ?? "";
     expect(location).not.toContain("auth0.com//");
   });
 
   test("revokeSessionを呼び出す", async () => {
-    const env = makeEnv();
-    await authRoutes.request("http://localhost/logout", {}, env);
+    await testClient(authRoutes, makeEnv()).logout.$get();
     expect(mockRevokeSession).toHaveBeenCalledOnce();
   });
 });
@@ -87,22 +88,20 @@ describe("GET /me", () => {
   test("認証済みユーザーのemailとsubを返す", async () => {
     mockGetAuth.mockResolvedValueOnce(MOCK_USER);
 
-    const env = makeEnv();
-    const res = await authRoutes.request("http://localhost/me", {}, env);
+    const res = await testClient(authRoutes, makeEnv()).me.$get();
     expect(res.status).toBe(200);
 
-    const body = await res.json<{ email?: string; sub?: string }>();
+    const body = await res.json();
     expect(body.email).toBe("user@example.com");
     expect(body.sub).toBe("auth0|user123");
   });
 
   test("getAuthがnullを返しても200を返す（ミドルウェアで保護済みのため）", async () => {
     mockGetAuth.mockResolvedValueOnce(null);
-    const env = makeEnv();
-    const res = await authRoutes.request("http://localhost/me", {}, env);
+    const res = await testClient(authRoutes, makeEnv()).me.$get();
     expect(res.status).toBe(200);
 
-    const body = await res.json<{ email?: string; sub?: string }>();
+    const body = await res.json();
     expect(body.email).toBeUndefined();
     expect(body.sub).toBeUndefined();
   });
@@ -113,43 +112,33 @@ describe("GET /me", () => {
 describe("GET /auth/launch", () => {
   test("有効なchromiumapp.orgのredirect_uriにリダイレクトする", async () => {
     const redirectUri = "https://abcdef.chromiumapp.org/callback";
-    const env = makeEnv();
-    const res = await authRoutes.request(
-      `http://localhost/auth/launch?redirect_uri=${encodeURIComponent(redirectUri)}`,
-      {},
-      env,
-    );
+    const res = await testClient(authRoutes, makeEnv()).auth.launch.$get({
+      query: { redirect_uri: redirectUri },
+    });
     expect(res.status).toBe(302);
     expect(res.headers.get("Location")).toBe(redirectUri);
   });
 
   test("redirect_uriが未指定のとき400を返す", async () => {
-    const env = makeEnv();
-    const res = await authRoutes.request("http://localhost/auth/launch", {}, env);
+    const res = await authRoutes.request("http://localhost/auth/launch", {}, makeEnv());
     expect(res.status).toBe(400);
-    const body = await res.json<{ error: string }>();
+    const body = (await res.json()) as { error: string };
     expect(body.error).toBeDefined();
   });
 
   test("chromiumapp.org以外のhostは400を返す", async () => {
-    const env = makeEnv();
-    const res = await authRoutes.request(
-      "http://localhost/auth/launch?redirect_uri=https://evil.example.com/cb",
-      {},
-      env,
-    );
+    const res = await testClient(authRoutes, makeEnv()).auth.launch.$get({
+      query: { redirect_uri: "https://evil.example.com/cb" },
+    });
     expect(res.status).toBe(400);
-    const body = await res.json<{ error: string }>();
+    const body = (await res.json()) as { error: string };
     expect(body.error).toMatch(/redirect_uri/);
   });
 
   test("httpスキームのURIは400を返す", async () => {
-    const env = makeEnv();
-    const res = await authRoutes.request(
-      "http://localhost/auth/launch?redirect_uri=http://abc.chromiumapp.org/cb",
-      {},
-      env,
-    );
+    const res = await testClient(authRoutes, makeEnv()).auth.launch.$get({
+      query: { redirect_uri: "http://abc.chromiumapp.org/cb" },
+    });
     expect(res.status).toBe(400);
   });
 });

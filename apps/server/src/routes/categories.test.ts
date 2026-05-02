@@ -5,6 +5,7 @@
  */
 
 import { beforeEach, describe, expect, test, vi } from "vite-plus/test";
+import { testClient } from "hono/testing";
 import { createKVNamespaceMock } from "../test-fixtures.ts";
 import { categoriesRoutes } from "./categories.ts";
 import type { Env } from "../env.ts";
@@ -97,22 +98,18 @@ describe("GET /api/zaim/categories", () => {
 
   test("OIDC未認証のとき401を返す", async () => {
     mockGetAuth.mockResolvedValueOnce(null);
-    const res = await categoriesRoutes.request(
-      "http://localhost/api/zaim/categories",
-      {},
-      makeEnv(),
-    );
+    const res = await testClient(categoriesRoutes, makeEnv()).api.zaim.categories.$get({
+      query: {},
+    });
     expect(res.status).toBe(401);
   });
 
   test("Zaimトークン未連携のとき403を返す", async () => {
-    const res = await categoriesRoutes.request(
-      "http://localhost/api/zaim/categories",
-      {},
-      makeEnv(),
-    );
+    const res = await testClient(categoriesRoutes, makeEnv()).api.zaim.categories.$get({
+      query: {},
+    });
     expect(res.status).toBe(403);
-    const body = await res.json<{ error: string }>();
+    const body = (await res.json()) as { error: string };
     expect(body.error).toMatch(/Zaim/);
   });
 
@@ -124,13 +121,11 @@ describe("GET /api/zaim/categories", () => {
     };
     mockGet.mockResolvedValueOnce(STORED_TOKEN).mockResolvedValueOnce(JSON.stringify(cachedData));
 
-    const res = await categoriesRoutes.request(
-      "http://localhost/api/zaim/categories",
-      {},
-      makeEnv(kv),
-    );
+    const res = await testClient(categoriesRoutes, makeEnv(kv)).api.zaim.categories.$get({
+      query: {},
+    });
     expect(res.status).toBe(200);
-    const body = await res.json<typeof cachedData>();
+    const body = (await res.json()) as typeof cachedData;
     expect(body.fetchedAt).toBe("2026-01-01T00:00:00.000Z");
     expect(mockGetCategories).not.toHaveBeenCalled();
     expect(mockGetGenres).not.toHaveBeenCalled();
@@ -140,13 +135,11 @@ describe("GET /api/zaim/categories", () => {
     const { kv, mockGet } = createKVNamespaceMock();
     mockGet.mockResolvedValueOnce(STORED_TOKEN).mockResolvedValueOnce(null);
 
-    const res = await categoriesRoutes.request(
-      "http://localhost/api/zaim/categories",
-      {},
-      makeEnv(kv),
-    );
+    const res = await testClient(categoriesRoutes, makeEnv(kv)).api.zaim.categories.$get({
+      query: {},
+    });
     expect(res.status).toBe(200);
-    const body = await res.json<{ fetchedAt: string; categories: unknown[] }>();
+    const body = (await res.json()) as { fetchedAt: string; categories: unknown[] };
     expect(body.categories).toHaveLength(2);
     expect(mockGetCategories).toHaveBeenCalledOnce();
     expect(mockGetGenres).toHaveBeenCalledOnce();
@@ -156,7 +149,7 @@ describe("GET /api/zaim/categories", () => {
     const { kv, mockGet, mockPut } = createKVNamespaceMock();
     mockGet.mockResolvedValueOnce(STORED_TOKEN).mockResolvedValueOnce(null);
 
-    await categoriesRoutes.request("http://localhost/api/zaim/categories", {}, makeEnv(kv));
+    await testClient(categoriesRoutes, makeEnv(kv)).api.zaim.categories.$get({ query: {} });
 
     expect(mockPut).toHaveBeenCalledWith(
       "zaim:cache:categories:zaim_user_999",
@@ -169,14 +162,12 @@ describe("GET /api/zaim/categories", () => {
     const { kv, mockGet } = createKVNamespaceMock();
     mockGet.mockResolvedValueOnce(STORED_TOKEN).mockResolvedValueOnce(null);
 
-    const res = await categoriesRoutes.request(
-      "http://localhost/api/zaim/categories",
-      {},
-      makeEnv(kv),
-    );
-    const body = await res.json<{
+    const res = await testClient(categoriesRoutes, makeEnv(kv)).api.zaim.categories.$get({
+      query: {},
+    });
+    const body = (await res.json()) as {
       categories: { id: number; subCategories: { id: number; name: string }[] }[];
-    }>();
+    };
 
     const shokuhi = body.categories.find((c) => c.id === 101);
     expect(shokuhi?.subCategories).toHaveLength(2);
@@ -188,13 +179,11 @@ describe("GET /api/zaim/categories", () => {
     const cachedData = { fetchedAt: "2026-01-01T00:00:00.000Z", categories: [] };
     mockGet.mockResolvedValueOnce(STORED_TOKEN).mockResolvedValueOnce(JSON.stringify(cachedData));
 
-    const res = await categoriesRoutes.request(
-      "http://localhost/api/zaim/categories?no_cache=1",
-      {},
-      makeEnv(kv),
-    );
+    const res = await testClient(categoriesRoutes, makeEnv(kv)).api.zaim.categories.$get({
+      query: { no_cache: "1" },
+    });
     expect(res.status).toBe(200);
-    const body = await res.json<{ categories: unknown[] }>();
+    const body = (await res.json()) as { categories: unknown[] };
     expect(body.categories).toHaveLength(2);
     expect(mockGetCategories).toHaveBeenCalledOnce();
   });
@@ -203,12 +192,10 @@ describe("GET /api/zaim/categories", () => {
     const { kv, mockGet } = createKVNamespaceMock();
     mockGet.mockResolvedValueOnce(STORED_TOKEN).mockResolvedValueOnce(null);
 
-    const res = await categoriesRoutes.request(
-      "http://localhost/api/zaim/categories",
-      {},
-      makeEnv(kv),
-    );
-    const body = await res.json<{ fetchedAt: string }>();
+    const res = await testClient(categoriesRoutes, makeEnv(kv)).api.zaim.categories.$get({
+      query: {},
+    });
+    const body = (await res.json()) as { fetchedAt: string };
     expect(() => new Date(body.fetchedAt)).not.toThrow();
     expect(body.fetchedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
