@@ -10,7 +10,7 @@ export default defineConfig({
   run: {
     tasks: {
       dev: {
-        command: "wxt dev",
+        command: "wxt",
         dependsOn: ["@repo/zaim-api#generate"],
       },
       build: {
