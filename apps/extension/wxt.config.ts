@@ -15,10 +15,9 @@ export default defineConfig({
       default_path: "sidepanel/index.html",
     },
   },
-  vite: () =>
-    ({
-      plugins: [tailwindcss()],
-    }) as any,
+  vite: () => ({
+    plugins: [tailwindcss()],
+  }),
   webExt: {
     chromiumArgs: ["--user-data-dir=./.wxt/chrome-data"],
   },
