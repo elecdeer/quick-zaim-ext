@@ -19,4 +19,7 @@ export default defineConfig({
     ({
       plugins: [tailwindcss()],
     }) as any,
+  webExt: {
+    chromiumArgs: ["--user-data-dir=./.wxt/chrome-data"],
+  },
 });
