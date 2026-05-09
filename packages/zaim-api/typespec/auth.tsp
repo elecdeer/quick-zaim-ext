@@ -12,19 +12,6 @@ using TypeSpec.Http;
  */
 @route("/auth")
 namespace ZaimAPI.Auth {
-  /** Request Token (/v2/auth/request) の正常レスポンスモデル */
-  model RequestTokenResponse {
-    oauth_token: string;
-    oauth_token_secret: string;
-    oauth_callback_confirmed: boolean;
-  }
-
-  /** Access Token (/v2/auth/access) の正常レスポンスモデル */
-  model AccessTokenResponse {
-    oauth_token: string;
-    oauth_token_secret: string;
-  }
-
   /**
    * OAuth 1.0a Request Token の取得
    *

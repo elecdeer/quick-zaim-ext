@@ -62,14 +62,14 @@ export async function fetchZaimRequestToken(
     headers: { Authorization: authHeader },
   });
 
-  if (error) {
+  if (error || !data) {
     zaimOAuthLogger
       .with({ status: response.status, body: error })
       .error("Zaim request token fetch failed [{status}]: {body}");
     throw new Error(`Request token failed [${response.status}]: ${error}`);
   }
 
-  const parsed = v.parse(RequestTokenSchema, Object.fromEntries(new URLSearchParams(data!)));
+  const parsed = v.parse(RequestTokenSchema, Object.fromEntries(new URLSearchParams(data)));
 
   zaimOAuthLogger
     .with({ oauthToken: parsed.oauth_token })
