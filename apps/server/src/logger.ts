@@ -18,3 +18,4 @@ export const authLogger = getLogger(["quick-zaim", "server", "auth"]);
 export const zaimOAuthLogger = getLogger(["quick-zaim", "server", "zaim-oauth"]);
 export const zaimRoutesLogger = getLogger(["quick-zaim", "server", "zaim-routes"]);
 export const categoriesLogger = getLogger(["quick-zaim", "server", "categories"]);
+export const accountsLogger = getLogger(["quick-zaim", "server", "accounts"]);

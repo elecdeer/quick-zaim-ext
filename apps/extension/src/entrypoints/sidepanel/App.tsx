@@ -24,6 +24,17 @@ interface Category {
   subCategories: SubCategory[];
 }
 
+interface Account {
+  id: number;
+  name: string;
+  modified: string;
+  sort: number;
+  active: number;
+  localId: number;
+  websiteId: number;
+  parentAccountId: number;
+}
+
 interface AuthStatus {
   isServerAuthenticated: boolean;
   serverUser: ServerUser | null;
@@ -86,6 +97,18 @@ async function fetchCategoriesData(url: string) {
   throw new Error("カテゴリの取得に失敗しました");
 }
 
+async function fetchAccountsData(url: string) {
+  const client = createClient(url);
+  const res = await client.api.zaim.accounts.$get(
+    { query: {} },
+    { init: { credentials: "include", redirect: "manual" } },
+  );
+  if (res.ok && res.type !== "opaqueredirect") {
+    return res.json() as Promise<{ fetchedAt: string; accounts: Account[] }>;
+  }
+  throw new Error("口座の取得に失敗しました");
+}
+
 export default function App() {
   const queryClient = useQueryClient();
   const [serverUrlInput, setServerUrlInput] = useState("");
@@ -124,6 +147,16 @@ export default function App() {
     enabled: !!serverUrl && auth.isZaimConnected,
   });
 
+  const {
+    data: accountsData,
+    isFetching: accountsFetching,
+    error: accountsError,
+  } = useQuery({
+    queryKey: ["accounts", serverUrl],
+    queryFn: () => fetchAccountsData(serverUrl),
+    enabled: !!serverUrl && auth.isZaimConnected,
+  });
+
   const zaimConnectMutation = useMutation({
     mutationFn: () => launchZaimConnect(serverUrl),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["authStatus", serverUrl] }),
@@ -143,11 +176,14 @@ export default function App() {
     onSuccess: () => {
       queryClient.setQueryData(["authStatus", serverUrl], UNAUTHENTICATED);
       queryClient.removeQueries({ queryKey: ["categories", serverUrl] });
+      queryClient.removeQueries({ queryKey: ["accounts", serverUrl] });
     },
   });
 
   const categories = categoriesData?.categories ?? [];
   const categoriesFetchedAt = categoriesData?.fetchedAt ?? null;
+  const accounts = accountsData?.accounts ?? [];
+  const accountsFetchedAt = accountsData?.fetchedAt ?? null;
   const isLoading =
     authFetching || zaimConnectMutation.isPending || zaimDisconnectMutation.isPending;
   const errorMessage =
@@ -155,7 +191,8 @@ export default function App() {
     (authError instanceof Error ? authError.message : null) ??
     (zaimConnectMutation.error instanceof Error ? zaimConnectMutation.error.message : null) ??
     (zaimDisconnectMutation.error instanceof Error ? zaimDisconnectMutation.error.message : null) ??
-    (categoriesError instanceof Error ? categoriesError.message : null);
+    (categoriesError instanceof Error ? categoriesError.message : null) ??
+    (accountsError instanceof Error ? accountsError.message : null);
 
   async function handleSaveServerUrl() {
     const url = serverUrlInput.replace(/\/$/, "");
@@ -181,6 +218,7 @@ export default function App() {
     void browser.tabs.create({ url: `${serverUrl}/logout` });
     queryClient.setQueryData(["authStatus", serverUrl], UNAUTHENTICATED);
     queryClient.removeQueries({ queryKey: ["categories", serverUrl] });
+    queryClient.removeQueries({ queryKey: ["accounts", serverUrl] });
   }
 
   const paymentCategories = categories.filter((c) => c.mode === "payment");
@@ -269,6 +307,40 @@ export default function App() {
                             </li>
                           ))}
                         </ul>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+
+          {auth.isZaimConnected && (
+            <section className="flex flex-col gap-2">
+              <div className="flex items-baseline gap-2">
+                <label className="text-xs font-semibold text-gray-500">支払い方法</label>
+                {accountsFetchedAt && (
+                  <span className="text-xs text-gray-400">
+                    {new Date(accountsFetchedAt).toLocaleString("ja-JP")} 取得
+                  </span>
+                )}
+              </div>
+              {accountsFetching ? (
+                <p className="text-xs text-gray-400">読み込み中...</p>
+              ) : accounts.length === 0 ? (
+                <p className="text-xs text-gray-400">支払い方法がありません</p>
+              ) : (
+                <ul className="flex flex-col gap-1">
+                  {accounts.map((acc) => (
+                    <li
+                      key={acc.id}
+                      className="flex items-center justify-between rounded-md bg-white px-3 py-2 text-sm shadow-sm"
+                    >
+                      <span className="font-medium text-gray-800">{acc.name}</span>
+                      {acc.active === 0 && (
+                        <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-400">
+                          無効
+                        </span>
                       )}
                     </li>
                   ))}

@@ -5,6 +5,7 @@ import { cors } from "hono/cors";
 import type { Env } from "./env.ts";
 import "./logger.ts";
 import { authRoutes } from "./routes/auth.ts";
+import { accountsRoutes } from "./routes/accounts.ts";
 import { categoriesRoutes } from "./routes/categories.ts";
 import { zaimRoutes } from "./routes/zaim.ts";
 
@@ -62,6 +63,7 @@ const app = base
   .route("/", zaimRoutes)
   // Zaim データ取得（/api/zaim/*）- /api/* の OIDC ミドルウェアで保護済み
   .route("/", categoriesRoutes)
+  .route("/", accountsRoutes)
   .route("/", healthRoute);
 
 export default app;

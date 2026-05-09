@@ -6,8 +6,11 @@ type BrowserMockOptions = {
 
 /**
  * Storybook 用 browser モックのセットアップ。
- * fakeBrowser を globalThis.chrome に設定し、storage の初期値を注入する。
+ * モックをリセットし、storage の初期値を注入する。
  * stories の loaders で await して呼び出すこと。
+ *
+ * NOTE: globalThis.chrome / globalThis.browser への fakeBrowser の割り当ては
+ *       .storybook/preview.ts で事前に行う（wxt/browser のモジュール評価タイミングに合わせるため）。
  */
 export async function setupBrowserMock({
   serverUrl = "http://mock-server.test",
@@ -21,10 +24,6 @@ export async function setupBrowserMock({
     getRedirectURL: (path?: string) => `https://mock.chromiumapp.org/${path ?? "redirect"}`,
     launchWebAuthFlow: () => Promise.resolve("https://mock.chromiumapp.org/redirect"),
   };
-
-  // @wxt-dev/browser は globalThis.browser が未設定の場合 globalThis.chrome にフォールバックするため、
-  // fakeBrowser を chrome グローバルとして登録することで wxt/browser の browser が fakeBrowser を指すようにする。
-  globalThis.chrome = fakeBrowser as unknown as typeof chrome;
 
   await fakeBrowser.storage.local.set({ serverUrl });
 }
