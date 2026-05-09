@@ -6,6 +6,7 @@ import "./category.tsp";
 import "./genre.tsp";
 import "./account.tsp";
 import "./other.tsp";
+import "./auth.tsp";
 
 using TypeSpec.Http;
 
