@@ -88,7 +88,21 @@ async function fetchAllMoneyFromZaim(oauthConfig: OAuth1Config): Promise<MoneyIt
     throw new Error("Failed to fetch money items from Zaim API");
   }
 
-  const items = result.data.money
+  // result.data.money may be typed as any[] depending on the generated client version,
+  // so we explicitly assert the shape to avoid TS7006 implicit-any errors.
+  type ZaimMoneyApiItem = {
+    id: number;
+    mode: "income" | "payment" | "transfer";
+    date: string;
+    category_id: number;
+    genre_id: number;
+    amount: number;
+    place: string;
+    place_uid: string;
+  };
+  const moneyList = result.data.money as ZaimMoneyApiItem[];
+
+  const items = moneyList
     .filter((m) => m.place)
     .map((m) => ({
       id: m.id,
@@ -96,7 +110,7 @@ async function fetchAllMoneyFromZaim(oauthConfig: OAuth1Config): Promise<MoneyIt
       amount: m.amount,
       place: m.place,
       placeUid: m.place_uid,
-      mode: m.mode as "income" | "payment" | "transfer",
+      mode: m.mode,
       categoryId: m.category_id,
       genreId: m.genre_id,
     }));
