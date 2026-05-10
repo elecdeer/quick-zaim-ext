@@ -115,7 +115,9 @@ async function fetchAllMoneyFromZaim(oauthConfig: OAuth1Config): Promise<MoneyIt
       genreId: m.genre_id,
     }));
 
-  storesLogger.with({ itemCount: items.length }).debug("Zaim API returned {itemCount} money items with places");
+  storesLogger
+    .with({ itemCount: items.length })
+    .debug("Zaim API returned {itemCount} money items with places");
 
   return items;
 }

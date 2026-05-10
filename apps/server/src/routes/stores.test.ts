@@ -259,11 +259,9 @@ describe("GET /api/zaim/stores", () => {
 
     await testClient(storesRoutes, makeEnv(kv)).api.zaim.stores.$get({ query: {} });
 
-    expect(mockPut).toHaveBeenCalledWith(
-      "zaim:cache:stores:zaim_user_999",
-      expect.any(String),
-      { expirationTtl: 3600 },
-    );
+    expect(mockPut).toHaveBeenCalledWith("zaim:cache:stores:zaim_user_999", expect.any(String), {
+      expirationTtl: 3600,
+    });
   });
 
   test("取得後に月別moneyキャッシュをKVに書き込む", async () => {
