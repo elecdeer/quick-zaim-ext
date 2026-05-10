@@ -7,6 +7,7 @@ import "./logger.ts";
 import { authRoutes } from "./routes/auth.ts";
 import { accountsRoutes } from "./routes/accounts.ts";
 import { categoriesRoutes } from "./routes/categories.ts";
+import { storesRoutes } from "./routes/stores.ts";
 import { zaimRoutes } from "./routes/zaim.ts";
 
 const base = new Hono<{ Bindings: Env }>();
@@ -64,6 +65,7 @@ const app = base
   // Zaim データ取得（/api/zaim/*）- /api/* の OIDC ミドルウェアで保護済み
   .route("/", categoriesRoutes)
   .route("/", accountsRoutes)
+  .route("/", storesRoutes)
   .route("/", healthRoute);
 
 export default app;
