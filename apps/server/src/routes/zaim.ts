@@ -13,10 +13,9 @@
  */
 
 import { sValidator } from "@hono/standard-validator";
-import { getAuth } from "@hono/oidc-auth";
 import { Hono } from "hono";
 import * as v from "valibot";
-import type { Env } from "../env.ts";
+import type { Env, HonoEnv } from "../env.ts";
 import {
   buildZaimAuthorizeUrl,
   fetchZaimAccessToken,
@@ -145,13 +144,13 @@ async function performZaimTokenExchange(
  * ext_redirect_uri が未指定の場合（従来フロー）:
  *   - Zaim 認可画面へリダイレクト
  */
-const startRoute = new Hono<{ Bindings: Env }>().get(
+const startRoute = new Hono<HonoEnv>().get(
   "/zaim/auth/start",
   sValidator("query", StartQuerySchema, (result, c) => {
     if (!result.success) return c.json({ error: "Invalid query" }, 400);
   }),
   async (c) => {
-    const auth = await getAuth(c);
+    const auth = c.var.oidcAuth;
     if (!auth?.sub) {
       zaimRoutesLogger.warn("Zaim auth start: unauthorized (no OIDC session)");
       return c.json({ error: "Unauthorized" }, 401);
@@ -214,7 +213,7 @@ const startRoute = new Hono<{ Bindings: Env }>().get(
  * 拡張機能フローの場合は extRedirectUri（chromiumapp.org）にリダイレクトし、
  * launchWebAuthFlow にフロー完了を通知する。
  */
-const callbackRoute = new Hono<{ Bindings: Env }>().get(
+const callbackRoute = new Hono<HonoEnv>().get(
   "/zaim/auth/callback",
   sValidator("query", CallbackQuerySchema, (result, c) => {
     if (!result.success) {
@@ -257,8 +256,8 @@ const callbackRoute = new Hono<{ Bindings: Env }>().get(
  * Zaim 連携状態確認
  * アクセストークンが保存されているかどうかを返す。
  */
-const statusRoute = new Hono<{ Bindings: Env }>().get("/zaim/auth/status", async (c) => {
-  const auth = await getAuth(c);
+const statusRoute = new Hono<HonoEnv>().get("/zaim/auth/status", async (c) => {
+  const auth = c.var.oidcAuth;
   if (!auth) {
     zaimRoutesLogger.warn("Zaim auth status: unauthorized (no OIDC session)");
     return c.json({ error: "Unauthorized" }, 401);
@@ -285,8 +284,8 @@ const statusRoute = new Hono<{ Bindings: Env }>().get("/zaim/auth/status", async
  * Zaim 連携解除
  * KV に保存されたアクセストークンを削除する。
  */
-const tokenRoute = new Hono<{ Bindings: Env }>().delete("/zaim/auth/token", async (c) => {
-  const auth = await getAuth(c);
+const tokenRoute = new Hono<HonoEnv>().delete("/zaim/auth/token", async (c) => {
+  const auth = c.var.oidcAuth;
   if (!auth) {
     zaimRoutesLogger.warn("Zaim token delete: unauthorized (no OIDC session)");
     return c.json({ error: "Unauthorized" }, 401);
@@ -298,7 +297,7 @@ const tokenRoute = new Hono<{ Bindings: Env }>().delete("/zaim/auth/token", asyn
   return c.json({ ok: true });
 });
 
-export const zaimRoutes = new Hono<{ Bindings: Env }>()
+export const zaimRoutes = new Hono<HonoEnv>()
   .route("/", startRoute)
   .route("/", callbackRoute)
   .route("/", statusRoute)

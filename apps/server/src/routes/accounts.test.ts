@@ -5,17 +5,11 @@
  */
 
 import { beforeEach, describe, expect, test, vi } from "vite-plus/test";
-import { testClient } from "hono/testing";
-import { createKVNamespaceMock } from "../test-fixtures.ts";
+import { createKVNamespaceMock, createTestClient, createZaimClientStub } from "../test-fixtures.ts";
 import { accountsRoutes } from "./accounts.ts";
 import type { Env } from "../env.ts";
 import type { KVNamespace } from "@cloudflare/workers-types";
 import type { OidcAuth } from "@hono/oidc-auth";
-
-vi.mock("@hono/oidc-auth", () => ({
-  getAuth: vi.fn(),
-  revokeSession: vi.fn().mockResolvedValue(undefined),
-}));
 
 const { mockGetAccounts } = vi.hoisted(() => ({
   mockGetAccounts: vi.fn(),
@@ -25,20 +19,6 @@ vi.mock("@repo/zaim-api", () => ({
   accountGetAccounts: mockGetAccounts,
 }));
 
-vi.mock("@repo/zaim-api/client", () => ({
-  createClient: vi.fn(() => ({
-    interceptors: { request: { use: vi.fn() } },
-  })),
-}));
-
-vi.mock("@repo/zaim-api/oauth/interceptor", () => ({
-  createZaimAuthInterceptor: vi.fn(() => () => {}),
-}));
-
-import { getAuth } from "@hono/oidc-auth";
-
-const mockGetAuth = vi.mocked(getAuth);
-
 const MOCK_USER = {
   sub: "auth0|user123",
   email: "user@example.com",
@@ -46,12 +26,6 @@ const MOCK_USER = {
   rtkexp: 9999999999,
   ssnexp: 9999999999,
 } as OidcAuth;
-
-const STORED_TOKEN = JSON.stringify({
-  oauthToken: "access_token",
-  oauthTokenSecret: "access_secret",
-  zaimUserId: "zaim_user_999",
-});
 
 const MOCK_ACCOUNTS_RESPONSE = {
   accounts: [
@@ -97,20 +71,22 @@ function makeEnv(kvOverride?: KVNamespace): Env {
 describe("GET /api/zaim/accounts", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetAuth.mockResolvedValue(MOCK_USER);
     mockGetAccounts.mockResolvedValue({ data: MOCK_ACCOUNTS_RESPONSE });
   });
 
   test("OIDC未認証のとき401を返す", async () => {
-    mockGetAuth.mockResolvedValueOnce(null);
-    const res = await testClient(accountsRoutes, makeEnv()).api.zaim.accounts.$get({
+    const res = await createTestClient(accountsRoutes, makeEnv(), {
+      oidcAuth: null,
+    }).api.zaim.accounts.$get({
       query: {},
     });
     expect(res.status).toBe(401);
   });
 
   test("Zaimトークン未連携のとき403を返す", async () => {
-    const res = await testClient(accountsRoutes, makeEnv()).api.zaim.accounts.$get({
+    const res = await createTestClient(accountsRoutes, makeEnv(), {
+      oidcAuth: MOCK_USER,
+    }).api.zaim.accounts.$get({
       query: {},
     });
     expect(res.status).toBe(403);
@@ -124,11 +100,13 @@ describe("GET /api/zaim/accounts", () => {
       fetchedAt: "2026-01-01T00:00:00.000Z",
       accounts: [{ id: 1, name: "現金" }],
     };
-    mockGet.mockResolvedValueOnce(STORED_TOKEN).mockResolvedValueOnce(JSON.stringify(cachedData));
+    mockGet.mockResolvedValueOnce(JSON.stringify(cachedData));
 
-    const res = await testClient(accountsRoutes, makeEnv(kv)).api.zaim.accounts.$get({
-      query: {},
-    });
+    const res = await createTestClient(accountsRoutes, makeEnv(kv), {
+      oidcAuth: MOCK_USER,
+      zaimClient: createZaimClientStub(),
+      zaimUserId: "zaim_user_999",
+    }).api.zaim.accounts.$get({ query: {} });
     expect(res.status).toBe(200);
     const body = (await res.json()) as typeof cachedData;
     expect(body.fetchedAt).toBe("2026-01-01T00:00:00.000Z");
@@ -137,11 +115,13 @@ describe("GET /api/zaim/accounts", () => {
 
   test("キャッシュミス時はZaim APIを呼んで口座一覧を返す", async () => {
     const { kv, mockGet } = createKVNamespaceMock();
-    mockGet.mockResolvedValueOnce(STORED_TOKEN).mockResolvedValueOnce(null);
+    mockGet.mockResolvedValueOnce(null);
 
-    const res = await testClient(accountsRoutes, makeEnv(kv)).api.zaim.accounts.$get({
-      query: {},
-    });
+    const res = await createTestClient(accountsRoutes, makeEnv(kv), {
+      oidcAuth: MOCK_USER,
+      zaimClient: createZaimClientStub(),
+      zaimUserId: "zaim_user_999",
+    }).api.zaim.accounts.$get({ query: {} });
     expect(res.status).toBe(200);
     const body = (await res.json()) as { fetchedAt: string; accounts: unknown[] };
     expect(body.accounts).toHaveLength(2);
@@ -150,9 +130,13 @@ describe("GET /api/zaim/accounts", () => {
 
   test("口座取得後にKVへキャッシュを書き込む", async () => {
     const { kv, mockGet, mockPut } = createKVNamespaceMock();
-    mockGet.mockResolvedValueOnce(STORED_TOKEN).mockResolvedValueOnce(null);
+    mockGet.mockResolvedValueOnce(null);
 
-    await testClient(accountsRoutes, makeEnv(kv)).api.zaim.accounts.$get({ query: {} });
+    await createTestClient(accountsRoutes, makeEnv(kv), {
+      oidcAuth: MOCK_USER,
+      zaimClient: createZaimClientStub(),
+      zaimUserId: "zaim_user_999",
+    }).api.zaim.accounts.$get({ query: {} });
 
     expect(mockPut).toHaveBeenCalledWith("zaim:cache:accounts:zaim_user_999", expect.any(String), {
       expirationTtl: 86400,
@@ -162,11 +146,13 @@ describe("GET /api/zaim/accounts", () => {
   test("no_cache=1のときKVキャッシュを無視してAPIを呼ぶ", async () => {
     const { kv, mockGet } = createKVNamespaceMock();
     const cachedData = { fetchedAt: "2026-01-01T00:00:00.000Z", accounts: [] };
-    mockGet.mockResolvedValueOnce(STORED_TOKEN).mockResolvedValueOnce(JSON.stringify(cachedData));
+    mockGet.mockResolvedValueOnce(JSON.stringify(cachedData));
 
-    const res = await testClient(accountsRoutes, makeEnv(kv)).api.zaim.accounts.$get({
-      query: { no_cache: "1" },
-    });
+    const res = await createTestClient(accountsRoutes, makeEnv(kv), {
+      oidcAuth: MOCK_USER,
+      zaimClient: createZaimClientStub(),
+      zaimUserId: "zaim_user_999",
+    }).api.zaim.accounts.$get({ query: { no_cache: "1" } });
     expect(res.status).toBe(200);
     const body = (await res.json()) as { accounts: unknown[] };
     expect(body.accounts).toHaveLength(2);
@@ -175,11 +161,13 @@ describe("GET /api/zaim/accounts", () => {
 
   test("レスポンスにfetchedAt（ISO 8601）が含まれる", async () => {
     const { kv, mockGet } = createKVNamespaceMock();
-    mockGet.mockResolvedValueOnce(STORED_TOKEN).mockResolvedValueOnce(null);
+    mockGet.mockResolvedValueOnce(null);
 
-    const res = await testClient(accountsRoutes, makeEnv(kv)).api.zaim.accounts.$get({
-      query: {},
-    });
+    const res = await createTestClient(accountsRoutes, makeEnv(kv), {
+      oidcAuth: MOCK_USER,
+      zaimClient: createZaimClientStub(),
+      zaimUserId: "zaim_user_999",
+    }).api.zaim.accounts.$get({ query: {} });
     const body = (await res.json()) as { fetchedAt: string };
     expect(() => new Date(body.fetchedAt)).not.toThrow();
     expect(body.fetchedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
@@ -187,11 +175,13 @@ describe("GET /api/zaim/accounts", () => {
 
   test("口座フィールドが正しくマッピングされる", async () => {
     const { kv, mockGet } = createKVNamespaceMock();
-    mockGet.mockResolvedValueOnce(STORED_TOKEN).mockResolvedValueOnce(null);
+    mockGet.mockResolvedValueOnce(null);
 
-    const res = await testClient(accountsRoutes, makeEnv(kv)).api.zaim.accounts.$get({
-      query: {},
-    });
+    const res = await createTestClient(accountsRoutes, makeEnv(kv), {
+      oidcAuth: MOCK_USER,
+      zaimClient: createZaimClientStub(),
+      zaimUserId: "zaim_user_999",
+    }).api.zaim.accounts.$get({ query: {} });
     const body = (await res.json()) as {
       accounts: {
         id: number;

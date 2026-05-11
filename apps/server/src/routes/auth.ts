@@ -1,8 +1,8 @@
 import { sValidator } from "@hono/standard-validator";
-import { getAuth, revokeSession } from "@hono/oidc-auth";
+import { revokeSession } from "@hono/oidc-auth";
 import { Hono } from "hono";
 import * as v from "valibot";
-import type { Env } from "../env.ts";
+import type { HonoEnv } from "../env.ts";
 import { authLogger } from "../logger.ts";
 
 function isValidExtensionRedirectUri(uri: string): boolean {
@@ -20,7 +20,7 @@ function isValidExtensionRedirectUri(uri: string): boolean {
  * Auth0のログアウトエンドポイントにリダイレクトすることで、
  * 次回アクセス時に別アカウントを選択できるようになる。
  */
-const logoutRoute = new Hono<{ Bindings: Env }>().get("/logout", async (c) => {
+const logoutRoute = new Hono<HonoEnv>().get("/logout", async (c) => {
   authLogger.info("Logout requested");
 
   await revokeSession(c);
@@ -39,8 +39,8 @@ const logoutRoute = new Hono<{ Bindings: Env }>().get("/logout", async (c) => {
  * 認証済みユーザーの情報をJSONで返す
  * oidcAuthMiddleware() によって認証が保証されているため auth は非 null
  */
-const meRoute = new Hono<{ Bindings: Env }>().get("/me", async (c) => {
-  const auth = await getAuth(c);
+const meRoute = new Hono<HonoEnv>().get("/me", async (c) => {
+  const auth = c.var.oidcAuth;
   authLogger
     .with({ email: auth?.email, sub: auth?.sub })
     .info("User info requested for {email}", { email: auth?.email });
@@ -58,7 +58,7 @@ const LaunchQuerySchema = v.object({ redirect_uri: v.string() });
  * OIDC 認証完了後、redirect_uri（chromiumapp.org）にリダイレクトして
  * launchWebAuthFlow にフロー完了を通知する。
  */
-const launchRoute = new Hono<{ Bindings: Env }>().get(
+const launchRoute = new Hono<HonoEnv>().get(
   "/auth/launch",
   sValidator("query", LaunchQuerySchema, (result, c) => {
     if (!result.success) return c.json({ error: "Missing redirect_uri" }, 400);
@@ -78,7 +78,7 @@ const launchRoute = new Hono<{ Bindings: Env }>().get(
   },
 );
 
-export const authRoutes = new Hono<{ Bindings: Env }>()
+export const authRoutes = new Hono<HonoEnv>()
   .route("/", logoutRoute)
   .route("/", meRoute)
   .route("/", launchRoute);

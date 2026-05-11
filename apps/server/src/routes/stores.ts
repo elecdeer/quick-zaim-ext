@@ -12,22 +12,18 @@
  */
 
 import { moneyGetMoney } from "@repo/zaim-api";
-import { createClient } from "@repo/zaim-api/client";
+import type { createClient } from "@repo/zaim-api/client";
 import { sValidator } from "@hono/standard-validator";
-import { getAuth } from "@hono/oidc-auth";
 import { Hono } from "hono";
 import * as v from "valibot";
-import type { Env } from "../env.ts";
-import { getStoredZaimToken } from "./zaim.ts";
-import { createZaimAuthInterceptor } from "@repo/zaim-api/oauth/interceptor";
-import type { OAuth1Config } from "@repo/zaim-api/oauth/oauth1";
+import type { HonoEnv } from "../env.ts";
+import { requireOidcAuth, requireZaimClient } from "../middleware.ts";
 import { storesLogger } from "../logger.ts";
 
 const StoresQuerySchema = v.object({
   no_cache: v.optional(v.string()),
 });
 
-const ZAIM_API_BASE = "https://api.zaim.net";
 const STORES_CACHE_TTL = 3600;
 const CURRENT_MONTH_MONEY_TTL = 3600;
 const PAST_MONTH_MONEY_TTL = 2592000;
@@ -72,10 +68,9 @@ function yearMonthOf(date: string): string {
   return date.slice(0, 7);
 }
 
-async function fetchAllMoneyFromZaim(oauthConfig: OAuth1Config): Promise<MoneyItem[]> {
-  const client = createClient({ baseUrl: ZAIM_API_BASE });
-  client.interceptors.request.use(createZaimAuthInterceptor(oauthConfig));
-
+async function fetchAllMoneyFromZaim(
+  client: ReturnType<typeof createClient>,
+): Promise<MoneyItem[]> {
   storesLogger.debug("Fetching all money items from Zaim API");
 
   const result = await moneyGetMoney({
@@ -181,56 +176,39 @@ async function buildAndCacheMonthlyData(
     .debug("Cached {monthCount} monthly money caches for Zaim user {zaimUserId}");
 }
 
-const getStoresRoute = new Hono<{ Bindings: Env }>().get(
+const getStoresRoute = new Hono<HonoEnv>().get(
   "/api/zaim/stores",
+  requireOidcAuth,
+  requireZaimClient,
   sValidator("query", StoresQuerySchema, (result, c) => {
     if (!result.success) {
       return c.json({ error: "Invalid query parameters" }, 400);
     }
   }),
   async (c) => {
-    const auth = await getAuth(c);
-    if (!auth?.sub) {
-      storesLogger.warn("Stores: unauthorized (no OIDC session)");
-      return c.json({ error: "Unauthorized" }, 401);
-    }
-
-    const token = await getStoredZaimToken(c.env.ZAIM_KV, auth.sub);
-    if (!token) {
-      storesLogger.with({ userSub: auth.sub }).warn("Stores: Zaim not connected for {userSub}");
-      return c.json({ error: "Zaim not connected" }, 403);
-    }
+    const { zaimClient, zaimUserId } = c.var;
 
     const { no_cache: noCache } = c.req.valid("query");
-    const storesCacheKey = `zaim:cache:stores:${token.zaimUserId}`;
+    const storesCacheKey = `zaim:cache:stores:${zaimUserId}`;
 
     if (noCache !== "1") {
       const cached = await c.env.ZAIM_KV.get(storesCacheKey);
       if (cached) {
-        storesLogger
-          .with({ zaimUserId: token.zaimUserId })
-          .debug("Stores cache hit for Zaim user {zaimUserId}");
+        storesLogger.with({ zaimUserId }).debug("Stores cache hit for Zaim user {zaimUserId}");
         return c.json(JSON.parse(cached) as StoresResponse);
       }
       storesLogger
-        .with({ zaimUserId: token.zaimUserId })
+        .with({ zaimUserId })
         .debug("Stores cache miss for Zaim user {zaimUserId}, fetching from API");
     } else {
       storesLogger
-        .with({ zaimUserId: token.zaimUserId })
+        .with({ zaimUserId })
         .debug("Stores cache bypassed (no_cache=1) for Zaim user {zaimUserId}");
     }
 
-    const oauthConfig: OAuth1Config = {
-      consumerKey: c.env.ZAIM_CONSUMER_KEY,
-      consumerSecret: c.env.ZAIM_CONSUMER_SECRET,
-      token: token.oauthToken,
-      tokenSecret: token.oauthTokenSecret,
-    };
+    const items = await fetchAllMoneyFromZaim(zaimClient!);
 
-    const items = await fetchAllMoneyFromZaim(oauthConfig);
-
-    await buildAndCacheMonthlyData(c.env.ZAIM_KV, token.zaimUserId, items);
+    await buildAndCacheMonthlyData(c.env.ZAIM_KV, zaimUserId!, items);
 
     const stores = aggregateStores(items);
     const response: StoresResponse = {
@@ -242,11 +220,11 @@ const getStoresRoute = new Hono<{ Bindings: Env }>().get(
       expirationTtl: STORES_CACHE_TTL,
     });
     storesLogger
-      .with({ zaimUserId: token.zaimUserId, storeCount: stores.length, ttl: STORES_CACHE_TTL })
+      .with({ zaimUserId, storeCount: stores.length, ttl: STORES_CACHE_TTL })
       .debug("Stores cached for Zaim user {zaimUserId} ({storeCount} stores, TTL={ttl}s)");
 
     return c.json(response);
   },
 );
 
-export const storesRoutes = new Hono<{ Bindings: Env }>().route("/", getStoresRoute);
+export const storesRoutes = new Hono<HonoEnv>().route("/", getStoresRoute);
