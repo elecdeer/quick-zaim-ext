@@ -1,4 +1,4 @@
-import { describe, expect } from "vite-plus/test";
+import { assert, describe, expect } from "vite-plus/test";
 import { createZaimAuthInterceptor } from "./interceptor";
 import { oauthTest, parseOAuthHeader, RFC } from "./test-fixtures";
 
@@ -22,7 +22,8 @@ describe("createZaimAuthInterceptor", () => {
       });
 
       const interceptedReq = await interceptor(req);
-      const authHeader = interceptedReq.headers.get("Authorization")!;
+      const authHeader = interceptedReq.headers.get("Authorization");
+      assert.exists(authHeader);
       expect(parseOAuthHeader(authHeader).oauth_signature).toBe(RFC.expectedSignature);
     },
   );

@@ -1,6 +1,4 @@
 import type { KVNamespace } from "@cloudflare/workers-types";
-import type { OidcAuth } from "@hono/oidc-auth";
-import type { createClient } from "@repo/zaim-api/client";
 
 /**
  * Cloudflare Workers の環境変数（バインディング）の型定義
@@ -26,15 +24,5 @@ export type Env = {
   ZAIM_KV: KVNamespace;
 };
 
-/** Hono コンテキスト変数の型定義 */
-export type Variables = {
-  /** OIDC 認証済みユーザー情報（未認証時は null） */
-  oidcAuth: OidcAuth | null;
-  /** Zaim API クライアント（/api/zaim/* のみ設定） */
-  zaimClient?: ReturnType<typeof createClient>;
-  /** Zaim ユーザー ID（zaimClient と同時に設定） */
-  zaimUserId?: string;
-};
-
 /** Hono アプリ全体で共有する環境型 */
-export type HonoEnv = { Bindings: Env; Variables: Variables };
+export type HonoEnv = { Bindings: Env };

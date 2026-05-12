@@ -12,6 +12,7 @@ import type { createClient } from "@repo/zaim-api/client";
 import { Hono } from "hono";
 import { testClient } from "hono/testing";
 import type { Env, HonoEnv } from "./env.ts";
+import { createMiddleware } from "hono/factory";
 
 /** RFC 5849 Appendix A.2 テストベクター */
 export const RFC = {
@@ -106,14 +107,18 @@ export function createTestClient<T extends Hono<HonoEnv, any, any>>(
   context: RouteTestContext = {},
 ) {
   const base = new Hono<HonoEnv>();
-  base.use("*", async (c, next) => {
+  const testMiddleware = createMiddleware<{
+    Variables: RouteTestContext;
+  }>(async (c, next) => {
     if ("oidcAuth" in context) c.set("oidcAuth", context.oidcAuth ?? null);
     if ("zaimClient" in context && context.zaimClient) c.set("zaimClient", context.zaimClient);
     if ("zaimUserId" in context && context.zaimUserId) c.set("zaimUserId", context.zaimUserId);
     await next();
   });
+
+  base.use("*", testMiddleware);
   const app = base.route("/", route);
-  return testClient(app as unknown as T, env);
+  return testClient(app as T, env);
 }
 
 /** Zaim API クライアントのスタブ（API 関数がモックされている前提で使用） */
