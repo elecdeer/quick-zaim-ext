@@ -7,6 +7,12 @@
 
 import { type MockedFunction, test, vi } from "vite-plus/test";
 import type { KVNamespace } from "@cloudflare/workers-types";
+import type { OidcAuth } from "@hono/oidc-auth";
+import type { createClient } from "@repo/zaim-api/client";
+import { Hono } from "hono";
+import { testClient } from "hono/testing";
+import type { Env, HonoEnv } from "./env.ts";
+import { createMiddleware } from "hono/factory";
 
 /** RFC 5849 Appendix A.2 テストベクター */
 export const RFC = {
@@ -80,6 +86,46 @@ export function createKVNamespaceMock(): KVNamespaceMock {
     getWithMetadata: vi.fn(),
   } as unknown as KVNamespace;
   return { kv, mockGet, mockPut, mockDelete };
+}
+
+/** テストで注入するコンテキスト変数 */
+export interface RouteTestContext {
+  oidcAuth?: OidcAuth | null;
+  zaimClient?: ReturnType<typeof createClient>;
+  zaimUserId?: string;
+}
+
+/**
+ * ルートテスト用クライアントファクトリ
+ *
+ * コンテキスト変数を直接注入するミドルウェアを挟んでから testClient を返す。
+ * これにより getAuth / createClient などのモジュールモックが不要になる。
+ */
+export function createTestClient<T extends Hono<HonoEnv, any, any>>(
+  route: T,
+  env: Env,
+  context: RouteTestContext = {},
+) {
+  const base = new Hono<HonoEnv>();
+  const testMiddleware = createMiddleware<{
+    Variables: RouteTestContext;
+  }>(async (c, next) => {
+    if ("oidcAuth" in context) c.set("oidcAuth", context.oidcAuth ?? null);
+    if ("zaimClient" in context && context.zaimClient) c.set("zaimClient", context.zaimClient);
+    if ("zaimUserId" in context && context.zaimUserId) c.set("zaimUserId", context.zaimUserId);
+    await next();
+  });
+
+  base.use("*", testMiddleware);
+  const app = base.route("/", route);
+  return testClient(app as T, env);
+}
+
+/** Zaim API クライアントのスタブ（API 関数がモックされている前提で使用） */
+export function createZaimClientStub(): ReturnType<typeof createClient> {
+  return {
+    interceptors: { request: { use: vi.fn() } },
+  } as unknown as ReturnType<typeof createClient>;
 }
 
 /**

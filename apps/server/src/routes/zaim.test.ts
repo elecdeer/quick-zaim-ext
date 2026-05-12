@@ -8,17 +8,11 @@
  */
 
 import { beforeEach, describe, expect, test, vi } from "vite-plus/test";
-import { testClient } from "hono/testing";
-import { createKVNamespaceMock } from "../test-fixtures.ts";
+import { createKVNamespaceMock, createTestClient } from "../test-fixtures.ts";
 import { zaimRoutes } from "./zaim.ts";
 import type { Env } from "../env.ts";
 import type { KVNamespace } from "@cloudflare/workers-types";
 import type { OidcAuth } from "@hono/oidc-auth";
-
-vi.mock("@hono/oidc-auth", () => ({
-  getAuth: vi.fn(),
-  revokeSession: vi.fn().mockResolvedValue(undefined),
-}));
 
 vi.mock("../zaim-oauth.ts", () => ({
   fetchZaimRequestToken: vi.fn(),
@@ -29,10 +23,8 @@ vi.mock("../zaim-oauth.ts", () => ({
   ),
 }));
 
-import { getAuth } from "@hono/oidc-auth";
 import { fetchZaimRequestToken, fetchZaimAccessToken, fetchZaimUserId } from "../zaim-oauth.ts";
 
-const mockGetAuth = vi.mocked(getAuth);
 const mockFetchRequestToken = vi.mocked(fetchZaimRequestToken);
 const mockFetchAccessToken = vi.mocked(fetchZaimAccessToken);
 const mockFetchUserId = vi.mocked(fetchZaimUserId);
@@ -64,7 +56,6 @@ function makeEnv(kvOverride?: KVNamespace): Env {
 describe("GET /zaim/auth/start", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetAuth.mockResolvedValue(MOCK_USER);
     mockFetchRequestToken.mockResolvedValue({
       oauthToken: "req_token_abc",
       oauthTokenSecret: "req_secret_xyz",
@@ -72,13 +63,16 @@ describe("GET /zaim/auth/start", () => {
   });
 
   test("OIDC未認証のとき401を返す", async () => {
-    mockGetAuth.mockResolvedValueOnce(null);
-    const res = await testClient(zaimRoutes, makeEnv()).zaim.auth.start.$get({ query: {} });
+    const res = await createTestClient(zaimRoutes, makeEnv(), {
+      oidcAuth: null,
+    }).zaim.auth.start.$get({ query: {} });
     expect(res.status).toBe(401);
   });
 
   test("通常フロー: Zaim認可URLへリダイレクトする", async () => {
-    const res = await testClient(zaimRoutes, makeEnv()).zaim.auth.start.$get({ query: {} });
+    const res = await createTestClient(zaimRoutes, makeEnv(), {
+      oidcAuth: MOCK_USER,
+    }).zaim.auth.start.$get({ query: {} });
     expect(res.status).toBe(302);
     const location = res.headers.get("Location") ?? "";
     expect(location).toContain("auth.zaim.net");
@@ -87,7 +81,9 @@ describe("GET /zaim/auth/start", () => {
 
   test("通常フロー: Request TokenをKVに保存する", async () => {
     const { kv, mockPut } = createKVNamespaceMock();
-    await testClient(zaimRoutes, makeEnv(kv)).zaim.auth.start.$get({ query: {} });
+    await createTestClient(zaimRoutes, makeEnv(kv), { oidcAuth: MOCK_USER }).zaim.auth.start.$get({
+      query: {},
+    });
     expect(mockPut).toHaveBeenCalledWith(
       "zaim:request:req_token_abc",
       expect.stringContaining("req_secret_xyz"),
@@ -97,7 +93,9 @@ describe("GET /zaim/auth/start", () => {
 
   test("拡張機能フロー: ext_redirect_uriを指定するとauthorizeUrlをJSONで返す", async () => {
     const extUri = "https://abc.chromiumapp.org/callback";
-    const res = await testClient(zaimRoutes, makeEnv()).zaim.auth.start.$get({
+    const res = await createTestClient(zaimRoutes, makeEnv(), {
+      oidcAuth: MOCK_USER,
+    }).zaim.auth.start.$get({
       query: { ext_redirect_uri: extUri },
     });
     expect(res.status).toBe(200);
@@ -106,7 +104,9 @@ describe("GET /zaim/auth/start", () => {
   });
 
   test("拡張機能フロー: ext_redirect_uriにはchromiumapp.orgのみ許可", async () => {
-    const res = await testClient(zaimRoutes, makeEnv()).zaim.auth.start.$get({
+    const res = await createTestClient(zaimRoutes, makeEnv(), {
+      oidcAuth: MOCK_USER,
+    }).zaim.auth.start.$get({
       query: { ext_redirect_uri: "https://evil.example.com/cb" },
     });
     expect(res.status).toBe(400);
@@ -115,7 +115,7 @@ describe("GET /zaim/auth/start", () => {
   test("KVのRequestTokenStateにuserSubとextRedirectUriが入る", async () => {
     const { kv, mockPut } = createKVNamespaceMock();
     const extUri = "https://abc.chromiumapp.org/callback";
-    await testClient(zaimRoutes, makeEnv(kv)).zaim.auth.start.$get({
+    await createTestClient(zaimRoutes, makeEnv(kv), { oidcAuth: MOCK_USER }).zaim.auth.start.$get({
       query: { ext_redirect_uri: extUri },
     });
     const [, storedJson] = mockPut.mock.calls[0] as unknown as [string, string, unknown];
@@ -153,7 +153,7 @@ describe("GET /zaim/auth/callback", () => {
   });
 
   test("KVにRequest Tokenが存在しない場合400を返す", async () => {
-    const res = await testClient(zaimRoutes, makeEnv()).zaim.auth.callback.$get({
+    const res = await createTestClient(zaimRoutes, makeEnv()).zaim.auth.callback.$get({
       query: { oauth_token: "unknown", oauth_verifier: "ver" },
     });
     expect(res.status).toBe(400);
@@ -163,7 +163,7 @@ describe("GET /zaim/auth/callback", () => {
     const { kv, mockGet } = createKVNamespaceMock();
     mockGet.mockResolvedValueOnce(storedState);
 
-    const res = await testClient(zaimRoutes, makeEnv(kv)).zaim.auth.callback.$get({
+    const res = await createTestClient(zaimRoutes, makeEnv(kv)).zaim.auth.callback.$get({
       query: { oauth_token: "req_token_abc", oauth_verifier: "verifier123" },
     });
     expect(res.status).toBe(200);
@@ -176,7 +176,7 @@ describe("GET /zaim/auth/callback", () => {
     const { kv, mockGet, mockPut } = createKVNamespaceMock();
     mockGet.mockResolvedValueOnce(storedState);
 
-    await testClient(zaimRoutes, makeEnv(kv)).zaim.auth.callback.$get({
+    await createTestClient(zaimRoutes, makeEnv(kv)).zaim.auth.callback.$get({
       query: { oauth_token: "req_token_abc", oauth_verifier: "verifier123" },
     });
 
@@ -191,7 +191,7 @@ describe("GET /zaim/auth/callback", () => {
     const { kv, mockGet, mockDelete } = createKVNamespaceMock();
     mockGet.mockResolvedValueOnce(storedState);
 
-    await testClient(zaimRoutes, makeEnv(kv)).zaim.auth.callback.$get({
+    await createTestClient(zaimRoutes, makeEnv(kv)).zaim.auth.callback.$get({
       query: { oauth_token: "req_token_abc", oauth_verifier: "verifier123" },
     });
 
@@ -209,7 +209,7 @@ describe("GET /zaim/auth/callback", () => {
     const { kv, mockGet } = createKVNamespaceMock();
     mockGet.mockResolvedValueOnce(stateWithExt);
 
-    const res = await testClient(zaimRoutes, makeEnv(kv)).zaim.auth.callback.$get({
+    const res = await createTestClient(zaimRoutes, makeEnv(kv)).zaim.auth.callback.$get({
       query: { oauth_token: "req_token_abc", oauth_verifier: "verifier123" },
     });
     expect(res.status).toBe(302);
@@ -222,17 +222,19 @@ describe("GET /zaim/auth/callback", () => {
 describe("GET /zaim/auth/status", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetAuth.mockResolvedValue(MOCK_USER);
   });
 
   test("OIDC未認証のとき401を返す", async () => {
-    mockGetAuth.mockResolvedValueOnce(null);
-    const res = await testClient(zaimRoutes, makeEnv()).zaim.auth.status.$get({});
+    const res = await createTestClient(zaimRoutes, makeEnv(), {
+      oidcAuth: null,
+    }).zaim.auth.status.$get({});
     expect(res.status).toBe(401);
   });
 
   test("KVにトークンがない場合 connected: false を返す", async () => {
-    const res = await testClient(zaimRoutes, makeEnv()).zaim.auth.status.$get({});
+    const res = await createTestClient(zaimRoutes, makeEnv(), {
+      oidcAuth: MOCK_USER,
+    }).zaim.auth.status.$get({});
     expect(res.status).toBe(200);
     const body = (await res.json()) as { connected: boolean };
     expect(body.connected).toBe(false);
@@ -247,7 +249,9 @@ describe("GET /zaim/auth/status", () => {
     });
     mockGet.mockResolvedValueOnce(stored);
 
-    const res = await testClient(zaimRoutes, makeEnv(kv)).zaim.auth.status.$get({});
+    const res = await createTestClient(zaimRoutes, makeEnv(kv), {
+      oidcAuth: MOCK_USER,
+    }).zaim.auth.status.$get({});
     expect(res.status).toBe(200);
     const body = (await res.json()) as { connected: boolean; zaimUserId: string };
     expect(body.connected).toBe(true);
@@ -256,7 +260,9 @@ describe("GET /zaim/auth/status", () => {
 
   test("ユーザーのsubに対応するKVキーを参照する", async () => {
     const { kv, mockGet } = createKVNamespaceMock();
-    await testClient(zaimRoutes, makeEnv(kv)).zaim.auth.status.$get({});
+    await createTestClient(zaimRoutes, makeEnv(kv), { oidcAuth: MOCK_USER }).zaim.auth.status.$get(
+      {},
+    );
     expect(mockGet).toHaveBeenCalledWith("zaim:token:auth0|user123");
   });
 });
@@ -266,18 +272,20 @@ describe("GET /zaim/auth/status", () => {
 describe("DELETE /zaim/auth/token", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetAuth.mockResolvedValue(MOCK_USER);
   });
 
   test("OIDC未認証のとき401を返す", async () => {
-    mockGetAuth.mockResolvedValueOnce(null);
-    const res = await testClient(zaimRoutes, makeEnv()).zaim.auth.token.$delete();
+    const res = await createTestClient(zaimRoutes, makeEnv(), {
+      oidcAuth: null,
+    }).zaim.auth.token.$delete();
     expect(res.status).toBe(401);
   });
 
   test("KVからアクセストークンを削除して ok: true を返す", async () => {
     const { kv, mockDelete } = createKVNamespaceMock();
-    const res = await testClient(zaimRoutes, makeEnv(kv)).zaim.auth.token.$delete();
+    const res = await createTestClient(zaimRoutes, makeEnv(kv), {
+      oidcAuth: MOCK_USER,
+    }).zaim.auth.token.$delete();
     expect(res.status).toBe(200);
     const body = (await res.json()) as { ok: boolean };
     expect(body.ok).toBe(true);

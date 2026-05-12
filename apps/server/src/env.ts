@@ -23,3 +23,6 @@ export type Env = {
   /** OAuth トークン等の一時・永続ステートを保持する Cloudflare KV ネームスペース */
   ZAIM_KV: KVNamespace;
 };
+
+/** Hono アプリ全体で共有する環境型 */
+export type HonoEnv = { Bindings: Env };
