@@ -4,7 +4,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { HonoEnv, Env } from "./env.ts";
 import "./logger.ts";
-import { setOidcAuthMiddleware, setZaimClientMiddleware } from "./middleware.ts";
+import { setOidcAuthMiddleware } from "./middleware.ts";
 import { authRoutes } from "./routes/auth.ts";
 import { accountsRoutes } from "./routes/accounts.ts";
 import { categoriesRoutes } from "./routes/categories.ts";
@@ -40,8 +40,8 @@ base.use(
 base.use("/callback", oidcAuthMiddleware());
 base.use("/me", oidcAuthMiddleware(), setOidcAuthMiddleware);
 base.use("/auth/launch", oidcAuthMiddleware());
-// /api/* は OIDC 認証 → oidcAuth 変数設定 → Zaim クライアント生成の順で実行
-base.use("/api/*", oidcAuthMiddleware(), setOidcAuthMiddleware, setZaimClientMiddleware);
+// /api/* は OIDC 認証 → oidcAuth 変数設定の順で実行（Zaim クライアント生成は各ルートの requireZaimClient が担う）
+base.use("/api/*", oidcAuthMiddleware(), setOidcAuthMiddleware);
 
 // Zaim OAuth ルート
 // /zaim/auth/start, /zaim/auth/status, /zaim/auth/token は OIDC 認証が必要

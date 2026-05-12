@@ -13,32 +13,6 @@ export const setOidcAuthMiddleware = createMiddleware<HonoEnv>(async (c, next) =
   await next();
 });
 
-/**
- * Zaim API クライアントを生成してコンテキスト変数に設定する
- *
- * oidcAuth が未設定またはトークン未連携の場合はスキップ（変数は undefined のまま）。
- */
-export const setZaimClientMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
-  const auth = c.var.oidcAuth;
-  if (auth?.sub) {
-    const token = await getStoredZaimToken(c.env.ZAIM_KV, auth.sub);
-    if (token) {
-      const client = createClient({ baseUrl: ZAIM_API_BASE });
-      client.interceptors.request.use(
-        createZaimAuthInterceptor({
-          consumerKey: c.env.ZAIM_CONSUMER_KEY,
-          consumerSecret: c.env.ZAIM_CONSUMER_SECRET,
-          token: token.oauthToken,
-          tokenSecret: token.oauthTokenSecret,
-        }),
-      );
-      c.set("zaimClient", client);
-      c.set("zaimUserId", token.zaimUserId);
-    }
-  }
-  await next();
-});
-
 /** OIDC 認証済みでなければ 401 を返す */
 export const requireOidcAuth = createMiddleware<HonoEnv>(async (c, next) => {
   if (!c.var.oidcAuth?.sub) {
@@ -47,10 +21,31 @@ export const requireOidcAuth = createMiddleware<HonoEnv>(async (c, next) => {
   await next();
 });
 
-/** Zaim 連携済みでなければ 403 を返す */
+/**
+ * Zaim 連携済みでなければ 403 を返す。連携済みの場合は KV からトークンを取得して
+ * zaimClient / zaimUserId をコンテキストに設定してから次のハンドラへ進む。
+ *
+ * zaimClient がすでに設定済みの場合（テスト時のコンテキスト注入など）は KV lookup をスキップする。
+ */
 export const requireZaimClient = createMiddleware<HonoEnv>(async (c, next) => {
-  if (!c.var.zaimClient) {
+  if (c.var.zaimClient) {
+    await next();
+    return;
+  }
+  const token = await getStoredZaimToken(c.env.ZAIM_KV, c.var.oidcAuth!.sub!);
+  if (!token) {
     return c.json({ error: "Zaim not connected" }, 403);
   }
+  const client = createClient({ baseUrl: ZAIM_API_BASE });
+  client.interceptors.request.use(
+    createZaimAuthInterceptor({
+      consumerKey: c.env.ZAIM_CONSUMER_KEY,
+      consumerSecret: c.env.ZAIM_CONSUMER_SECRET,
+      token: token.oauthToken,
+      tokenSecret: token.oauthTokenSecret,
+    }),
+  );
+  c.set("zaimClient", client);
+  c.set("zaimUserId", token.zaimUserId);
   await next();
 });
