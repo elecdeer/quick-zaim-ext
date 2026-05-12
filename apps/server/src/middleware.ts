@@ -17,11 +17,15 @@ const ZAIM_API_BASE = "https://api.zaim.net";
 export const requireOidcAuth = createMiddleware<{
   Variables: { oidcAuth: OidcAuth };
 }>(async (c, next) => {
-  if (c.var.oidcAuth) {
+  // At runtime, oidcAuth may be undefined (not set yet) or null (injected as
+  // unauthenticated by the test context). Distinguish to avoid calling getAuth
+  // when the value was already explicitly set.
+  const existing = c.var.oidcAuth as OidcAuth | null | undefined;
+  if (existing !== undefined) {
+    if (!existing?.sub) return c.json({ error: "Unauthorized" }, 401);
     await next();
     return;
   }
-
   const auth = await getAuth(c);
   if (!auth?.sub) {
     return c.json({ error: "Unauthorized" }, 401);
