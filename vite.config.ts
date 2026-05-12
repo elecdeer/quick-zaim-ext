@@ -13,6 +13,9 @@ export default defineConfig({
       typeAware: true,
       typeCheck: true,
     },
+    rules: {
+      "typescript/no-non-null-assertion": "error",
+    },
   },
   run: {
     cache: true,
