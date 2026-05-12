@@ -71,8 +71,8 @@ async function fetchCategoriesFromZaim(
       id: category.id,
       name: category.name,
       mode: category.mode,
-      subCategories: genresResult
-        .data!.genres.filter((genre) => genre.category_id === category.id)
+      subCategories: (genresResult.data?.genres ?? [])
+        .filter((genre) => genre.category_id === category.id)
         .map((genre) => ({ id: genre.id, name: genre.name })),
     })),
   };
@@ -115,7 +115,7 @@ const getCategoriesRoute = new Hono<HonoEnv>().get(
         .debug("Categories cache bypassed (no_cache=1) for Zaim user {zaimUserId}");
     }
 
-    const result = await fetchCategoriesFromZaim(zaimClient!);
+    const result = await fetchCategoriesFromZaim(zaimClient);
 
     await c.env.ZAIM_KV.put(cacheKey, JSON.stringify(result), { expirationTtl: CACHE_TTL });
     categoriesLogger

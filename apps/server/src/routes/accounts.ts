@@ -108,7 +108,7 @@ const getAccountsRoute = new Hono<HonoEnv>().get(
         .debug("Accounts cache bypassed (no_cache=1) for Zaim user {zaimUserId}");
     }
 
-    const result = await fetchAccountsFromZaim(zaimClient!);
+    const result = await fetchAccountsFromZaim(zaimClient);
 
     await c.env.ZAIM_KV.put(cacheKey, JSON.stringify(result), { expirationTtl: CACHE_TTL });
     accountsLogger

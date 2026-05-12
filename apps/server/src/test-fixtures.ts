@@ -108,8 +108,8 @@ export function createTestClient<T extends Hono<HonoEnv, any, any>>(
   const base = new Hono<HonoEnv>();
   base.use("*", async (c, next) => {
     if ("oidcAuth" in context) c.set("oidcAuth", context.oidcAuth ?? null);
-    if ("zaimClient" in context) c.set("zaimClient", context.zaimClient!);
-    if ("zaimUserId" in context) c.set("zaimUserId", context.zaimUserId!);
+    if ("zaimClient" in context && context.zaimClient) c.set("zaimClient", context.zaimClient);
+    if ("zaimUserId" in context && context.zaimUserId) c.set("zaimUserId", context.zaimUserId);
     await next();
   });
   const app = base.route("/", route);

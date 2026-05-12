@@ -4,7 +4,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { HonoEnv, Env } from "./env.ts";
 import "./logger.ts";
-import { setOidcAuthMiddleware } from "./middleware.ts";
+import { requireOidcAuth } from "./middleware.ts";
 import { authRoutes } from "./routes/auth.ts";
 import { accountsRoutes } from "./routes/accounts.ts";
 import { categoriesRoutes } from "./routes/categories.ts";
@@ -38,18 +38,18 @@ base.use(
 // 認証ミドルウェアをルートハンドラより前に登録する（Honoは登録順にマッチするため）
 // /callback は oidcAuthMiddleware() 内部で OIDC_REDIRECT_URI と照合して自動処理する
 base.use("/callback", oidcAuthMiddleware());
-base.use("/me", oidcAuthMiddleware(), setOidcAuthMiddleware);
+base.use("/me", oidcAuthMiddleware(), requireOidcAuth);
 base.use("/auth/launch", oidcAuthMiddleware());
 // /api/* は OIDC 認証 → oidcAuth 変数設定の順で実行（Zaim クライアント生成は各ルートの requireZaimClient が担う）
-base.use("/api/*", oidcAuthMiddleware(), setOidcAuthMiddleware);
+base.use("/api/*", oidcAuthMiddleware(), requireOidcAuth);
 
 // Zaim OAuth ルート
 // /zaim/auth/start, /zaim/auth/status, /zaim/auth/token は OIDC 認証が必要
 // /zaim/auth/callback は Zaim からのリダイレクトを受け取るため OIDC 不要
 //   （ユーザー識別は KV に保存した OIDC sub で行う）
-base.use("/zaim/auth/start", oidcAuthMiddleware(), setOidcAuthMiddleware);
-base.use("/zaim/auth/status", oidcAuthMiddleware(), setOidcAuthMiddleware);
-base.use("/zaim/auth/token", oidcAuthMiddleware(), setOidcAuthMiddleware);
+base.use("/zaim/auth/start", oidcAuthMiddleware(), requireOidcAuth);
+base.use("/zaim/auth/status", oidcAuthMiddleware(), requireOidcAuth);
+base.use("/zaim/auth/token", oidcAuthMiddleware(), requireOidcAuth);
 
 // 公開ルート（認証不要）
 const rootRoute = new Hono<{ Bindings: Env }>().get("/", (c) => c.text("Hello World!"));

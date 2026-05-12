@@ -206,9 +206,9 @@ const getStoresRoute = new Hono<HonoEnv>().get(
         .debug("Stores cache bypassed (no_cache=1) for Zaim user {zaimUserId}");
     }
 
-    const items = await fetchAllMoneyFromZaim(zaimClient!);
+    const items = await fetchAllMoneyFromZaim(zaimClient);
 
-    await buildAndCacheMonthlyData(c.env.ZAIM_KV, zaimUserId!, items);
+    await buildAndCacheMonthlyData(c.env.ZAIM_KV, zaimUserId, items);
 
     const stores = aggregateStores(items);
     const response: StoresResponse = {
