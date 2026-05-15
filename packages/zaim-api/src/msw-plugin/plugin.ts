@@ -2,17 +2,7 @@ import ts from "typescript";
 import { $ } from "@hey-api/openapi-ts";
 
 import type { MyMswPlugin } from "./types";
-
-function toMswPath(path: string): string {
-  return path.replace(
-    /\{([^}]+)\}/g,
-    (_, name: string) => `:${name.replace(/[^a-zA-Z0-9_]/g, "")}`,
-  );
-}
-
-function toCamelCase(str: string): string {
-  return str.charAt(0).toLowerCase() + str.slice(1);
-}
+import { toCamelCase, toMswPath } from "./utils";
 
 export const handler: MyMswPlugin["Handler"] = ({ plugin }) => {
   const symbolHttp = plugin.symbol("http", { external: "msw" });
