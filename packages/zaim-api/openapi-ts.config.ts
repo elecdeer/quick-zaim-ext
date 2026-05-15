@@ -5,9 +5,5 @@ import { defineConfig as defineMswPlugin } from "./src/msw-plugin";
 export default defineConfig({
   input: "./tsp-output/@typespec/openapi3/openapi.yaml",
   output: "src/generated/",
-  plugins: [
-    "@hey-api/client-fetch",
-    "@tanstack/react-query",
-    defineMswPlugin({ bundleFunctionName: "getZaimApiMock" }),
-  ],
+  plugins: ["@hey-api/client-fetch", "@tanstack/react-query", defineMswPlugin()],
 });

@@ -20,8 +20,6 @@ export const handler: MyMswPlugin["Handler"] = ({ plugin }) => {
     kind: "type",
   });
 
-  const handlerSymbols: ReturnType<typeof plugin.symbol>[] = [];
-
   plugin.forEach("operation", ({ operation }) => {
     const { id, method, path } = operation;
     const handlerName = `${toCamelCase(id)}MockHandler`;
@@ -115,16 +113,5 @@ export const handler: MyMswPlugin["Handler"] = ({ plugin }) => {
       .export()
       .assign(outerFn as any);
     plugin.node(handlerNode);
-    handlerSymbols.push(handlerSymbol);
   });
-
-  // export const bundleName = () => [handler1(), handler2(), ...];
-  const bundleName = plugin.config.bundleFunctionName ?? "getZaimApiMock";
-  const bundleSymbol = plugin.symbol(bundleName);
-  const bundleNode = $.const(bundleSymbol)
-    .export()
-    .assign(
-      $.func().do($.return($.array(...handlerSymbols.map((sym) => $(sym).call())) as any)) as any,
-    );
-  plugin.node(bundleNode);
 };

@@ -118,7 +118,7 @@ describe("MSW プラグイン 統合テスト", () => {
     await createClient({
       input: { path: minimalSpec as any },
       output: outputDir,
-      plugins: ["@hey-api/typescript", defineConfig({ bundleFunctionName: "getTestMock" })],
+      plugins: ["@hey-api/typescript", defineConfig()],
     });
 
     const files = await readdir(outputDir);
@@ -176,8 +176,6 @@ describe("MSW プラグイン 統合テスト", () => {
     	        return new Response(null, { status: 501, statusText: 'Not Implemented' });
     	    }, options);
     	};
-
-    	export const getTestMock = () => [accountGetAccountsMockHandler(), accountDeleteAccountMockHandler()];
     	"
     `);
   });
