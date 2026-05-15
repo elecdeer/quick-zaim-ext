@@ -64,9 +64,9 @@ export async function fetchZaimRequestToken(
 
   if (error || !data) {
     zaimOAuthLogger
-      .with({ status: response.status, body: error })
+      .with({ status: response?.status, body: error })
       .error("Zaim request token fetch failed [{status}]: {body}");
-    throw new Error(`Request token failed [${response.status}]: ${JSON.stringify(error)}`);
+    throw new Error(`Request token failed [${response?.status}]: ${JSON.stringify(error)}`);
   }
 
   const parsed = v.parse(RequestTokenSchema, Object.fromEntries(new URLSearchParams(data)));
@@ -105,9 +105,9 @@ export async function fetchZaimAccessToken(
 
   if (error || !data) {
     zaimOAuthLogger
-      .with({ status: response.status, body: error })
+      .with({ status: response?.status, body: error })
       .error("Zaim access token fetch failed [{status}]: {body}");
-    throw new Error(`Access token failed [${response.status}]: ${JSON.stringify(error)}`);
+    throw new Error(`Access token failed [${response?.status}]: ${JSON.stringify(error)}`);
   }
 
   const parsed = v.parse(AccessTokenSchema, Object.fromEntries(new URLSearchParams(data)));
@@ -131,9 +131,9 @@ export async function fetchZaimUserId(config: OAuth1Config): Promise<string> {
 
   if (error || !data) {
     zaimOAuthLogger
-      .with({ status: response.status, body: error })
+      .with({ status: response?.status, body: error })
       .error("Zaim user verify failed [{status}]: {body}");
-    throw new Error(`User verify failed [${response.status}]: ${JSON.stringify(error)}`);
+    throw new Error(`User verify failed [${response?.status}]: ${JSON.stringify(error)}`);
   }
 
   const parsed = v.parse(UserVerifySchema, data);
