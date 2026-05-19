@@ -7,7 +7,7 @@ export const defaultConfig: MyMswPlugin["Config"] = {
   config: {},
   dependencies: ["@hey-api/typescript"],
   handler,
-  name: "my-msw-plugin",
+  name: "msw",
 };
 
 export const defineConfig = definePluginConfig(defaultConfig);

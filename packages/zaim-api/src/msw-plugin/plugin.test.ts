@@ -122,7 +122,7 @@ describe("MSW プラグイン 統合テスト", () => {
     });
 
     const files = await readdir(outputDir);
-    const mswFile = files.find((f) => f.includes("my-msw-plugin"));
+    const mswFile = files.find((f) => f === "msw.gen.ts");
     if (!mswFile) throw new Error(`生成ファイルが見つかりません: ${files.join(", ")}`);
     generated = await readFile(path.join(outputDir, mswFile), "utf-8");
   });
