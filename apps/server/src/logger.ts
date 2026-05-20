@@ -20,3 +20,4 @@ export const zaimRoutesLogger = getLogger(["quick-zaim", "server", "zaim-routes"
 export const categoriesLogger = getLogger(["quick-zaim", "server", "categories"]);
 export const accountsLogger = getLogger(["quick-zaim", "server", "accounts"]);
 export const storesLogger = getLogger(["quick-zaim", "server", "stores"]);
+export const paymentLogger = getLogger(["quick-zaim", "server", "payment"]);
