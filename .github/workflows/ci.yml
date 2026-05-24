@@ -22,7 +22,7 @@ jobs:
       - uses: voidzero-dev/setup-vp@4f5aa3e38c781f1b01e78fb9255527cee8a6efa6 # v1.8.0
         with:
           cache: true
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: vp exec playwright install --with-deps chromium
         working-directory: apps/extension
       - run: vp run "@repo/zaim-api#generate"
       - run: vp check
