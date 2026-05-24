@@ -6,8 +6,11 @@
  */
 
 import { beforeEach, describe, expect, vi } from "vite-plus/test";
+import { getLogger } from "@logtape/logtape";
 import { fetchZaimAccessToken, fetchZaimRequestToken } from "./zaim-oauth.ts";
 import { oauthTest, parseOAuthHeader } from "./test-fixtures.ts";
+
+const testLogger = getLogger(["quick-zaim", "server"]);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -46,6 +49,7 @@ describe("fetchZaimRequestToken", () => {
       await fetchZaimRequestToken(
         { consumerKey: "key", consumerSecret: "secret" },
         "https://example.com/callback",
+        testLogger,
       );
 
       expect(mockAuthRequestToken).toHaveBeenCalled();
@@ -63,6 +67,7 @@ describe("fetchZaimRequestToken", () => {
       await fetchZaimRequestToken(
         { consumerKey: "mykey", consumerSecret: "mysecret" },
         "https://example.com/callback",
+        testLogger,
       );
 
       const options = mockAuthRequestToken.mock.calls[0][0];
@@ -84,6 +89,7 @@ describe("fetchZaimRequestToken", () => {
       await fetchZaimRequestToken(
         { consumerKey: "key", consumerSecret: "secret" },
         "https://example.com/callback?foo=bar",
+        testLogger,
       );
 
       const options = mockAuthRequestToken.mock.calls[0][0];
@@ -101,6 +107,7 @@ describe("fetchZaimRequestToken", () => {
     const result = await fetchZaimRequestToken(
       { consumerKey: "key", consumerSecret: "secret" },
       "https://example.com/callback",
+      testLogger,
     );
     expect(result).toEqual({ oauthToken: "req_token", oauthTokenSecret: "req_secret" });
   });
@@ -117,6 +124,7 @@ describe("fetchZaimRequestToken", () => {
         fetchZaimRequestToken(
           { consumerKey: "key", consumerSecret: "secret" },
           "https://example.com/callback",
+          testLogger,
         ),
       ).rejects.toThrow("Request token failed [401]");
     },
@@ -134,6 +142,7 @@ describe("fetchZaimRequestToken", () => {
         fetchZaimRequestToken(
           { consumerKey: "key", consumerSecret: "secret" },
           "https://example.com/callback",
+          testLogger,
         ),
       ).rejects.toThrow();
     },
@@ -160,7 +169,7 @@ describe("fetchZaimAccessToken", () => {
         response: new Response(SUCCESS_BODY),
       });
 
-      await fetchZaimAccessToken(REQ_CONFIG, "verifier123");
+      await fetchZaimAccessToken(REQ_CONFIG, "verifier123", testLogger);
 
       expect(mockAuthAccessToken).toHaveBeenCalled();
     },
@@ -174,7 +183,7 @@ describe("fetchZaimAccessToken", () => {
         response: new Response(SUCCESS_BODY),
       });
 
-      await fetchZaimAccessToken(REQ_CONFIG, "myverifier");
+      await fetchZaimAccessToken(REQ_CONFIG, "myverifier", testLogger);
 
       const options = mockAuthAccessToken.mock.calls[0][0];
       const params = parseOAuthHeader(options.headers.Authorization as string);
@@ -191,7 +200,7 @@ describe("fetchZaimAccessToken", () => {
         response: new Response(SUCCESS_BODY),
       });
 
-      const result = await fetchZaimAccessToken(REQ_CONFIG, "verifier");
+      const result = await fetchZaimAccessToken(REQ_CONFIG, "verifier", testLogger);
       expect(result).toEqual({
         oauthToken: "access_token",
         oauthTokenSecret: "access_secret",
@@ -207,7 +216,7 @@ describe("fetchZaimAccessToken", () => {
         response: new Response("Bad Request", { status: 400 }),
       });
 
-      await expect(fetchZaimAccessToken(REQ_CONFIG, "verifier")).rejects.toThrow(
+      await expect(fetchZaimAccessToken(REQ_CONFIG, "verifier", testLogger)).rejects.toThrow(
         "Access token failed [400]",
       );
     },
@@ -221,7 +230,7 @@ describe("fetchZaimAccessToken", () => {
         response: new Response("oauth_token_secret=sec"),
       });
 
-      await expect(fetchZaimAccessToken(REQ_CONFIG, "verifier")).rejects.toThrow();
+      await expect(fetchZaimAccessToken(REQ_CONFIG, "verifier", testLogger)).rejects.toThrow();
     },
   );
 });

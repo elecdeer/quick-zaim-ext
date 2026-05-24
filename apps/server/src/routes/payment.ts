@@ -17,7 +17,6 @@ import { Hono } from "hono";
 import * as v from "valibot";
 import type { HonoEnv } from "../env.ts";
 import { requireOidcAuth, requireZaimClient } from "../middleware.ts";
-import { paymentLogger } from "../logger.ts";
 import type { MoneyItem, MonthlyMoneyCache } from "./stores.ts";
 
 const CURRENT_MONTH_MONEY_TTL = 3600;
@@ -113,10 +112,11 @@ const createPaymentRoute = new Hono<HonoEnv>().post(
     if (!result.success) return c.json({ error: "Invalid request body" }, 400);
   }),
   async (c) => {
+    const logger = c.var.logger;
     const { zaimClient, zaimUserId } = c.var;
     const body = c.req.valid("json");
 
-    paymentLogger
+    logger
       .with({ zaimUserId, amount: body.amount, date: body.date })
       .debug("Registering payment for Zaim user {zaimUserId}");
 
@@ -137,7 +137,7 @@ const createPaymentRoute = new Hono<HonoEnv>().post(
     });
 
     if (!result.data) {
-      paymentLogger.error("Failed to create payment in Zaim API");
+      logger.error("Failed to create payment in Zaim API");
       return c.json({ error: "Failed to create payment" }, 502);
     }
 
@@ -147,7 +147,7 @@ const createPaymentRoute = new Hono<HonoEnv>().post(
       c.env.ZAIM_KV.delete(`zaim:cache:stores:${zaimUserId}`),
     ]);
 
-    paymentLogger
+    logger
       .with({ zaimUserId, id: result.data.money.id })
       .debug("Payment registered for Zaim user {zaimUserId}, id={id}");
 
@@ -174,6 +174,7 @@ const getDuplicateRoute = new Hono<HonoEnv>().get(
     if (!result.success) return c.json({ error: "Invalid query parameters" }, 400);
   }),
   async (c) => {
+    const logger = c.var.logger;
     const { zaimClient, zaimUserId } = c.var;
     const { date, amount, genre_id: genreId } = c.req.valid("query");
 
@@ -184,12 +185,12 @@ const getDuplicateRoute = new Hono<HonoEnv>().get(
 
     const cached = await c.env.ZAIM_KV.get(cacheKey);
     if (cached) {
-      paymentLogger
+      logger
         .with({ zaimUserId, yearMonth })
         .debug("Monthly money cache hit for duplicate check ({yearMonth})");
       items = (JSON.parse(cached) as MonthlyMoneyCache).items;
     } else {
-      paymentLogger
+      logger
         .with({ zaimUserId, yearMonth })
         .debug("Monthly money cache miss for duplicate check ({yearMonth}), fetching from API");
       items = await fetchMonthlyMoneyItems(zaimClient, yearMonth);
@@ -210,7 +211,7 @@ const getDuplicateRoute = new Hono<HonoEnv>().get(
         item.date <= maxDate,
     );
 
-    paymentLogger
+    logger
       .with({ zaimUserId, duplicateCount: duplicates.length })
       .debug("Duplicate check found {duplicateCount} potential duplicates");
 

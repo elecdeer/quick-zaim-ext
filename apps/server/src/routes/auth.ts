@@ -3,7 +3,6 @@ import { revokeSession } from "@hono/oidc-auth";
 import { Hono } from "hono";
 import * as v from "valibot";
 import type { HonoEnv } from "../env.ts";
-import { authLogger } from "../logger.ts";
 
 function isValidExtensionRedirectUri(uri: string): boolean {
   try {
@@ -21,7 +20,8 @@ function isValidExtensionRedirectUri(uri: string): boolean {
  * 次回アクセス時に別アカウントを選択できるようになる。
  */
 const logoutRoute = new Hono<HonoEnv>().get("/logout", async (c) => {
-  authLogger.info("Logout requested");
+  const logger = c.var.logger;
+  logger.info("Logout requested");
 
   await revokeSession(c);
 
@@ -30,7 +30,7 @@ const logoutRoute = new Hono<HonoEnv>().get("/logout", async (c) => {
   const returnTo = new URL("/", c.req.url).toString();
   const logoutUrl = `${issuer}/v2/logout?client_id=${clientId}&returnTo=${encodeURIComponent(returnTo)}`;
 
-  authLogger.info("Session revoked, redirecting to Auth0 logout");
+  logger.info("Session revoked, redirecting to Auth0 logout");
   return c.redirect(logoutUrl);
 });
 
@@ -41,9 +41,7 @@ const logoutRoute = new Hono<HonoEnv>().get("/logout", async (c) => {
  */
 const meRoute = new Hono<HonoEnv>().get("/me", async (c) => {
   const auth = c.var.oidcAuth;
-  authLogger
-    .with({ email: auth?.email, sub: auth?.sub })
-    .info("User info requested for {email}", { email: auth?.email });
+  c.var.logger.with({ email: auth?.email, sub: auth?.sub }).info("User info requested for {email}");
   return c.json({
     email: auth?.email,
     sub: auth?.sub,
@@ -64,14 +62,15 @@ const launchRoute = new Hono<HonoEnv>().get(
     if (!result.success) return c.json({ error: "Missing redirect_uri" }, 400);
   }),
   async (c) => {
+    const logger = c.var.logger;
     const { redirect_uri } = c.req.valid("query");
     if (!isValidExtensionRedirectUri(redirect_uri)) {
-      authLogger
+      logger
         .with({ redirectUri: redirect_uri })
         .warn("Extension auth launch: invalid redirect_uri: {redirectUri}");
       return c.json({ error: "Invalid redirect_uri" }, 400);
     }
-    authLogger
+    logger
       .with({ redirectUri: redirect_uri })
       .info("Extension auth launch: redirecting to {redirectUri}");
     return c.redirect(redirect_uri);
