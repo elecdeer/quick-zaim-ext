@@ -1,46 +1,96 @@
+import { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { browser } from "wxt/browser";
+import { createClient } from "server/client";
+import { launchServerLogin } from "../../../auth/serverAuth.ts";
+import { launchZaimConnect } from "../../../auth/zaimAuth.ts";
 import ServerLogin from "../../../components/ServerLogin.tsx";
 import ZaimLogin from "../../../components/ZaimLogin.tsx";
+import { UNAUTHENTICATED, fetchAuthStatus } from "../authQueries.ts";
 
-interface ServerUser {
-  email?: string;
-  sub?: string;
-}
+export default function UnauthedScreen() {
+  const queryClient = useQueryClient();
+  const [serverUrlInput, setServerUrlInput] = useState("");
+  const [storageError, setStorageError] = useState<string | null>(null);
 
-interface Props {
-  serverUrl: string;
-  serverUrlInput: string;
-  isServerAuthenticated: boolean;
-  serverUser: ServerUser | null;
-  isZaimConnected: boolean;
-  zaimUserId: string | null;
-  isLoading: boolean;
-  errorMessage: string | null;
-  onServerUrlChange: (value: string) => void;
-  onSaveServerUrl: () => void;
-  onServerLogin: () => void;
-  onServerLogout: () => void;
-  onZaimConnect: () => void;
-  onZaimDisconnect: () => void;
-  onRefresh: () => void;
-}
+  const { data: serverUrl = "" } = useQuery({
+    queryKey: ["serverUrl"],
+    queryFn: async () => {
+      const result = await browser.storage.local.get("serverUrl");
+      return (result.serverUrl as string) || "";
+    },
+  });
 
-export default function UnauthedScreen({
-  serverUrl,
-  serverUrlInput,
-  isServerAuthenticated,
-  serverUser,
-  isZaimConnected,
-  zaimUserId,
-  isLoading,
-  errorMessage,
-  onServerUrlChange,
-  onSaveServerUrl,
-  onServerLogin,
-  onServerLogout,
-  onZaimConnect,
-  onZaimDisconnect,
-  onRefresh,
-}: Props) {
+  useEffect(() => {
+    setServerUrlInput(serverUrl);
+  }, [serverUrl]);
+
+  const {
+    data: auth = UNAUTHENTICATED,
+    isFetching: authFetching,
+    error: authError,
+  } = useQuery({
+    queryKey: ["authStatus", serverUrl],
+    queryFn: () => fetchAuthStatus(serverUrl),
+    enabled: !!serverUrl,
+    retry: false,
+  });
+
+  const zaimConnectMutation = useMutation({
+    mutationFn: () => launchZaimConnect(serverUrl),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["authStatus", serverUrl] }),
+  });
+
+  const zaimDisconnectMutation = useMutation({
+    mutationFn: async () => {
+      const client = createClient(serverUrl);
+      const res = await client.zaim.auth.token.$delete(
+        {},
+        { init: { credentials: "include", redirect: "manual" } },
+      );
+      if (!res.ok || res.type === "opaqueredirect") {
+        throw new Error("Zaim 連携解除に失敗しました");
+      }
+    },
+    onSuccess: () => {
+      queryClient.setQueryData(["authStatus", serverUrl], UNAUTHENTICATED);
+    },
+  });
+
+  const isLoading =
+    authFetching || zaimConnectMutation.isPending || zaimDisconnectMutation.isPending;
+
+  const errorMessage =
+    storageError ??
+    (authError instanceof Error ? authError.message : null) ??
+    (zaimConnectMutation.error instanceof Error ? zaimConnectMutation.error.message : null) ??
+    (zaimDisconnectMutation.error instanceof Error ? zaimDisconnectMutation.error.message : null);
+
+  async function handleSaveServerUrl() {
+    const url = serverUrlInput.replace(/\/$/, "");
+    try {
+      await browser.storage.local.set({ serverUrl: url });
+      queryClient.setQueryData(["serverUrl"], url);
+      setStorageError(null);
+    } catch {
+      setStorageError("サーバー URL の保存に失敗しました");
+    }
+  }
+
+  async function handleServerLogin() {
+    try {
+      await launchServerLogin(serverUrl);
+      await queryClient.invalidateQueries({ queryKey: ["authStatus", serverUrl] });
+    } catch {
+      // ユーザーがポップアップを閉じた場合など
+    }
+  }
+
+  function handleServerLogout() {
+    void browser.tabs.create({ url: `${serverUrl}/logout` });
+    queryClient.setQueryData(["authStatus", serverUrl], UNAUTHENTICATED);
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-gray-500">
@@ -54,14 +104,14 @@ export default function UnauthedScreen({
             className="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             type="url"
             value={serverUrlInput}
-            onChange={(e) => onServerUrlChange(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && onSaveServerUrl()}
+            onChange={(e) => setServerUrlInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSaveServerUrl()}
             placeholder="https://your-server.workers.dev"
           />
           <button
             className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             type="button"
-            onClick={onSaveServerUrl}
+            onClick={handleSaveServerUrl}
             disabled={!serverUrlInput || serverUrlInput === serverUrl}
           >
             保存
@@ -76,22 +126,24 @@ export default function UnauthedScreen({
       {serverUrl && (
         <>
           <ServerLogin
-            isAuthenticated={isServerAuthenticated}
-            user={serverUser}
+            isAuthenticated={auth.isServerAuthenticated}
+            user={auth.serverUser}
             isLoading={isLoading}
-            onLogin={onServerLogin}
-            onLogout={onServerLogout}
-            onRefresh={onRefresh}
+            onLogin={handleServerLogin}
+            onLogout={handleServerLogout}
+            onRefresh={() => queryClient.invalidateQueries({ queryKey: ["authStatus", serverUrl] })}
           />
 
-          {isServerAuthenticated && (
+          {auth.isServerAuthenticated && (
             <ZaimLogin
-              isConnected={isZaimConnected}
-              zaimUserId={zaimUserId}
+              isConnected={auth.isZaimConnected}
+              zaimUserId={auth.zaimUserId}
               isLoading={isLoading}
-              onConnect={onZaimConnect}
-              onDisconnect={onZaimDisconnect}
-              onRefresh={onRefresh}
+              onConnect={() => zaimConnectMutation.mutate()}
+              onDisconnect={() => zaimDisconnectMutation.mutate()}
+              onRefresh={() =>
+                queryClient.invalidateQueries({ queryKey: ["authStatus", serverUrl] })
+              }
             />
           )}
         </>
