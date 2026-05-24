@@ -17,8 +17,8 @@ import { sValidator } from "@hono/standard-validator";
 import { Hono } from "hono";
 import * as v from "valibot";
 import type { HonoEnv } from "../env.ts";
+import type { Logger } from "../loggerMiddleware.ts";
 import { requireOidcAuth, requireZaimClient } from "../middleware.ts";
-import { storesLogger } from "../logger.ts";
 
 const StoresQuerySchema = v.object({
   no_cache: v.optional(v.string()),
@@ -70,8 +70,9 @@ function yearMonthOf(date: string): string {
 
 async function fetchAllMoneyFromZaim(
   client: ReturnType<typeof createClient>,
+  logger: Logger,
 ): Promise<MoneyItem[]> {
-  storesLogger.debug("Fetching all money items from Zaim API");
+  logger.debug("Fetching all money items from Zaim API");
 
   const result = await moneyGetMoney({
     client,
@@ -79,7 +80,7 @@ async function fetchAllMoneyFromZaim(
   });
 
   if (!result.data) {
-    storesLogger.error("Failed to fetch money items from Zaim API");
+    logger.error("Failed to fetch money items from Zaim API");
     throw new Error("Failed to fetch money items from Zaim API");
   }
 
@@ -110,7 +111,7 @@ async function fetchAllMoneyFromZaim(
       genreId: m.genre_id,
     }));
 
-  storesLogger
+  logger
     .with({ itemCount: items.length })
     .debug("Zaim API returned {itemCount} money items with places");
 
@@ -145,6 +146,7 @@ async function buildAndCacheMonthlyData(
   kv: KVNamespace,
   zaimUserId: string,
   items: MoneyItem[],
+  logger: Logger,
 ): Promise<void> {
   const thisMonth = currentYearMonth();
   const byMonth = new Map<string, MoneyItem[]>();
@@ -171,7 +173,7 @@ async function buildAndCacheMonthlyData(
 
   await Promise.all(puts);
 
-  storesLogger
+  logger
     .with({ zaimUserId, monthCount: byMonth.size })
     .debug("Cached {monthCount} monthly money caches for Zaim user {zaimUserId}");
 }
@@ -186,6 +188,7 @@ const getStoresRoute = new Hono<HonoEnv>().get(
     }
   }),
   async (c) => {
+    const logger = c.var.logger;
     const { zaimClient, zaimUserId } = c.var;
 
     const { no_cache: noCache } = c.req.valid("query");
@@ -194,21 +197,21 @@ const getStoresRoute = new Hono<HonoEnv>().get(
     if (noCache !== "1") {
       const cached = await c.env.ZAIM_KV.get(storesCacheKey);
       if (cached) {
-        storesLogger.with({ zaimUserId }).debug("Stores cache hit for Zaim user {zaimUserId}");
+        logger.with({ zaimUserId }).debug("Stores cache hit for Zaim user {zaimUserId}");
         return c.json(JSON.parse(cached) as StoresResponse);
       }
-      storesLogger
+      logger
         .with({ zaimUserId })
         .debug("Stores cache miss for Zaim user {zaimUserId}, fetching from API");
     } else {
-      storesLogger
+      logger
         .with({ zaimUserId })
         .debug("Stores cache bypassed (no_cache=1) for Zaim user {zaimUserId}");
     }
 
-    const items = await fetchAllMoneyFromZaim(zaimClient);
+    const items = await fetchAllMoneyFromZaim(zaimClient, logger);
 
-    await buildAndCacheMonthlyData(c.env.ZAIM_KV, zaimUserId, items);
+    await buildAndCacheMonthlyData(c.env.ZAIM_KV, zaimUserId, items, logger);
 
     const stores = aggregateStores(items);
     const response: StoresResponse = {
@@ -219,7 +222,7 @@ const getStoresRoute = new Hono<HonoEnv>().get(
     await c.env.ZAIM_KV.put(storesCacheKey, JSON.stringify(response), {
       expirationTtl: STORES_CACHE_TTL,
     });
-    storesLogger
+    logger
       .with({ zaimUserId, storeCount: stores.length, ttl: STORES_CACHE_TTL })
       .debug("Stores cached for Zaim user {zaimUserId} ({storeCount} stores, TTL={ttl}s)");
 

@@ -14,8 +14,8 @@ import { sValidator } from "@hono/standard-validator";
 import { Hono } from "hono";
 import * as v from "valibot";
 import type { HonoEnv } from "../env.ts";
+import type { Logger } from "../loggerMiddleware.ts";
 import { requireOidcAuth, requireZaimClient } from "../middleware.ts";
-import { accountsLogger } from "../logger.ts";
 
 const AccountsQuerySchema = v.object({
   no_cache: v.optional(v.string()),
@@ -42,8 +42,9 @@ export type AccountsResponse = {
 
 async function fetchAccountsFromZaim(
   client: ReturnType<typeof createClient>,
+  logger: Logger,
 ): Promise<AccountsResponse> {
-  accountsLogger.debug("Fetching accounts from Zaim API");
+  logger.debug("Fetching accounts from Zaim API");
 
   const result = await accountGetAccounts({
     client,
@@ -51,12 +52,12 @@ async function fetchAccountsFromZaim(
   });
 
   if (!result.data) {
-    accountsLogger.error("Failed to fetch accounts from Zaim API");
+    logger.error("Failed to fetch accounts from Zaim API");
     throw new Error("Failed to fetch accounts from Zaim API");
   }
 
   const accountCount = result.data.accounts.length;
-  accountsLogger.with({ accountCount }).debug("Zaim API returned {accountCount} accounts");
+  logger.with({ accountCount }).debug("Zaim API returned {accountCount} accounts");
 
   return {
     fetchedAt: new Date().toISOString(),
@@ -88,6 +89,7 @@ const getAccountsRoute = new Hono<HonoEnv>().get(
     }
   }),
   async (c) => {
+    const logger = c.var.logger;
     const { zaimClient, zaimUserId } = c.var;
 
     const { no_cache: noCache } = c.req.valid("query");
@@ -96,22 +98,22 @@ const getAccountsRoute = new Hono<HonoEnv>().get(
     if (noCache !== "1") {
       const cached = await c.env.ZAIM_KV.get(cacheKey);
       if (cached) {
-        accountsLogger.with({ zaimUserId }).debug("Accounts cache hit for Zaim user {zaimUserId}");
+        logger.with({ zaimUserId }).debug("Accounts cache hit for Zaim user {zaimUserId}");
         return c.json(JSON.parse(cached) as AccountsResponse);
       }
-      accountsLogger
+      logger
         .with({ zaimUserId })
         .debug("Accounts cache miss for Zaim user {zaimUserId}, fetching from API");
     } else {
-      accountsLogger
+      logger
         .with({ zaimUserId })
         .debug("Accounts cache bypassed (no_cache=1) for Zaim user {zaimUserId}");
     }
 
-    const result = await fetchAccountsFromZaim(zaimClient);
+    const result = await fetchAccountsFromZaim(zaimClient, logger);
 
     await c.env.ZAIM_KV.put(cacheKey, JSON.stringify(result), { expirationTtl: CACHE_TTL });
-    accountsLogger
+    logger
       .with({ zaimUserId, ttl: CACHE_TTL })
       .debug("Accounts cached for Zaim user {zaimUserId} (TTL={ttl}s)");
 

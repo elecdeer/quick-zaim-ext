@@ -9,6 +9,7 @@ import { type MockedFunction, test, vi } from "vite-plus/test";
 import type { KVNamespace } from "@cloudflare/workers-types";
 import type { OidcAuth } from "@hono/oidc-auth";
 import type { createClient } from "@repo/zaim-api/client";
+import { getLogger } from "@logtape/logtape";
 import { Hono } from "hono";
 import { testClient } from "hono/testing";
 import type { Env, HonoEnv } from "./env.ts";
@@ -108,8 +109,9 @@ export function createTestClient<T extends Hono<HonoEnv, any, any>>(
 ) {
   const base = new Hono<HonoEnv>();
   const testMiddleware = createMiddleware<{
-    Variables: RouteTestContext;
+    Variables: RouteTestContext & { logger: ReturnType<typeof getLogger> };
   }>(async (c, next) => {
+    c.set("logger", getLogger(["quick-zaim", "server"]));
     if ("oidcAuth" in context) c.set("oidcAuth", context.oidcAuth ?? null);
     if ("zaimClient" in context && context.zaimClient) c.set("zaimClient", context.zaimClient);
     if ("zaimUserId" in context && context.zaimUserId) c.set("zaimUserId", context.zaimUserId);

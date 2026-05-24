@@ -17,7 +17,7 @@ import { createZaimAuthInterceptor } from "@repo/zaim-api/oauth/interceptor";
 import { type OAuth1Config, buildOAuth1AuthorizationHeader } from "@repo/zaim-api/oauth/oauth1";
 import type { AccessTokenResult, RequestTokenResult } from "@repo/zaim-api/oauth/zaim-oauth";
 import * as v from "valibot";
-import { zaimOAuthLogger } from "./logger.ts";
+import type { Logger } from "./loggerMiddleware.ts";
 
 export { buildZaimApiAuthHeader, buildZaimAuthorizeUrl } from "@repo/zaim-api/oauth/zaim-oauth";
 export type { AccessTokenResult, RequestTokenResult } from "@repo/zaim-api/oauth/zaim-oauth";
@@ -45,17 +45,19 @@ const UserVerifySchema = v.object({
  * Zaim から Request Token を取得する
  * @param config      - Consumer Key / Secret
  * @param callbackUrl - OAuth 認可後のコールバック URL
+ * @param logger      - リクエストスコープのロガー
  */
 export async function fetchZaimRequestToken(
   config: OAuth1Config,
   callbackUrl: string,
+  logger: Logger,
 ): Promise<RequestTokenResult> {
   const requestUrl = `${ZAIM_API_BASE}/v2/auth/request`;
   const authHeader = await buildOAuth1AuthorizationHeader("POST", requestUrl, config, {
     oauth_callback: callbackUrl,
   });
 
-  zaimOAuthLogger.with({ url: requestUrl, callbackUrl }).debug("Fetching Zaim request token");
+  logger.with({ url: requestUrl, callbackUrl }).debug("Fetching Zaim request token");
 
   const { data, error, response } = await authRequestToken({
     client: zaimClient,
@@ -63,7 +65,7 @@ export async function fetchZaimRequestToken(
   });
 
   if (error || !data) {
-    zaimOAuthLogger
+    logger
       .with({ status: response?.status, body: error })
       .error("Zaim request token fetch failed [{status}]: {body}");
     throw new Error(`Request token failed [${response?.status}]: ${JSON.stringify(error)}`);
@@ -71,7 +73,7 @@ export async function fetchZaimRequestToken(
 
   const parsed = v.parse(RequestTokenSchema, Object.fromEntries(new URLSearchParams(data)));
 
-  zaimOAuthLogger
+  logger
     .with({ oauthToken: parsed.oauth_token })
     .debug("Zaim request token obtained: {oauthToken}");
 
@@ -86,17 +88,19 @@ export async function fetchZaimRequestToken(
  *
  * @param config        - Consumer Key / Secret + Request Token / Secret
  * @param oauthVerifier - Zaim から受け取った oauth_verifier
+ * @param logger        - リクエストスコープのロガー
  */
 export async function fetchZaimAccessToken(
   config: OAuth1Config,
   oauthVerifier: string,
+  logger: Logger,
 ): Promise<AccessTokenResult> {
   const accessUrl = `${ZAIM_API_BASE}/v2/auth/access`;
   const authHeader = await buildOAuth1AuthorizationHeader("POST", accessUrl, config, {
     oauth_verifier: oauthVerifier,
   });
 
-  zaimOAuthLogger.with({ url: accessUrl }).debug("Fetching Zaim access token");
+  logger.with({ url: accessUrl }).debug("Fetching Zaim access token");
 
   const { data, error, response } = await authAccessToken({
     client: zaimClient,
@@ -104,7 +108,7 @@ export async function fetchZaimAccessToken(
   });
 
   if (error || !data) {
-    zaimOAuthLogger
+    logger
       .with({ status: response?.status, body: error })
       .error("Zaim access token fetch failed [{status}]: {body}");
     throw new Error(`Access token failed [${response?.status}]: ${JSON.stringify(error)}`);
@@ -112,7 +116,7 @@ export async function fetchZaimAccessToken(
 
   const parsed = v.parse(AccessTokenSchema, Object.fromEntries(new URLSearchParams(data)));
 
-  zaimOAuthLogger.debug("Zaim access token obtained");
+  logger.debug("Zaim access token obtained");
 
   return { oauthToken: parsed.oauth_token, oauthTokenSecret: parsed.oauth_token_secret };
 }
@@ -120,17 +124,18 @@ export async function fetchZaimAccessToken(
 /**
  * アクセストークンを使って Zaim のユーザー ID を取得する
  * @param config - Consumer Key / Secret + Access Token / Secret
+ * @param logger - リクエストスコープのロガー
  */
-export async function fetchZaimUserId(config: OAuth1Config): Promise<string> {
+export async function fetchZaimUserId(config: OAuth1Config, logger: Logger): Promise<string> {
   const client = createClient({ baseUrl: ZAIM_API_BASE });
   client.interceptors.request.use(createZaimAuthInterceptor(config));
 
-  zaimOAuthLogger.debug("Fetching Zaim user ID");
+  logger.debug("Fetching Zaim user ID");
 
   const { data, error, response } = await userVerifyUser({ client });
 
   if (error || !data) {
-    zaimOAuthLogger
+    logger
       .with({ status: response?.status, body: error })
       .error("Zaim user verify failed [{status}]: {body}");
     throw new Error(`User verify failed [${response?.status}]: ${JSON.stringify(error)}`);
@@ -139,7 +144,7 @@ export async function fetchZaimUserId(config: OAuth1Config): Promise<string> {
   const parsed = v.parse(UserVerifySchema, data);
   const userId = String(parsed.me.id);
 
-  zaimOAuthLogger.with({ zaimUserId: userId }).debug("Zaim user ID obtained: {zaimUserId}");
+  logger.with({ zaimUserId: userId }).debug("Zaim user ID obtained: {zaimUserId}");
 
   return userId;
 }

@@ -14,8 +14,8 @@ import { sValidator } from "@hono/standard-validator";
 import { Hono } from "hono";
 import * as v from "valibot";
 import type { HonoEnv } from "../env.ts";
+import type { Logger } from "../loggerMiddleware.ts";
 import { requireOidcAuth, requireZaimClient } from "../middleware.ts";
-import { categoriesLogger } from "../logger.ts";
 
 const CategoriesQuerySchema = v.object({
   no_cache: v.optional(v.string()),
@@ -40,8 +40,9 @@ export type CategoriesResponse = {
 
 async function fetchCategoriesFromZaim(
   client: ReturnType<typeof createClient>,
+  logger: Logger,
 ): Promise<CategoriesResponse> {
-  categoriesLogger.debug("Fetching categories and genres from Zaim API in parallel");
+  logger.debug("Fetching categories and genres from Zaim API in parallel");
 
   const [categoriesResult, genresResult] = await Promise.all([
     categoryGetCategories({
@@ -55,13 +56,13 @@ async function fetchCategoriesFromZaim(
   ]);
 
   if (!categoriesResult.data || !genresResult.data) {
-    categoriesLogger.error("Failed to fetch categories or genres from Zaim API");
+    logger.error("Failed to fetch categories or genres from Zaim API");
     throw new Error("Failed to fetch categories from Zaim API");
   }
 
   const categoryCount = categoriesResult.data.categories.length;
   const genreCount = genresResult.data.genres.length;
-  categoriesLogger
+  logger
     .with({ categoryCount, genreCount })
     .debug("Zaim API returned {categoryCount} categories and {genreCount} genres");
 
@@ -93,6 +94,7 @@ const getCategoriesRoute = new Hono<HonoEnv>().get(
     }
   }),
   async (c) => {
+    const logger = c.var.logger;
     const { zaimClient, zaimUserId } = c.var;
 
     const { no_cache: noCache } = c.req.valid("query");
@@ -101,24 +103,22 @@ const getCategoriesRoute = new Hono<HonoEnv>().get(
     if (noCache !== "1") {
       const cached = await c.env.ZAIM_KV.get(cacheKey);
       if (cached) {
-        categoriesLogger
-          .with({ zaimUserId })
-          .debug("Categories cache hit for Zaim user {zaimUserId}");
+        logger.with({ zaimUserId }).debug("Categories cache hit for Zaim user {zaimUserId}");
         return c.json(JSON.parse(cached) as CategoriesResponse);
       }
-      categoriesLogger
+      logger
         .with({ zaimUserId })
         .debug("Categories cache miss for Zaim user {zaimUserId}, fetching from API");
     } else {
-      categoriesLogger
+      logger
         .with({ zaimUserId })
         .debug("Categories cache bypassed (no_cache=1) for Zaim user {zaimUserId}");
     }
 
-    const result = await fetchCategoriesFromZaim(zaimClient);
+    const result = await fetchCategoriesFromZaim(zaimClient, logger);
 
     await c.env.ZAIM_KV.put(cacheKey, JSON.stringify(result), { expirationTtl: CACHE_TTL });
-    categoriesLogger
+    logger
       .with({ zaimUserId, ttl: CACHE_TTL })
       .debug("Categories cached for Zaim user {zaimUserId} (TTL={ttl}s)");
 

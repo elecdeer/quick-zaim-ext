@@ -1,4 +1,5 @@
 import type { KVNamespace } from "@cloudflare/workers-types";
+import type { Logger } from "./loggerMiddleware.ts";
 
 /**
  * Cloudflare Workers の環境変数（バインディング）の型定義
@@ -25,4 +26,4 @@ export type Env = {
 };
 
 /** Hono アプリ全体で共有する環境型 */
-export type HonoEnv = { Bindings: Env };
+export type HonoEnv = { Bindings: Env; Variables: { logger: Logger } };

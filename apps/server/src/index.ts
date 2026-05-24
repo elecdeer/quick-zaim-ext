@@ -1,9 +1,9 @@
 import { oidcAuthMiddleware } from "@hono/oidc-auth";
-import { honoLogger } from "@logtape/hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { HonoEnv, Env } from "./env.ts";
 import "./logger.ts";
+import { loggerMiddleware } from "./loggerMiddleware.ts";
 import { requireOidcAuth } from "./middleware.ts";
 import { authRoutes } from "./routes/auth.ts";
 import { accountsRoutes } from "./routes/accounts.ts";
@@ -14,7 +14,7 @@ import { zaimRoutes } from "./routes/zaim.ts";
 
 const base = new Hono<HonoEnv>();
 
-base.use(honoLogger({ category: ["quick-zaim", "server"] }));
+base.use(loggerMiddleware);
 
 // Chrome拡張機能・ローカル開発からのクロスオリジンリクエストを許可
 base.use(
