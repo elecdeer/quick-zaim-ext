@@ -25,6 +25,21 @@ export default definePreview({
       },
     },
     layout: "padded",
+    viewport: {
+      options: {
+        chromeSidebar: {
+          name: "Chrome Sidebar",
+          styles: { width: "400px", height: "600px" },
+        },
+        chromeSidebarTall: {
+          name: "Chrome Sidebar (Tall)",
+          styles: { width: "400px", height: "900px" },
+        },
+      },
+    },
+  },
+  initialGlobals: {
+    viewport: "chromeSidebar",
   },
   loaders: [mswLoader],
 });

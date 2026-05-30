@@ -1,4 +1,5 @@
 import { defineConfig } from "vite-plus";
+import { playwright } from "vite-plus/test/browser-playwright";
 
 export default defineConfig({
   lint: {
@@ -18,5 +19,15 @@ export default defineConfig({
         dependsOn: ["@repo/zaim-api#generate"],
       },
     },
+  },
+  test: {
+    name: "storybook",
+    browser: {
+      enabled: true,
+      headless: true,
+      provider: playwright({}),
+      instances: [{ browser: "chromium" }],
+    },
+    setupFiles: "./vitest.setup.ts",
   },
 });
