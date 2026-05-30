@@ -25,6 +25,10 @@ export default defineConfig({
         command: "vp pack ./src/generated/client/index.ts",
         dependsOn: ["generate"],
       },
+      check: {
+        command: "vp check",
+        dependsOn: ["generate"],
+      },
     },
   },
 });
