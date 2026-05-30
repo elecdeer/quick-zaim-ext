@@ -2,7 +2,7 @@ import * as v from "valibot";
 
 const StartResponseSchema = v.object({ authorizeUrl: v.string() });
 
-export async function launchZaimConnect(serverUrl: string): Promise<void> {
+export const launchZaimConnect = async (serverUrl: string): Promise<void> => {
   const extRedirectUri = chrome.identity.getRedirectURL("zaim");
 
   // Step 1: サーバーから Zaim 認可 URL を取得（OIDC セッションは通常の fetch で送信）
@@ -25,4 +25,4 @@ export async function launchZaimConnect(serverUrl: string): Promise<void> {
   if (!result) {
     throw new Error("Zaim 認証に失敗しました");
   }
-}
+};

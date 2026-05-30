@@ -38,10 +38,10 @@ export type CategoriesResponse = {
   categories: CategoryWithSubCategories[];
 };
 
-async function fetchCategoriesFromZaim(
+const fetchCategoriesFromZaim = async (
   client: ReturnType<typeof createClient>,
   logger: Logger,
-): Promise<CategoriesResponse> {
+): Promise<CategoriesResponse> => {
   logger.debug("Fetching categories and genres from Zaim API in parallel");
 
   const [categoriesResult, genresResult] = await Promise.all([
@@ -77,7 +77,7 @@ async function fetchCategoriesFromZaim(
         .map((genre) => ({ id: genre.id, name: genre.name })),
     })),
   };
-}
+};
 
 /**
  * カテゴリ＋サブカテゴリ（ジャンル）一覧取得

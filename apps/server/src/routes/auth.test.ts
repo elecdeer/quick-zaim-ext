@@ -32,7 +32,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-function makeEnv(overrides?: Partial<Env>): Env {
+const makeEnv = (overrides?: Partial<Env>): Env => {
   const { kv } = createKVNamespaceMock();
   return {
     OIDC_ISSUER: "https://example.auth0.com/",
@@ -45,7 +45,7 @@ function makeEnv(overrides?: Partial<Env>): Env {
     ZAIM_KV: kv,
     ...overrides,
   };
-}
+};
 
 // ── /logout ──────────────────────────────────────────────────────────────────
 

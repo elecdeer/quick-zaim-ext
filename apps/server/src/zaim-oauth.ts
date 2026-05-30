@@ -47,11 +47,11 @@ const UserVerifySchema = v.object({
  * @param callbackUrl - OAuth 認可後のコールバック URL
  * @param logger      - リクエストスコープのロガー
  */
-export async function fetchZaimRequestToken(
+export const fetchZaimRequestToken = async (
   config: OAuth1Config,
   callbackUrl: string,
   logger: Logger,
-): Promise<RequestTokenResult> {
+): Promise<RequestTokenResult> => {
   const requestUrl = `${ZAIM_API_BASE}/v2/auth/request`;
   const authHeader = await buildOAuth1AuthorizationHeader("POST", requestUrl, config, {
     oauth_callback: callbackUrl,
@@ -78,7 +78,7 @@ export async function fetchZaimRequestToken(
     .debug("Zaim request token obtained: {oauthToken}");
 
   return { oauthToken: parsed.oauth_token, oauthTokenSecret: parsed.oauth_token_secret };
-}
+};
 
 /**
  * Request Token と Verifier を使って Access Token を取得する
@@ -90,11 +90,11 @@ export async function fetchZaimRequestToken(
  * @param oauthVerifier - Zaim から受け取った oauth_verifier
  * @param logger        - リクエストスコープのロガー
  */
-export async function fetchZaimAccessToken(
+export const fetchZaimAccessToken = async (
   config: OAuth1Config,
   oauthVerifier: string,
   logger: Logger,
-): Promise<AccessTokenResult> {
+): Promise<AccessTokenResult> => {
   const accessUrl = `${ZAIM_API_BASE}/v2/auth/access`;
   const authHeader = await buildOAuth1AuthorizationHeader("POST", accessUrl, config, {
     oauth_verifier: oauthVerifier,
@@ -119,14 +119,14 @@ export async function fetchZaimAccessToken(
   logger.debug("Zaim access token obtained");
 
   return { oauthToken: parsed.oauth_token, oauthTokenSecret: parsed.oauth_token_secret };
-}
+};
 
 /**
  * アクセストークンを使って Zaim のユーザー ID を取得する
  * @param config - Consumer Key / Secret + Access Token / Secret
  * @param logger - リクエストスコープのロガー
  */
-export async function fetchZaimUserId(config: OAuth1Config, logger: Logger): Promise<string> {
+export const fetchZaimUserId = async (config: OAuth1Config, logger: Logger): Promise<string> => {
   const client = createClient({ baseUrl: ZAIM_API_BASE });
   client.interceptors.request.use(createZaimAuthInterceptor(config));
 
@@ -147,4 +147,4 @@ export async function fetchZaimUserId(config: OAuth1Config, logger: Logger): Pro
   logger.with({ zaimUserId: userId }).debug("Zaim user ID obtained: {zaimUserId}");
 
   return userId;
-}
+};

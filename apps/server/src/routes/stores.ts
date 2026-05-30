@@ -57,21 +57,19 @@ export type StoresResponse = {
   stores: Store[];
 };
 
-function currentYearMonth(): string {
+const currentYearMonth = (): string => {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   return `${year}-${month}`;
-}
+};
 
-function yearMonthOf(date: string): string {
-  return date.slice(0, 7);
-}
+const yearMonthOf = (date: string): string => date.slice(0, 7);
 
-async function fetchAllMoneyFromZaim(
+const fetchAllMoneyFromZaim = async (
   client: ReturnType<typeof createClient>,
   logger: Logger,
-): Promise<MoneyItem[]> {
+): Promise<MoneyItem[]> => {
   logger.debug("Fetching all money items from Zaim API");
 
   const result = await moneyGetMoney({
@@ -116,9 +114,9 @@ async function fetchAllMoneyFromZaim(
     .debug("Zaim API returned {itemCount} money items with places");
 
   return items;
-}
+};
 
-function aggregateStores(items: MoneyItem[]): Store[] {
+const aggregateStores = (items: MoneyItem[]): Store[] => {
   const storeMap = new Map<string, Store>();
 
   for (const item of items) {
@@ -140,14 +138,14 @@ function aggregateStores(items: MoneyItem[]): Store[] {
   }
 
   return Array.from(storeMap.values()).sort((a, b) => b.latestDate.localeCompare(a.latestDate));
-}
+};
 
-async function buildAndCacheMonthlyData(
+const buildAndCacheMonthlyData = async (
   kv: KVNamespace,
   zaimUserId: string,
   items: MoneyItem[],
   logger: Logger,
-): Promise<void> {
+): Promise<void> => {
   const thisMonth = currentYearMonth();
   const byMonth = new Map<string, MoneyItem[]>();
 
@@ -176,7 +174,7 @@ async function buildAndCacheMonthlyData(
   logger
     .with({ zaimUserId, monthCount: byMonth.size })
     .debug("Cached {monthCount} monthly money caches for Zaim user {zaimUserId}");
-}
+};
 
 const getStoresRoute = new Hono<HonoEnv>().get(
   "/api/zaim/stores",

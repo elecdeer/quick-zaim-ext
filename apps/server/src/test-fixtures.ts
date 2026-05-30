@@ -33,7 +33,7 @@ export const RFC = {
  * `OAuth key="value", ...` 形式のヘッダーをパースして
  * { key: decodedValue } のマップを返す
  */
-export function parseOAuthHeader(header: string): Record<string, string> {
+export const parseOAuthHeader = (header: string): Record<string, string> => {
   const result: Record<string, string> = {};
   const body = header.replace(/^OAuth\s+/, "");
   for (const part of body.split(", ")) {
@@ -44,7 +44,7 @@ export function parseOAuthHeader(header: string): Record<string, string> {
     result[key] = decodeURIComponent(encodedValue);
   }
   return result;
-}
+};
 
 export interface OAuthTestFixtures {
   /** `Date.now()` を RFC タイムスタンプに固定する */
@@ -70,7 +70,7 @@ export interface KVNamespaceMock {
  * get / put / delete のみ実装。TTL は無視する（テストでは期限切れを再現しない）。
  * 返り値の mockGet / mockPut / mockDelete を使って挙動を制御する。
  */
-export function createKVNamespaceMock(): KVNamespaceMock {
+export const createKVNamespaceMock = (): KVNamespaceMock => {
   const store = new Map<string, string>();
   const mockGet = vi.fn(async (key: string): Promise<string | null> => store.get(key) ?? null);
   const mockPut = vi.fn(async (key: string, value: string): Promise<void> => {
@@ -87,7 +87,7 @@ export function createKVNamespaceMock(): KVNamespaceMock {
     getWithMetadata: vi.fn(),
   } as unknown as KVNamespace;
   return { kv, mockGet, mockPut, mockDelete };
-}
+};
 
 /** テストで注入するコンテキスト変数 */
 export interface RouteTestContext {
@@ -102,11 +102,11 @@ export interface RouteTestContext {
  * コンテキスト変数を直接注入するミドルウェアを挟んでから testClient を返す。
  * これにより getAuth / createClient などのモジュールモックが不要になる。
  */
-export function createTestClient<T extends Hono<HonoEnv, any, any>>(
+export const createTestClient = <T extends Hono<HonoEnv, any, any>>(
   route: T,
   env: Env,
   context: RouteTestContext = {},
-) {
+) => {
   const base = new Hono<HonoEnv>();
   const testMiddleware = createMiddleware<{
     Variables: RouteTestContext & { logger: ReturnType<typeof getLogger> };
@@ -121,14 +121,13 @@ export function createTestClient<T extends Hono<HonoEnv, any, any>>(
   base.use("*", testMiddleware);
   const app = base.route("/", route);
   return testClient(app as T, env);
-}
+};
 
 /** Zaim API クライアントのスタブ（API 関数がモックされている前提で使用） */
-export function createZaimClientStub(): ReturnType<typeof createClient> {
-  return {
+export const createZaimClientStub = (): ReturnType<typeof createClient> =>
+  ({
     interceptors: { request: { use: vi.fn() } },
-  } as unknown as ReturnType<typeof createClient>;
-}
+  }) as unknown as ReturnType<typeof createClient>;
 
 /**
  * 決定論的な OAuth 署名テスト用の拡張 test

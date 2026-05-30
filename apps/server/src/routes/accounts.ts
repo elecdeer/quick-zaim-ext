@@ -40,10 +40,10 @@ export type AccountsResponse = {
   accounts: Account[];
 };
 
-async function fetchAccountsFromZaim(
+const fetchAccountsFromZaim = async (
   client: ReturnType<typeof createClient>,
   logger: Logger,
-): Promise<AccountsResponse> {
+): Promise<AccountsResponse> => {
   logger.debug("Fetching accounts from Zaim API");
 
   const result = await accountGetAccounts({
@@ -72,7 +72,7 @@ async function fetchAccountsFromZaim(
       parentAccountId: account.parent_account_id,
     })),
   };
-}
+};
 
 /**
  * 支払い方法（口座）一覧取得

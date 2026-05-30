@@ -25,9 +25,8 @@ export interface AccessTokenResult {
 }
 
 /** Zaim ユーザー認可 URL を構築する */
-export function buildZaimAuthorizeUrl(oauthToken: string): string {
-  return `${ZAIM_AUTHORIZE_URL}?oauth_token=${encodeURIComponent(oauthToken)}`;
-}
+export const buildZaimAuthorizeUrl = (oauthToken: string): string =>
+  `${ZAIM_AUTHORIZE_URL}?oauth_token=${encodeURIComponent(oauthToken)}`;
 
 /**
  * 保存済みアクセストークンを使って Zaim API リクエスト用の Authorization ヘッダーを生成する
@@ -36,11 +35,9 @@ export function buildZaimAuthorizeUrl(oauthToken: string): string {
  * @param url         - クエリ文字列を含まないリクエスト URL
  * @param queryParams - 署名対象のクエリパラメータ
  */
-export async function buildZaimApiAuthHeader(
+export const buildZaimApiAuthHeader = async (
   config: OAuth1Config,
   method: string,
   url: string,
   queryParams: Record<string, string> = {},
-): Promise<string> {
-  return buildOAuth1AuthorizationHeader(method, url, config, {}, queryParams);
-}
+): Promise<string> => buildOAuth1AuthorizationHeader(method, url, config, {}, queryParams);

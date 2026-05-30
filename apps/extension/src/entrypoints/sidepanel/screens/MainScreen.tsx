@@ -8,17 +8,15 @@ interface Item {
   comment: string;
 }
 
-function newItem(): Item {
-  return { id: crypto.randomUUID(), name: "", amount: "", comment: "" };
-}
+const newItem = (): Item => ({ id: crypto.randomUUID(), name: "", amount: "", comment: "" });
 
-function localDateString() {
+const localDateString = () => {
   const d = new Date();
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
-}
+};
 
 const cellInput =
   "w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
@@ -32,17 +30,17 @@ export default function MainScreen() {
     return sum + (Number.isInteger(n) && n > 0 ? n : 0);
   }, 0);
 
-  function updateItem(id: string, patch: Partial<Omit<Item, "id">>) {
+  const updateItem = (id: string, patch: Partial<Omit<Item, "id">>) => {
     setItems((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)));
-  }
+  };
 
-  function removeItem(id: string) {
+  const removeItem = (id: string) => {
     setItems((prev) => prev.filter((item) => item.id !== id));
-  }
+  };
 
-  function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-  }
+  };
 
   const canSubmit =
     items.length > 0 && items.every((item) => parseInt(item.amount, 10) > 0) && date !== "";

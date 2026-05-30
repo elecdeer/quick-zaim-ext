@@ -12,9 +12,9 @@ type BrowserMockOptions = {
  * NOTE: globalThis.chrome / globalThis.browser への fakeBrowser の割り当ては
  *       .storybook/preview.ts で事前に行う（wxt/browser のモジュール評価タイミングに合わせるため）。
  */
-export async function setupBrowserMock({
+export const setupBrowserMock = async ({
   serverUrl = "http://mock-server.test",
-}: BrowserMockOptions = {}): Promise<void> {
+}: BrowserMockOptions = {}): Promise<void> => {
   fakeBrowser.reset();
 
   // identity は @webext-core/fake-browser で未実装のためオーバーライドする。
@@ -26,4 +26,4 @@ export async function setupBrowserMock({
   };
 
   await fakeBrowser.storage.local.set({ serverUrl });
-}
+};

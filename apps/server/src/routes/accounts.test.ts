@@ -52,7 +52,7 @@ const MOCK_ACCOUNTS_RESPONSE = {
   ],
 };
 
-function makeEnv(kvOverride?: KVNamespace): Env {
+const makeEnv = (kvOverride?: KVNamespace): Env => {
   const { kv } = createKVNamespaceMock();
   return {
     OIDC_ISSUER: "https://example.auth0.com/",
@@ -64,7 +64,7 @@ function makeEnv(kvOverride?: KVNamespace): Env {
     ZAIM_CONSUMER_SECRET: "zaim_consumer_secret",
     ZAIM_KV: kvOverride ?? kv,
   };
-}
+};
 
 // ── GET /api/zaim/accounts ──────────────────────────────────────────────────
 

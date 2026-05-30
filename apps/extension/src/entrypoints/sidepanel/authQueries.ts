@@ -19,7 +19,7 @@ export const UNAUTHENTICATED: AuthStatus = {
   zaimUserId: null,
 };
 
-export async function fetchAuthStatus(url: string): Promise<AuthStatus> {
+export const fetchAuthStatus = async (url: string): Promise<AuthStatus> => {
   const client = createClient(url);
   let meRes: Response;
   try {
@@ -53,4 +53,4 @@ export async function fetchAuthStatus(url: string): Promise<AuthStatus> {
     isZaimConnected: zaim.connected,
     zaimUserId: "zaimUserId" in zaim ? (zaim.zaimUserId as string) : null,
   };
-}
+};

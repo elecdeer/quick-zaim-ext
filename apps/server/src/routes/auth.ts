@@ -4,14 +4,14 @@ import { Hono } from "hono";
 import * as v from "valibot";
 import type { HonoEnv } from "../env.ts";
 
-function isValidExtensionRedirectUri(uri: string): boolean {
+const isValidExtensionRedirectUri = (uri: string): boolean => {
   try {
     const url = new URL(uri);
     return url.protocol === "https:" && url.hostname.endsWith(".chromiumapp.org");
   } catch {
     return false;
   }
-}
+};
 
 /**
  * ログアウトエンドポイント

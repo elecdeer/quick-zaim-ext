@@ -12,7 +12,7 @@ export interface OAuth1Config {
 }
 
 /** HMAC-SHA1 署名を Base64 エンコードして返す */
-async function hmacSha1Base64(key: string, data: string): Promise<string> {
+const hmacSha1Base64 = async (key: string, data: string): Promise<string> => {
   const encoder = new TextEncoder();
   const cryptoKey = await crypto.subtle.importKey(
     "raw",
@@ -23,15 +23,15 @@ async function hmacSha1Base64(key: string, data: string): Promise<string> {
   );
   const sig = await crypto.subtle.sign("HMAC", cryptoKey, encoder.encode(data));
   return btoa(String.fromCharCode(...new Uint8Array(sig)));
-}
+};
 
 /** RFC 3986 準拠のパーセントエンコード */
-function pct(str: string): string {
+const pct = (str: string): string => {
   return encodeURIComponent(str).replace(
     /[!'()*]/g,
     (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
   );
-}
+};
 
 /**
  * OAuth 1.0a の Authorization ヘッダーを生成する
@@ -42,13 +42,13 @@ function pct(str: string): string {
  * @param extraOAuthParams  - oauth_callback / oauth_verifier など追加 OAuth パラメータ
  * @param bodyOrQueryParams - 署名対象に含める本文またはクエリパラメータ
  */
-export async function buildOAuth1AuthorizationHeader(
+export const buildOAuth1AuthorizationHeader = async (
   method: string,
   baseUrl: string,
   config: OAuth1Config,
   extraOAuthParams: Record<string, string> = {},
   bodyOrQueryParams: Record<string, string> = {},
-): Promise<string> {
+): Promise<string> => {
   const oauthParams: Record<string, string> = {
     oauth_consumer_key: config.consumerKey,
     oauth_nonce: crypto.randomUUID().replace(/-/g, ""),
@@ -80,4 +80,4 @@ export async function buildOAuth1AuthorizationHeader(
     .join(", ");
 
   return `OAuth ${headerValue}`;
-}
+};

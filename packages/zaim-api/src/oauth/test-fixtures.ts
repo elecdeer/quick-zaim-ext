@@ -25,7 +25,7 @@ export const RFC = {
  * `OAuth key="value", ...` 形式のヘッダーをパースして
  * { key: decodedValue } のマップを返す
  */
-export function parseOAuthHeader(header: string): Record<string, string> {
+export const parseOAuthHeader = (header: string): Record<string, string> => {
   const result: Record<string, string> = {};
   const body = header.replace(/^OAuth\s+/, "");
   for (const part of body.split(", ")) {
@@ -36,7 +36,7 @@ export function parseOAuthHeader(header: string): Record<string, string> {
     result[key] = decodeURIComponent(encodedValue);
   }
   return result;
-}
+};
 
 export interface OAuthTestFixtures {
   /** `Date.now()` を RFC タイムスタンプに固定する */

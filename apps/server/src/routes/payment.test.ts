@@ -89,7 +89,7 @@ const MOCK_MONEY_ITEMS = [
   },
 ];
 
-function makeEnv(kvOverride?: KVNamespace): Env {
+const makeEnv = (kvOverride?: KVNamespace): Env => {
   const { kv } = createKVNamespaceMock();
   return {
     OIDC_ISSUER: "https://example.auth0.com/",
@@ -101,11 +101,9 @@ function makeEnv(kvOverride?: KVNamespace): Env {
     ZAIM_CONSUMER_SECRET: "zaim_consumer_secret",
     ZAIM_KV: kvOverride ?? kv,
   };
-}
+};
 
-function createZaimRealClient() {
-  return createClient({ baseUrl: "https://api.zaim.net" });
-}
+const createZaimRealClient = () => createClient({ baseUrl: "https://api.zaim.net" });
 
 // ── POST /api/zaim/payment ───────────────────────────────────────────────────
 

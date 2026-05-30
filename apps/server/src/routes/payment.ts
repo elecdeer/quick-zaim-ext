@@ -47,27 +47,23 @@ const DuplicateQuerySchema = v.object({
   ),
 });
 
-function yearMonthOf(date: string): string {
-  return date.slice(0, 7);
-}
+const yearMonthOf = (date: string): string => date.slice(0, 7);
 
-function monthStartEnd(yearMonth: string): { start: string; end: string } {
-  return {
-    start: `${yearMonth}-01`,
-    end: `${yearMonth}-31`,
-  };
-}
+const monthStartEnd = (yearMonth: string): { start: string; end: string } => ({
+  start: `${yearMonth}-01`,
+  end: `${yearMonth}-31`,
+});
 
-function addDays(dateStr: string, days: number): string {
+const addDays = (dateStr: string, days: number): string => {
   const d = new Date(dateStr);
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
-}
+};
 
-async function fetchMonthlyMoneyItems(
+const fetchMonthlyMoneyItems = async (
   client: ReturnType<typeof createClient>,
   yearMonth: string,
-): Promise<MoneyItem[]> {
+): Promise<MoneyItem[]> => {
   const { start, end } = monthStartEnd(yearMonth);
   const result = await moneyGetMoney({
     client,
@@ -100,7 +96,7 @@ async function fetchMonthlyMoneyItems(
     categoryId: m.category_id,
     genreId: m.genre_id,
   }));
-}
+};
 
 // ── POST /api/zaim/payment ────────────────────────────────────────────────────
 

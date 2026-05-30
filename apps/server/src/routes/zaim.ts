@@ -53,25 +53,25 @@ const StartQuerySchema = v.object({
 type RequestTokenState = v.InferOutput<typeof RequestTokenStateSchema>;
 type StoredAccessToken = v.InferOutput<typeof StoredAccessTokenSchema>;
 
-function isValidExtensionRedirectUri(uri: string): boolean {
+const isValidExtensionRedirectUri = (uri: string): boolean => {
   try {
     const url = new URL(uri);
     return url.protocol === "https:" && url.hostname.endsWith(".chromiumapp.org");
   } catch {
     return false;
   }
-}
+};
 
 /**
  * oauth_token + oauth_verifier からアクセストークンを取得して KV に保存する共通処理。
  * callbackRoute から呼ばれる。
  */
-async function performZaimTokenExchange(
+const performZaimTokenExchange = async (
   env: Env,
   oauthToken: string,
   oauthVerifier: string,
   logger: Logger,
-): Promise<{ zaimUserId: string; extRedirectUri?: string }> {
+): Promise<{ zaimUserId: string; extRedirectUri?: string }> => {
   logger.with({ oauthToken }).debug("Looking up request token state from KV: {oauthToken}");
 
   const stored = await env.ZAIM_KV.get(`zaim:request:${oauthToken}`);
@@ -129,7 +129,7 @@ async function performZaimTokenExchange(
     .debug("Token exchange complete: access token stored, request token deleted");
 
   return { zaimUserId, extRedirectUri };
-}
+};
 
 /**
  * Zaim OAuth 開始
@@ -307,11 +307,11 @@ export const zaimRoutes = new Hono<HonoEnv>()
  * 指定ユーザーの Zaim アクセストークンを KV から取得するヘルパー
  * 他のルートで Zaim API を呼び出す際に使用する。
  */
-export async function getStoredZaimToken(
+export const getStoredZaimToken = async (
   kv: KVNamespace,
   userSub: string,
-): Promise<StoredAccessToken | null> {
+): Promise<StoredAccessToken | null> => {
   const stored = await kv.get(`zaim:token:${userSub}`);
   if (!stored) return null;
   return v.parse(StoredAccessTokenSchema, JSON.parse(stored));
-}
+};

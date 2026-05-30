@@ -15,6 +15,7 @@ export default defineConfig({
     },
     rules: {
       "typescript/no-non-null-assertion": "error",
+      "func-style": ["error", "expression"],
     },
   },
   run: {

@@ -66,7 +66,7 @@ export default function UnauthedScreen() {
     (zaimConnectMutation.error instanceof Error ? zaimConnectMutation.error.message : null) ??
     (zaimDisconnectMutation.error instanceof Error ? zaimDisconnectMutation.error.message : null);
 
-  async function handleSaveServerUrl() {
+  const handleSaveServerUrl = async () => {
     const url = serverUrlInput.replace(/\/$/, "");
     try {
       await browser.storage.local.set({ serverUrl: url });
@@ -75,21 +75,21 @@ export default function UnauthedScreen() {
     } catch {
       setStorageError("サーバー URL の保存に失敗しました");
     }
-  }
+  };
 
-  async function handleServerLogin() {
+  const handleServerLogin = async () => {
     try {
       await launchServerLogin(serverUrl);
       await queryClient.invalidateQueries({ queryKey: ["authStatus", serverUrl] });
     } catch {
       // ユーザーがポップアップを閉じた場合など
     }
-  }
+  };
 
-  function handleServerLogout() {
+  const handleServerLogout = () => {
     void browser.tabs.create({ url: `${serverUrl}/logout` });
     queryClient.setQueryData(["authStatus", serverUrl], UNAUTHENTICATED);
-  }
+  };
 
   return (
     <div className="flex flex-col gap-4">
