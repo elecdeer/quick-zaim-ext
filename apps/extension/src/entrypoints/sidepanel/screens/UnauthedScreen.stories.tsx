@@ -1,7 +1,7 @@
 import { http, HttpResponse } from "msw";
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import preview from "../../../../.storybook/preview";
+import preview from "#storybook/preview";
 import { setupBrowserMock } from "../../../test-utils/browser-mock.ts";
 import UnauthedScreen from "./UnauthedScreen.tsx";
 

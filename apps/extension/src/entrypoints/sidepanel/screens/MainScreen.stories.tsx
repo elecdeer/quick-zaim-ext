@@ -1,4 +1,4 @@
-import preview from "../../../../.storybook/preview";
+import preview from "#storybook/preview";
 import MainScreen from "./MainScreen.tsx";
 
 const meta = preview.meta({

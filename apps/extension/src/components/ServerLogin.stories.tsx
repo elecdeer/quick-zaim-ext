@@ -1,4 +1,4 @@
-import preview from "../../.storybook/preview";
+import preview from "#storybook/preview";
 import ServerLogin from "./ServerLogin.tsx";
 
 const meta = preview.meta({
