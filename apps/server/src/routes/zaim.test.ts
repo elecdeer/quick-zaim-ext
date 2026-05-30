@@ -7,7 +7,7 @@
  * DELETE /zaim/auth/token  - Zaim 連携解除
  */
 
-import { beforeEach, describe, expect, test, vi } from "vite-plus/test";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import { createKVNamespaceMock, createTestClient } from "../test-fixtures.ts";
 import { zaimRoutes } from "./zaim.ts";
 import type { Env } from "../env.ts";

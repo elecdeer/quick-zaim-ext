@@ -1,0 +1,10 @@
+pre-commit:
+  commands:
+    fmt:
+      glob: "*.{ts,tsx,js,jsx,json,md,yaml,yml,toml,css}"
+      run: pnpm exec oxfmt {staged_files}
+      stage_fixed: true
+    lint:
+      glob: "*.{ts,tsx,js,jsx}"
+      run: pnpm exec oxlint --config oxlint.config.ts --fix {staged_files}
+      stage_fixed: true

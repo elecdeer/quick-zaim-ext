@@ -8,6 +8,10 @@
     "./client": "./src/client.ts"
   },
   "scripts": {
+    "dev": "wrangler dev",
+    "build": "wrangler deploy --dry-run --outdir dist",
+    "test": "vitest run",
+    "check": "tsc --noEmit",
     "deploy": "wrangler deploy"
   },
   "dependencies": {
@@ -23,6 +27,7 @@
     "@cloudflare/workers-types": "^4.20260423.1",
     "msw": "catalog:",
     "typescript": "catalog:",
+    "vitest": "catalog:",
     "wrangler": "^4.84.1"
   }
 }

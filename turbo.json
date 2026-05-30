@@ -1,0 +1,24 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "generate": {
+      "outputs": ["src/generated/**", "tsp-output/**"]
+    },
+    "build": {
+      "dependsOn": ["^generate", "generate"],
+      "outputs": ["dist/**", ".output/**"]
+    },
+    "dev": {
+      "dependsOn": ["^generate"],
+      "persistent": true,
+      "cache": false
+    },
+    "test": {
+      "cache": true
+    },
+    "check": {
+      "dependsOn": ["generate"],
+      "cache": true
+    }
+  }
+}

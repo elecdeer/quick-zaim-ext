@@ -8,7 +8,7 @@
  *   zaim:cache:money:{zaim_user_id}:{yyyy-mm}  - 月別支払いアイテムキャッシュ
  */
 
-import { beforeEach, describe, expect, test, vi } from "vite-plus/test";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import { createKVNamespaceMock, createTestClient, createZaimClientStub } from "../test-fixtures.ts";
 import { storesRoutes } from "./stores.ts";
 import type { Env } from "../env.ts";

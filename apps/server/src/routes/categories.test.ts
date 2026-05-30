@@ -4,7 +4,7 @@
  * GET /api/zaim/categories - カテゴリ＋サブカテゴリ一覧（KVキャッシュ付き）
  */
 
-import { beforeEach, describe, expect, test, vi } from "vite-plus/test";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import { createKVNamespaceMock, createTestClient, createZaimClientStub } from "../test-fixtures.ts";
 import { categoriesRoutes } from "./categories.ts";
 import type { Env } from "../env.ts";

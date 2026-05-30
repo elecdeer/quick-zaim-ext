@@ -1,4 +1,4 @@
-import { buildOAuth1AuthorizationHeader, type OAuth1Config } from "../oauth/oauth1";
+import { buildOAuth1AuthorizationHeader, type OAuth1Config } from "./oauth1";
 
 /** OAuth 1.0a の認証ヘッダーを設定するインターセプター */
 export const createZaimAuthInterceptor = (oauthConfig: OAuth1Config) => {

@@ -5,7 +5,7 @@
  * nonce・タイムスタンプをモックする test.extend フィクスチャを提供する。
  */
 
-import { type MockedFunction, test, vi } from "vite-plus/test";
+import { type MockedFunction, test, vi } from "vitest";
 import type { KVNamespace } from "@cloudflare/workers-types";
 import type { OidcAuth } from "@hono/oidc-auth";
 import type { createClient } from "@repo/zaim-api/client";

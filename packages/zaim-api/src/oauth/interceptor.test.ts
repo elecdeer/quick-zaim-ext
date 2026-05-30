@@ -1,4 +1,4 @@
-import { assert, describe, expect } from "vite-plus/test";
+import { assert, describe, expect } from "vitest";
 import { createZaimAuthInterceptor } from "./interceptor";
 import { oauthTest, parseOAuthHeader, RFC } from "./test-fixtures";
 

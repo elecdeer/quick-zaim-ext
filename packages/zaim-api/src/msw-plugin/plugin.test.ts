@@ -2,7 +2,7 @@ import { createClient } from "@hey-api/openapi-ts";
 import { mkdir, mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { afterAll, beforeAll, describe, expect, test } from "vite-plus/test";
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
 import { defineConfig } from "./config";
 import { toCamelCase, toMswPath } from "./utils";

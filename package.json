@@ -4,13 +4,19 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "ready": "vp fmt && vp lint && vp run -r test && vp run -r build",
-    "dev": "vp run server#dev",
-    "prepare": "vp config"
+    "ready": "pnpm exec oxfmt . && pnpm exec oxlint --config oxlint.config.ts . && pnpm exec turbo run check test && pnpm exec turbo run build",
+    "dev": "pnpm exec turbo run dev --filter=server",
+    "prepare": "lefthook install"
   },
   "devDependencies": {
     "@hono/cli": "catalog:",
-    "vite-plus": "catalog:"
+    "@vitejs/plugin-react": "catalog:",
+    "@vitest/browser": "catalog:",
+    "lefthook": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "turbo": "catalog:",
+    "vitest": "catalog:"
   },
   "engines": {
     "node": ">=22.12.0"

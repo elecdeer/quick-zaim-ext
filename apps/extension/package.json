@@ -7,8 +7,9 @@
     "#storybook/preview": "./.storybook/preview.ts"
   },
   "scripts": {
-    "check": "vp check",
-    "test": "vp test",
+    "check": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "wxt build",
     "prepare": "wxt prepare",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
@@ -31,6 +32,9 @@
     "@types/chrome": "^0.1.40",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "catalog:",
+    "@vitest/browser": "catalog:",
+    "@vitest/browser-playwright": "catalog:",
     "@wxt-dev/module-react": "^1.2.2",
     "msw": "catalog:",
     "msw-storybook-addon": "catalog:",
@@ -39,6 +43,8 @@
     "tailwindcss": "^4.2.4",
     "typescript": "catalog:",
     "vite": "catalog:",
+    "vitest": "catalog:",
+    "vitest-browser-react": "catalog:",
     "wxt": "^0.20.25"
   },
   "msw": {

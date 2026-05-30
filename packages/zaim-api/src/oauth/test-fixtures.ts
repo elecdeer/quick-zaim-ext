@@ -5,7 +5,7 @@
  * nonce・タイムスタンプをモックする test.extend フィクスチャを提供する。
  */
 
-import { test, vi } from "vite-plus/test";
+import { test, vi } from "vitest";
 
 /** RFC 5849 Appendix A.2 テストベクター */
 export const RFC = {
