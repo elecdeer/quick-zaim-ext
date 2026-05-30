@@ -36,8 +36,6 @@
     "tailwindcss": "^4.2.4",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vite-plus": "catalog:",
-    "vitest": "catalog:",
     "wxt": "^0.20.25"
   },
   "msw": {
