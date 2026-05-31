@@ -6,5 +6,5 @@ pre-commit:
       stage_fixed: true
     lint:
       glob: "*.{ts,tsx,js,jsx}"
-      run: pnpm exec oxlint --config oxlint.config.ts --ignore-path=.gitignore --fix {staged_files}
+      run: pnpm exec oxlint --config oxlint.config.ts --fix {staged_files}
       stage_fixed: true
