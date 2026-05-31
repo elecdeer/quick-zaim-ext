@@ -6,12 +6,5 @@ export default defineConfig({
     "typescript/no-non-null-assertion": "error",
     "func-style": ["error", "expression"],
   },
-  ignorePatterns: [
-    "**/.wrangler/**",
-    "**/.output/**",
-    "**/.wxt/**",
-    "**/mockServiceWorker.js",
-    "**/src/generated/**",
-    "**/tsp-output/**",
-  ],
+  ignorePatterns: ["**/mockServiceWorker.js"],
 });

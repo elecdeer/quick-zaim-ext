@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "ready": "pnpm exec oxfmt . && pnpm exec oxlint --config oxlint.config.ts . && pnpm exec turbo run check test && pnpm exec turbo run build",
+    "ready": "pnpm exec oxfmt . && pnpm exec oxlint --config oxlint.config.ts --ignore-path=.gitignore . && pnpm exec turbo run check test && pnpm exec turbo run build",
     "dev": "pnpm exec turbo run dev --filter=server",
     "prepare": "lefthook install"
   },
