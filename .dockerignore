@@ -1,0 +1,10 @@
+node_modules
+**/node_modules
+dist
+**/dist
+.git
+.wxt
+**/.wxt
+storybook-static
+**/.storybook-static
+*.log

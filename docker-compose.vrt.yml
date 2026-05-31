@@ -1,0 +1,8 @@
+services:
+  vrt:
+    build:
+      context: .
+      dockerfile: docker/vrt.Dockerfile
+    volumes:
+      # 参照スクリーンショット（__screenshots__/）をホスト側に永続化してGitで管理できるようにする
+      - ./apps/extension/src:/app/apps/extension/src

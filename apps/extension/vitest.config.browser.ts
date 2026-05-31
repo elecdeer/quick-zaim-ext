@@ -11,6 +11,7 @@ export default defineProject({
   test: {
     name: "extension/browser",
     include: ["src/**/*.test.browser.{ts,tsx}"],
+    exclude: ["src/**/*.visual.test.browser.{ts,tsx}"],
     browser: {
       enabled: true,
       headless: false,
