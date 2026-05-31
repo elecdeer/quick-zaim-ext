@@ -7,7 +7,6 @@
     "#storybook/preview": "./.storybook/preview.ts"
   },
   "scripts": {
-    "check": "tsc --noEmit",
     "test": "vitest run",
     "build": "wxt build",
     "prepare": "wxt prepare",

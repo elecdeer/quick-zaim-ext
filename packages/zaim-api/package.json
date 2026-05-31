@@ -11,7 +11,6 @@
   "scripts": {
     "dev": "tsdown --watch",
     "test": "vitest run",
-    "check": "tsc --noEmit",
     "generate": "pnpm run generate:openapi3 && pnpm run generate:ts-client",
     "generate:openapi3": "tsp compile ./typespec",
     "generate:ts-client": "openapi-ts",

@@ -15,10 +15,6 @@
     },
     "test": {
       "cache": true
-    },
-    "check": {
-      "dependsOn": ["generate"],
-      "cache": true
     }
   }
 }
