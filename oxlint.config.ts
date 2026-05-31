@@ -1,10 +1,14 @@
 import { defineConfig } from "oxlint";
-import { baseConfig } from "./oxlint.base.config.ts";
 
 export default defineConfig({
-  extends: [baseConfig],
   options: {
     typeAware: true,
     typeCheck: true,
   },
+  plugins: ["typescript"],
+  rules: {
+    "typescript/no-non-null-assertion": "error",
+    "func-style": ["error", "expression"],
+  },
+  ignorePatterns: ["**/mockServiceWorker.js"],
 });
