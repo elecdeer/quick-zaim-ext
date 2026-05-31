@@ -3,11 +3,5 @@ import { defineConfig } from "oxlint";
 
 export default defineConfig({
   extends: [rootConfig],
-  plugins: ["node", "promise"],
-  overrides: [
-    {
-      files: ["**/*.test.ts"],
-      plugins: ["vitest"],
-    },
-  ],
+  plugins: ["node", "promise", "vitest"],
 });
