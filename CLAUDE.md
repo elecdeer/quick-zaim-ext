@@ -4,8 +4,8 @@
 
 - **Vite** (`vite`) / **Vitest** (`vitest`) — ビルドとテスト
 - **oxfmt** — フォーマット
-- **oxlint** — リント
-- **tsdown** — ライブラリバンドル（`packages/zaim-api`）
+- **oxlint** — リント（`typeCheck: true` による型チェックも兼任）
+- **tsdown** — ライブラリバンドル・型宣言生成（`packages/zaim-api`、`apps/server`）
 - **Turborepo** (`turbo`) — モノレポのタスクオーケストレーション（依存関係・キャッシュ）
 - **Lefthook** — git pre-commit フック
 
@@ -13,9 +13,10 @@
 
 - [ ] `pnpm install` を実行してから作業を開始する。
 - [ ] `pnpm run ready` でフォーマット・リント・型チェック・テスト・ビルドをまとめて確認する。
-- [ ] フォーマット単体: `oxfmt .`、リント単体: `oxlint .`
-- [ ] テスト単体: `turbo run test`、型チェック単体: `turbo run check`
+- [ ] フォーマット単体: `oxfmt .`、リント単体（型チェック含む）: `oxlint .`
+- [ ] テスト単体: `turbo run test`
 - [ ] 特定パッケージのみ実行: `turbo run test --filter=extension`
+- [ ] **型チェックは `tsc` ではなく `oxlint` で行う**（`oxlint.config.ts` の `typeCheck: true` が有効）
 
 ## Server (Hono) Coding Conventions
 

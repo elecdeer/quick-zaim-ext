@@ -5,8 +5,11 @@
       "outputs": ["src/generated/**", "tsp-output/**"]
     },
     "build": {
-      "dependsOn": ["^generate", "generate"],
+      "dependsOn": ["^generate", "generate", "^build:types"],
       "outputs": ["dist/**", ".output/**"]
+    },
+    "build:types": {
+      "outputs": ["dist/**"]
     },
     "dev": {
       "dependsOn": ["^generate"],

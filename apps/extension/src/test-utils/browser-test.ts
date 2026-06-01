@@ -7,7 +7,7 @@ import { getWorker } from "msw-storybook-addon";
  */
 export const test = testBase.extend<{ worker: ReturnType<typeof getWorker> }>({
   worker: [
-    async (_context, use) => {
+    async ({ task: _task }, use) => {
       await use(getWorker());
       getWorker().resetHandlers();
     },

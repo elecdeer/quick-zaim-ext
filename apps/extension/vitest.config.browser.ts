@@ -14,7 +14,7 @@ export default defineProject({
     exclude: ["src/**/*.visual.test.browser.{ts,tsx}"],
     browser: {
       enabled: true,
-      headless: false,
+      headless: true,
       provider: playwright(),
       instances: [{ browser: "chromium" }],
     },

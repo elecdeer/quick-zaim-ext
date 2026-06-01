@@ -2,7 +2,7 @@ import { http, HttpResponse } from "msw";
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import preview from "#storybook/preview";
-import MainScreen from "./MainScreen.tsx";
+import { CategoryCombobox, type CategorySelection } from "./CategoryCombobox.tsx";
 
 const MOCK_SERVER_URL = "http://mock-server.test";
 
@@ -33,20 +33,33 @@ const mockCategoriesResponse = {
   ],
 };
 
+const ControlledWrapper = ({ serverUrl }: { serverUrl: string }) => {
+  const [value, setValue] = useState<CategorySelection | null>(null);
+  return (
+    <div className="flex flex-col gap-2">
+      <CategoryCombobox serverUrl={serverUrl} value={value} onChange={setValue} />
+      <p className="text-xs text-gray-500">
+        選択中: {value ? `categoryId=${value.categoryId}, genreId=${value.genreId}` : "なし"}
+      </p>
+    </div>
+  );
+};
+
 const meta = preview.meta({
-  title: "Sidebar/Screens/MainScreen",
-  component: MainScreen,
+  title: "Components/CategoryCombobox",
+  component: CategoryCombobox,
   args: {
     serverUrl: MOCK_SERVER_URL,
+    value: null,
+    onChange: () => {},
   },
   decorators: [
-    (Story) => {
+    () => {
       const [queryClient] = useState(() => new QueryClient());
       return (
         <QueryClientProvider client={queryClient}>
-          <div className="flex min-h-screen flex-col gap-4 bg-gray-50 p-4">
-            <h1 className="text-lg font-bold text-gray-900">Quick Zaim</h1>
-            <Story />
+          <div className="p-4">
+            <ControlledWrapper serverUrl={MOCK_SERVER_URL} />
           </div>
         </QueryClientProvider>
       );
@@ -57,7 +70,7 @@ const meta = preview.meta({
 export default meta;
 
 export const Default = meta.story({
-  name: "支払いフォーム",
+  name: "カテゴリ選択",
   parameters: {
     msw: {
       handlers: [
@@ -69,8 +82,8 @@ export const Default = meta.story({
   },
 });
 
-export const CategoriesLoading = meta.story({
-  name: "カテゴリ読み込み中",
+export const Loading = meta.story({
+  name: "読み込み中",
   parameters: {
     msw: {
       handlers: [
@@ -83,8 +96,8 @@ export const CategoriesLoading = meta.story({
   },
 });
 
-export const CategoriesError = meta.story({
-  name: "カテゴリ取得エラー",
+export const Error = meta.story({
+  name: "エラー状態",
   parameters: {
     msw: {
       handlers: [

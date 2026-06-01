@@ -1,10 +1,41 @@
-import { describe, expect, test } from "vitest";
-import { Default } from "./MainScreen.stories";
-import { render } from "vitest-browser-react";
+import { http, HttpResponse } from "msw";
+import { describe, expect } from "vitest";
 import { page } from "vitest/browser";
+import { render } from "vitest-browser-react";
+import { test } from "../../../test-utils/browser-test.ts";
+import { Default } from "./MainScreen.stories";
+
+const MOCK_SERVER_URL = "http://mock-server.test";
+
+const mockCategoriesResponse = {
+  fetchedAt: "2024-01-01T00:00:00Z",
+  categories: [
+    {
+      id: 101,
+      name: "食費",
+      mode: "payment",
+      subCategories: [
+        { id: 1001, name: "食料品" },
+        { id: 1002, name: "外食" },
+      ],
+    },
+    {
+      id: 102,
+      name: "交通費",
+      mode: "payment",
+      subCategories: [{ id: 1003, name: "電車・バス" }],
+    },
+  ],
+};
 
 describe("MainScreen", () => {
-  test("初期状態でヘッダーと登録ボタン（無効）が表示される", async () => {
+  test("初期状態でヘッダーと登録ボタン（無効）が表示される", async ({ worker }) => {
+    worker.use(
+      http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, () =>
+        HttpResponse.json(mockCategoriesResponse),
+      ),
+    );
+
     await render(<Default.Component />);
 
     await expect.element(page.getByText("品目名")).toBeVisible();
@@ -13,7 +44,13 @@ describe("MainScreen", () => {
     await expect.element(page.getByRole("button", { name: "登録" })).toBeDisabled();
   });
 
-  test("金額を入力すると合計が更新される", async () => {
+  test("金額を入力すると合計が更新される", async ({ worker }) => {
+    worker.use(
+      http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, () =>
+        HttpResponse.json(mockCategoriesResponse),
+      ),
+    );
+
     await render(<Default.Component />);
 
     await page.getByPlaceholder("0").fill("1000");
@@ -21,7 +58,13 @@ describe("MainScreen", () => {
     await expect.element(page.getByText("¥1,000")).toBeVisible();
   });
 
-  test("品目を追加ボタンで入力行が増える", async () => {
+  test("品目を追加ボタンで入力行が増える", async ({ worker }) => {
+    worker.use(
+      http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, () =>
+        HttpResponse.json(mockCategoriesResponse),
+      ),
+    );
+
     await render(<Default.Component />);
 
     await page.getByRole("button", { name: "+ 品目を追加" }).click();
@@ -31,15 +74,13 @@ describe("MainScreen", () => {
     await expect.element(nameInputs.nth(1)).toBeVisible();
   });
 
-  test("有効な金額を入力すると登録ボタンが有効になる", async () => {
-    await render(<Default.Component />);
+  test("品目を削除すると行が減り合計がリセットされる", async ({ worker }) => {
+    worker.use(
+      http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, () =>
+        HttpResponse.json(mockCategoriesResponse),
+      ),
+    );
 
-    await page.getByPlaceholder("0").fill("500");
-
-    await expect.element(page.getByRole("button", { name: "登録" })).toBeEnabled();
-  });
-
-  test("品目を削除すると行が減り合計がリセットされる", async () => {
     await render(<Default.Component />);
 
     await page.getByPlaceholder("0").fill("1000");

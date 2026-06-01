@@ -23,7 +23,7 @@ export default function App() {
   return (
     <div className="flex min-h-screen flex-col gap-4 bg-gray-50 p-4">
       <h1 className="text-lg font-bold text-gray-900">Quick Zaim</h1>
-      {auth.isZaimConnected ? <MainScreen /> : <UnauthedScreen />}
+      {auth.isZaimConnected ? <MainScreen serverUrl={serverUrl} /> : <UnauthedScreen />}
     </div>
   );
 }

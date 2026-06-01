@@ -1,11 +1,16 @@
 import { Fragment, useState } from "react";
 import { Button, Input } from "@cloudflare/kumo";
+import { CategoryCombobox, type CategorySelection } from "../../../components/CategoryCombobox.tsx";
 
 interface Item {
   id: string;
   name: string;
   amount: string;
   comment: string;
+}
+
+interface Props {
+  serverUrl: string;
 }
 
 const newItem = (): Item => ({ id: crypto.randomUUID(), name: "", amount: "", comment: "" });
@@ -21,9 +26,10 @@ const localDateString = () => {
 const cellInput =
   "w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
 
-export default function MainScreen() {
+export default function MainScreen({ serverUrl }: Props) {
   const [items, setItems] = useState<Item[]>([newItem()]);
   const [date, setDate] = useState(localDateString);
+  const [categorySelection, setCategorySelection] = useState<CategorySelection | null>(null);
 
   const total = items.reduce((sum, item) => {
     const n = parseInt(item.amount, 10);
@@ -43,10 +49,19 @@ export default function MainScreen() {
   };
 
   const canSubmit =
-    items.length > 0 && items.every((item) => parseInt(item.amount, 10) > 0) && date !== "";
+    items.length > 0 &&
+    items.every((item) => parseInt(item.amount, 10) > 0) &&
+    date !== "" &&
+    categorySelection !== null &&
+    categorySelection.genreId > 0;
 
   return (
     <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+      <CategoryCombobox
+        serverUrl={serverUrl}
+        value={categorySelection}
+        onChange={setCategorySelection}
+      />
       <section className="flex flex-col gap-2">
         <div className="grid grid-cols-[1fr_5rem_5rem_1.5rem] items-center gap-x-1 gap-y-1">
           <span className="text-xs font-semibold text-gray-500">品目名</span>
