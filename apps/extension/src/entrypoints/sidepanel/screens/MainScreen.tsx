@@ -1,8 +1,10 @@
 import { Fragment, useState } from "react";
 import { Button, Input } from "@cloudflare/kumo";
+import { useMutation } from "@tanstack/react-query";
 import { AccountCombobox } from "../../../components/AccountCombobox.tsx";
 import { CategoryCombobox, type CategorySelection } from "../../../components/CategoryCombobox.tsx";
 import { StoreCombobox, type StoreSelection } from "../../../components/StoreCombobox.tsx";
+import { createClient } from "server/client";
 
 interface Item {
   id: string;
@@ -48,8 +50,44 @@ export default function MainScreen({ serverUrl }: Props) {
     setItems((prev) => prev.filter((item) => item.id !== id));
   };
 
+  const mutation = useMutation({
+    mutationFn: async () => {
+      if (!categorySelection) return;
+      const client = createClient(serverUrl);
+      for (const item of items) {
+        const res = await client.api.zaim.payment.$post(
+          {
+            json: {
+              category_id: categorySelection.categoryId,
+              genre_id: categorySelection.genreId,
+              amount: parseInt(item.amount, 10),
+              date,
+              ...(accountId !== null && { from_account_id: accountId }),
+              ...(item.name && { name: item.name }),
+              ...(item.comment && { comment: item.comment }),
+              ...(storeSelection && {
+                place: storeSelection.place,
+                place_uid: storeSelection.placeUid,
+              }),
+            },
+          },
+          { init: { credentials: "include" } },
+        );
+        if (!res.ok) throw new Error(`登録に失敗しました（${res.status}）`);
+      }
+    },
+    onSuccess: () => {
+      setItems([newItem()]);
+      setDate(localDateString());
+      setCategorySelection(null);
+      setAccountId(null);
+      setStoreSelection(null);
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    mutation.mutate();
   };
 
   const canSubmit =
@@ -132,9 +170,18 @@ export default function MainScreen({ serverUrl }: Props) {
         required
       />
 
-      <Button type="submit" variant="primary" disabled={!canSubmit}>
-        登録
+      <Button type="submit" variant="primary" disabled={!canSubmit || mutation.isPending}>
+        {mutation.isPending ? "登録中…" : "登録"}
       </Button>
+
+      {mutation.isSuccess && (
+        <output className="text-sm font-medium text-green-600">登録しました</output>
+      )}
+      {mutation.isError && (
+        <p role="alert" className="text-sm font-medium text-red-600">
+          {mutation.error instanceof Error ? mutation.error.message : "登録に失敗しました"}
+        </p>
+      )}
     </form>
   );
 }

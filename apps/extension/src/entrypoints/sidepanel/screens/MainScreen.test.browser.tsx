@@ -1,5 +1,5 @@
 import { http, HttpResponse } from "msw";
-import { describe, expect } from "vitest";
+import { describe, expect, vi } from "vitest";
 import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { test } from "../../../test-utils/browser-test.ts";
@@ -67,6 +67,15 @@ const commonHandlers = [
   http.get(`${MOCK_SERVER_URL}/api/zaim/stores`, () => HttpResponse.json(mockStoresResponse)),
 ];
 
+/** カテゴリ選択 → 金額入力まで行う共通セットアップ */
+const fillMinimumForm = async () => {
+  await page.getByRole("combobox", { name: "カテゴリ" }).click();
+  await page.getByRole("option", { name: "食費" }).click();
+  await page.getByRole("combobox", { name: "サブカテゴリ" }).click();
+  await page.getByRole("option", { name: "食料品" }).click();
+  await page.getByPlaceholder("0").fill("1000");
+};
+
 describe("MainScreen", () => {
   test("初期状態でヘッダーと登録ボタン（無効）が表示される", async ({ worker }) => {
     worker.use(...commonHandlers);
@@ -112,5 +121,73 @@ describe("MainScreen", () => {
     await page.getByRole("button", { name: "品目を削除" }).click();
 
     await expect.element(page.getByText("¥0")).toBeVisible();
+  });
+
+  test("カテゴリと金額を入力すると登録ボタンが有効になる", async ({ worker }) => {
+    worker.use(...commonHandlers);
+
+    await render(<Default.Component />);
+
+    await fillMinimumForm();
+
+    await expect.element(page.getByRole("button", { name: "登録" })).toBeEnabled();
+  });
+
+  test("登録ボタン押下でPOST APIが呼ばれる", async ({ worker }) => {
+    const postHandler = vi.fn<(body: unknown) => void>();
+    worker.use(
+      ...commonHandlers,
+      http.post(`${MOCK_SERVER_URL}/api/zaim/payment`, async ({ request }) => {
+        postHandler(await request.json());
+        return HttpResponse.json({ id: 999, modified: "2024-01-01T00:00:00Z" }, { status: 201 });
+      }),
+    );
+
+    await render(<Default.Component />);
+
+    await fillMinimumForm();
+    await page.getByRole("button", { name: "登録" }).click();
+
+    await vi.waitFor(() => {
+      expect(postHandler).toHaveBeenCalledWith(
+        expect.objectContaining({ category_id: 101, genre_id: 1001, amount: 1000 }),
+      );
+    });
+  });
+
+  test("登録成功時に成功メッセージが表示されフォームがリセットされる", async ({ worker }) => {
+    worker.use(
+      ...commonHandlers,
+      http.post(`${MOCK_SERVER_URL}/api/zaim/payment`, () =>
+        HttpResponse.json({ id: 999, modified: "2024-01-01T00:00:00Z" }, { status: 201 }),
+      ),
+    );
+
+    await render(<Default.Component />);
+
+    await fillMinimumForm();
+    await page.getByRole("button", { name: "登録" }).click();
+
+    await expect.element(page.getByRole("status")).toHaveTextContent("登録しました");
+
+    // フォームがリセットされ登録ボタンが再び無効になる
+    await expect.element(page.getByRole("button", { name: "登録" })).toBeDisabled();
+  });
+
+  test("登録失敗時にエラーメッセージが表示される", async ({ worker }) => {
+    worker.use(
+      ...commonHandlers,
+      http.post(
+        `${MOCK_SERVER_URL}/api/zaim/payment`,
+        () => new HttpResponse(null, { status: 502 }),
+      ),
+    );
+
+    await render(<Default.Component />);
+
+    await fillMinimumForm();
+    await page.getByRole("button", { name: "登録" }).click();
+
+    await expect.element(page.getByRole("alert")).toHaveTextContent("登録に失敗しました（502）");
   });
 });
