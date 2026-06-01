@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { Combobox } from "@cloudflare/kumo";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "server/client";
 
@@ -12,10 +12,8 @@ type Store = {
 type StoresResponse = { fetchedAt: string; stores: Store[] };
 
 export type StoreSelection = {
-  /** 店舗名（自由入力または過去履歴から選択） */
   place: string;
-  /** 過去履歴から選択した場合は Zaim の place_uid、自由入力の場合は null */
-  placeUid: string | null;
+  placeUid: string;
 };
 
 interface Props {
@@ -35,50 +33,60 @@ const fetchStores = async (serverUrl: string): Promise<StoresResponse> => {
 };
 
 /**
- * 店舗選択コンポーネント。
- * 過去の支払い履歴から候補を表示しつつ、フリーテキスト入力も可能。
- * 既知の店舗を選択した場合は placeUid を設定し、自由入力は placeUid を null にする。
+ * 店舗選択の combobox コンポーネント。
+ * 過去の支払い履歴から店舗候補を表示し、一覧から選択する。
  */
 export const StoreCombobox = ({ serverUrl, value, onChange }: Props) => {
-  const listId = useId();
-
-  const { data } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["stores", serverUrl],
     queryFn: () => fetchStores(serverUrl),
     enabled: !!serverUrl,
   });
 
   const stores = data?.stores ?? [];
+  const selectedStore = stores.find((s) => s.placeUid === value?.placeUid) ?? null;
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value;
-    if (inputValue === "") {
-      onChange(null);
-      return;
-    }
-    const matched = stores.find((s) => s.place === inputValue);
-    onChange({ place: inputValue, placeUid: matched?.placeUid ?? null });
+  const handleChange = (store: Store | null) => {
+    onChange(store ? { place: store.place, placeUid: store.placeUid } : null);
   };
 
-  return (
-    <div className="flex flex-col gap-1.5">
-      <span className="block text-sm font-medium text-gray-900" aria-hidden="true">
-        店舗
-      </span>
-      <input
-        aria-label="店舗"
-        list={listId}
-        value={value?.place ?? ""}
-        onChange={handleChange}
-        placeholder="店舗名（任意）"
-        autoComplete="off"
-        className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+  if (isLoading) {
+    return (
+      <output
+        className="block h-9 animate-pulse rounded-lg bg-gray-200"
+        aria-label="店舗を読み込み中"
       />
-      <datalist id={listId}>
-        {stores.map((store) => (
-          <option key={store.placeUid || store.place} value={store.place} />
-        ))}
-      </datalist>
-    </div>
+    );
+  }
+
+  if (isError) {
+    return <p className="text-sm text-red-600">店舗の取得に失敗しました</p>;
+  }
+
+  return (
+    <Combobox
+      label="店舗"
+      items={stores}
+      value={selectedStore}
+      onValueChange={(v) => handleChange(v as Store | null)}
+      itemToStringLabel={(item: Store) => item.place}
+      isItemEqualToValue={(a: Store, b: Store) => a.placeUid === b.placeUid}
+    >
+      <Combobox.TriggerInput
+        placeholder="店舗を選択（任意）"
+        clearLabel="クリア"
+        showOptionsLabel="選択肢を表示"
+      />
+      <Combobox.Content>
+        <Combobox.List>
+          {(item: Store) => (
+            <Combobox.Item key={item.placeUid || item.place} value={item}>
+              {item.place}
+            </Combobox.Item>
+          )}
+        </Combobox.List>
+        <Combobox.Empty>店舗が見つかりません</Combobox.Empty>
+      </Combobox.Content>
+    </Combobox>
   );
 };

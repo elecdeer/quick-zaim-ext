@@ -40,36 +40,34 @@ const ControlledStoreCombobox = ({
 };
 
 describe("StoreCombobox", () => {
-  test("ラベルと入力フィールドが表示される", async ({ worker }) => {
+  test("ローディング中はスケルトンが表示される", async ({ worker }) => {
+    worker.use(
+      http.get(`${MOCK_SERVER_URL}/api/zaim/stores`, async () => {
+        await new Promise((resolve) => setTimeout(resolve, 60000));
+        return HttpResponse.json(mockStoresResponse);
+      }),
+    );
+
+    await render(<ControlledStoreCombobox />);
+
+    await expect.element(page.getByRole("status", { name: "店舗を読み込み中" })).toBeVisible();
+  });
+
+  test("過去の店舗一覧が表示される", async ({ worker }) => {
     worker.use(
       http.get(`${MOCK_SERVER_URL}/api/zaim/stores`, () => HttpResponse.json(mockStoresResponse)),
     );
 
     await render(<ControlledStoreCombobox />);
 
-    // list属性付きinputのARIAロールはcombobox
-    await expect.element(page.getByRole("combobox", { name: "店舗" })).toBeVisible();
-    await expect.element(page.getByText("店舗")).toBeVisible();
+    await page.getByRole("combobox", { name: "店舗" }).click();
+
+    await expect.element(page.getByRole("option", { name: "スーパーA" })).toBeVisible();
+    await expect.element(page.getByRole("option", { name: "コンビニB" })).toBeVisible();
+    await expect.element(page.getByRole("option", { name: "カフェC" })).toBeVisible();
   });
 
-  test("過去履歴がdatalistに表示される", async ({ worker }) => {
-    worker.use(
-      http.get(`${MOCK_SERVER_URL}/api/zaim/stores`, () => HttpResponse.json(mockStoresResponse)),
-    );
-
-    await render(<ControlledStoreCombobox />);
-
-    // データ取得後 datalist にオプションが追加されるのを待つ
-    await vi.waitFor(() => {
-      const options = Array.from(document.querySelectorAll("datalist option"));
-      const values = options.map((o) => o.getAttribute("value"));
-      expect(values).toContain("スーパーA");
-      expect(values).toContain("コンビニB");
-      expect(values).toContain("カフェC");
-    });
-  });
-
-  test("既知の店舗名を入力するとplaceUid付きでonChangeが呼ばれる", async ({ worker }) => {
+  test("店舗を選択するとplace・placeUid付きでonChangeが呼ばれる", async ({ worker }) => {
     worker.use(
       http.get(`${MOCK_SERVER_URL}/api/zaim/stores`, () => HttpResponse.json(mockStoresResponse)),
     );
@@ -77,12 +75,13 @@ describe("StoreCombobox", () => {
     const onChange = vi.fn<(value: StoreSelection | null) => void>();
     await render(<ControlledStoreCombobox onChange={onChange} />);
 
-    await page.getByRole("combobox", { name: "店舗" }).fill("スーパーA");
+    await page.getByRole("combobox", { name: "店舗" }).click();
+    await page.getByRole("option", { name: "スーパーA" }).click();
 
     expect(onChange).toHaveBeenCalledWith({ place: "スーパーA", placeUid: "uid-001" });
   });
 
-  test("未知の店舗名（フリー入力）はplaceUidがnullでonChangeが呼ばれる", async ({ worker }) => {
+  test("クリアするとonChangeがnullで呼ばれる", async ({ worker }) => {
     worker.use(
       http.get(`${MOCK_SERVER_URL}/api/zaim/stores`, () => HttpResponse.json(mockStoresResponse)),
     );
@@ -90,42 +89,26 @@ describe("StoreCombobox", () => {
     const onChange = vi.fn<(value: StoreSelection | null) => void>();
     await render(<ControlledStoreCombobox onChange={onChange} />);
 
-    await page.getByRole("combobox", { name: "店舗" }).fill("新しいお店");
+    await page.getByRole("combobox", { name: "店舗" }).click();
+    await page.getByRole("option", { name: "スーパーA" }).click();
 
-    expect(onChange).toHaveBeenCalledWith({ place: "新しいお店", placeUid: null });
-  });
-
-  test("入力をクリアするとonChangeがnullで呼ばれる", async ({ worker }) => {
-    worker.use(
-      http.get(`${MOCK_SERVER_URL}/api/zaim/stores`, () => HttpResponse.json(mockStoresResponse)),
-    );
-
-    const onChange = vi.fn<(value: StoreSelection | null) => void>();
-    await render(<ControlledStoreCombobox onChange={onChange} />);
-
-    const input = page.getByRole("combobox", { name: "店舗" });
-    await input.fill("スーパーA");
-    await input.clear();
+    await page.getByRole("button", { name: "クリア" }).click();
 
     expect(onChange).toHaveBeenLastCalledWith(null);
   });
 
-  test("店舗取得失敗時もフリー入力は機能する", async ({ worker }) => {
+  test("店舗取得エラー時にエラーメッセージが表示される", async ({ worker }) => {
     worker.use(
       http.get(`${MOCK_SERVER_URL}/api/zaim/stores`, () => new HttpResponse(null, { status: 500 })),
     );
 
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    const onChange = vi.fn<(value: StoreSelection | null) => void>();
-
     await render(
       <QueryClientProvider client={queryClient}>
-        <StoreCombobox serverUrl={MOCK_SERVER_URL} value={null} onChange={onChange} />
+        <StoreCombobox serverUrl={MOCK_SERVER_URL} value={null} onChange={() => {}} />
       </QueryClientProvider>,
     );
 
-    await page.getByRole("combobox", { name: "店舗" }).fill("手打ちの店");
-
-    expect(onChange).toHaveBeenCalledWith({ place: "手打ちの店", placeUid: null });
+    await expect.element(page.getByText("店舗の取得に失敗しました")).toBeVisible();
   });
 });
