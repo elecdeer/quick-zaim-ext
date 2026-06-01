@@ -92,8 +92,20 @@ const meta = preview.meta({
 
 export default meta;
 
+const mockStoresResponse = {
+  fetchedAt: "2024-01-01T00:00:00Z",
+  stores: [
+    { place: "スーパーA", placeUid: "uid-001", latestDate: "2024-01-10", count: 5 },
+    { place: "コンビニB", placeUid: "uid-002", latestDate: "2024-01-05", count: 3 },
+  ],
+};
+
 const accountsHandler = http.get(`${MOCK_SERVER_URL}/api/zaim/accounts`, () =>
   HttpResponse.json(mockAccountsResponse),
+);
+
+const storesHandler = http.get(`${MOCK_SERVER_URL}/api/zaim/stores`, () =>
+  HttpResponse.json(mockStoresResponse),
 );
 
 export const Default = meta.story({
@@ -105,6 +117,7 @@ export const Default = meta.story({
           HttpResponse.json(mockCategoriesResponse),
         ),
         accountsHandler,
+        storesHandler,
       ],
     },
   },
@@ -120,6 +133,7 @@ export const CategoriesLoading = meta.story({
           return HttpResponse.json(mockCategoriesResponse);
         }),
         accountsHandler,
+        storesHandler,
       ],
     },
   },
@@ -135,6 +149,7 @@ export const CategoriesError = meta.story({
           () => new HttpResponse(null, { status: 500 }),
         ),
         accountsHandler,
+        storesHandler,
       ],
     },
   },

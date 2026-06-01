@@ -54,11 +54,17 @@ const mockAccountsResponse = {
   ],
 };
 
+const mockStoresResponse = {
+  fetchedAt: "2024-01-01T00:00:00Z",
+  stores: [{ place: "スーパーA", placeUid: "uid-001", latestDate: "2024-01-10", count: 5 }],
+};
+
 const commonHandlers = [
   http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, () =>
     HttpResponse.json(mockCategoriesResponse),
   ),
   http.get(`${MOCK_SERVER_URL}/api/zaim/accounts`, () => HttpResponse.json(mockAccountsResponse)),
+  http.get(`${MOCK_SERVER_URL}/api/zaim/stores`, () => HttpResponse.json(mockStoresResponse)),
 ];
 
 describe("MainScreen", () => {
