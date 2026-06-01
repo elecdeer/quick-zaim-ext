@@ -28,13 +28,42 @@ const mockCategoriesResponse = {
   ],
 };
 
+const mockAccountsResponse = {
+  fetchedAt: "2024-01-01T00:00:00Z",
+  accounts: [
+    {
+      id: 1,
+      name: "現金",
+      active: 1,
+      sort: 1,
+      modified: "2024-01-01",
+      localId: 0,
+      websiteId: 0,
+      parentAccountId: 0,
+    },
+    {
+      id: 2,
+      name: "クレジットカード",
+      active: 1,
+      sort: 2,
+      modified: "2024-01-01",
+      localId: 0,
+      websiteId: 0,
+      parentAccountId: 0,
+    },
+  ],
+};
+
+const commonHandlers = [
+  http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, () =>
+    HttpResponse.json(mockCategoriesResponse),
+  ),
+  http.get(`${MOCK_SERVER_URL}/api/zaim/accounts`, () => HttpResponse.json(mockAccountsResponse)),
+];
+
 describe("MainScreen", () => {
   test("初期状態でヘッダーと登録ボタン（無効）が表示される", async ({ worker }) => {
-    worker.use(
-      http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, () =>
-        HttpResponse.json(mockCategoriesResponse),
-      ),
-    );
+    worker.use(...commonHandlers);
 
     await render(<Default.Component />);
 
@@ -45,11 +74,7 @@ describe("MainScreen", () => {
   });
 
   test("金額を入力すると合計が更新される", async ({ worker }) => {
-    worker.use(
-      http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, () =>
-        HttpResponse.json(mockCategoriesResponse),
-      ),
-    );
+    worker.use(...commonHandlers);
 
     await render(<Default.Component />);
 
@@ -59,11 +84,7 @@ describe("MainScreen", () => {
   });
 
   test("品目を追加ボタンで入力行が増える", async ({ worker }) => {
-    worker.use(
-      http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, () =>
-        HttpResponse.json(mockCategoriesResponse),
-      ),
-    );
+    worker.use(...commonHandlers);
 
     await render(<Default.Component />);
 
@@ -75,11 +96,7 @@ describe("MainScreen", () => {
   });
 
   test("品目を削除すると行が減り合計がリセットされる", async ({ worker }) => {
-    worker.use(
-      http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, () =>
-        HttpResponse.json(mockCategoriesResponse),
-      ),
-    );
+    worker.use(...commonHandlers);
 
     await render(<Default.Component />);
 

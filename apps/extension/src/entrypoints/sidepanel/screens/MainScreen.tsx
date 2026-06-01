@@ -1,5 +1,6 @@
 import { Fragment, useState } from "react";
 import { Button, Input } from "@cloudflare/kumo";
+import { AccountCombobox } from "../../../components/AccountCombobox.tsx";
 import { CategoryCombobox, type CategorySelection } from "../../../components/CategoryCombobox.tsx";
 
 interface Item {
@@ -30,6 +31,7 @@ export default function MainScreen({ serverUrl }: Props) {
   const [items, setItems] = useState<Item[]>([newItem()]);
   const [date, setDate] = useState(localDateString);
   const [categorySelection, setCategorySelection] = useState<CategorySelection | null>(null);
+  const [accountId, setAccountId] = useState<number | null>(null);
 
   const total = items.reduce((sum, item) => {
     const n = parseInt(item.amount, 10);
@@ -62,6 +64,7 @@ export default function MainScreen({ serverUrl }: Props) {
         value={categorySelection}
         onChange={setCategorySelection}
       />
+      <AccountCombobox serverUrl={serverUrl} value={accountId} onChange={setAccountId} />
       <section className="flex flex-col gap-2">
         <div className="grid grid-cols-[1fr_5rem_5rem_1.5rem] items-center gap-x-1 gap-y-1">
           <span className="text-xs font-semibold text-gray-500">品目名</span>
