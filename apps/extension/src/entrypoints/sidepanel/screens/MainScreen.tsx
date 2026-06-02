@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Button, Input } from "@cloudflare/kumo";
 import { useMutation } from "@tanstack/react-query";
 import { AccountCombobox } from "../../../components/AccountCombobox.tsx";
@@ -16,6 +16,9 @@ interface Item {
 interface Props {
   serverUrl: string;
 }
+
+type DuplicateInfo = { id: number; date: string; amount: number };
+type DuplicateState = "unchecked" | "checking" | "warned";
 
 const newItem = (): Item => ({ id: crypto.randomUUID(), name: "", amount: "", comment: "" });
 
@@ -36,6 +39,8 @@ export default function MainScreen({ serverUrl }: Props) {
   const [categorySelection, setCategorySelection] = useState<CategorySelection | null>(null);
   const [accountId, setAccountId] = useState<number | null>(null);
   const [storeSelection, setStoreSelection] = useState<StoreSelection | null>(null);
+  const [duplicateState, setDuplicateState] = useState<DuplicateState>("unchecked");
+  const [duplicatesByItemId, setDuplicatesByItemId] = useState<Record<string, DuplicateInfo[]>>({});
 
   const total = items.reduce((sum, item) => {
     const n = parseInt(item.amount, 10);
@@ -49,6 +54,13 @@ export default function MainScreen({ serverUrl }: Props) {
   const removeItem = (id: string) => {
     setItems((prev) => prev.filter((item) => item.id !== id));
   };
+
+  // 入力（カテゴリ・日付・各品目金額）が変わったら重複チェック結果をリセット
+  const itemsAmountSignature = items.map((i) => `${i.id}:${i.amount}`).join(",");
+  useEffect(() => {
+    setDuplicateState("unchecked");
+    setDuplicatesByItemId({});
+  }, [date, categorySelection?.genreId, itemsAmountSignature]);
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -82,12 +94,56 @@ export default function MainScreen({ serverUrl }: Props) {
       setCategorySelection(null);
       setAccountId(null);
       setStoreSelection(null);
+      setDuplicateState("unchecked");
+      setDuplicatesByItemId({});
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    mutation.mutate();
+    if (!categorySelection) return;
+
+    if (duplicateState === "warned") {
+      mutation.mutate();
+      return;
+    }
+
+    setDuplicateState("checking");
+    const client = createClient(serverUrl);
+    const genreId = categorySelection.genreId;
+
+    try {
+      const results = await Promise.all(
+        items.map(async (item) => {
+          const res = await client.api.zaim.payment.duplicate.$get(
+            {
+              query: {
+                date,
+                amount: String(parseInt(item.amount, 10)),
+                genre_id: String(genreId),
+              },
+            },
+            { init: { credentials: "include" } },
+          );
+          if (!res.ok) throw new Error(`重複チェックに失敗しました（${res.status}）`);
+          const body = (await res.json()) as { duplicates: DuplicateInfo[] };
+          return { itemId: item.id, duplicates: body.duplicates };
+        }),
+      );
+
+      const map = Object.fromEntries(results.map((r) => [r.itemId, r.duplicates]));
+      setDuplicatesByItemId(map);
+      const hasDup = results.some((r) => r.duplicates.length > 0);
+      if (hasDup) {
+        setDuplicateState("warned");
+      } else {
+        setDuplicateState("unchecked");
+        mutation.mutate();
+      }
+    } catch {
+      setDuplicateState("unchecked");
+      setDuplicatesByItemId({});
+    }
   };
 
   const canSubmit =
@@ -96,6 +152,15 @@ export default function MainScreen({ serverUrl }: Props) {
     date !== "" &&
     categorySelection !== null &&
     categorySelection.genreId > 0;
+
+  const buttonLabel =
+    duplicateState === "checking"
+      ? "確認中…"
+      : mutation.isPending
+        ? "登録中…"
+        : duplicateState === "warned"
+          ? "重複があっても登録"
+          : "登録";
 
   return (
     <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
@@ -170,8 +235,34 @@ export default function MainScreen({ serverUrl }: Props) {
         required
       />
 
-      <Button type="submit" variant="primary" disabled={!canSubmit || mutation.isPending}>
-        {mutation.isPending ? "登録中…" : "登録"}
+      {duplicateState === "warned" && (
+        <div
+          role="alert"
+          className="flex flex-col gap-1 rounded-md bg-amber-50 p-2 text-xs text-amber-900"
+        >
+          <p className="font-medium">直近で同額の支払いが登録されている可能性があります：</p>
+          <ul className="ml-4 list-disc">
+            {items.flatMap((item) => {
+              const dups = duplicatesByItemId[item.id] ?? [];
+              if (dups.length === 0) return [];
+              const amountNum = parseInt(item.amount, 10);
+              return [
+                <li key={item.id}>
+                  {item.name || "(品目名なし)"} ¥{amountNum.toLocaleString("ja-JP")}（
+                  {dups[0]?.date} に登録済み）
+                </li>,
+              ];
+            })}
+          </ul>
+        </div>
+      )}
+
+      <Button
+        type="submit"
+        variant={duplicateState === "warned" ? "destructive" : "primary"}
+        disabled={!canSubmit || mutation.isPending || duplicateState === "checking"}
+      >
+        {buttonLabel}
       </Button>
 
       {mutation.isSuccess && (

@@ -59,12 +59,17 @@ const mockStoresResponse = {
   stores: [{ place: "スーパーA", placeUid: "uid-001", latestDate: "2024-01-10", count: 5 }],
 };
 
+const noDuplicateHandler = http.get(`${MOCK_SERVER_URL}/api/zaim/payment/duplicate`, () =>
+  HttpResponse.json({ duplicates: [] }),
+);
+
 const commonHandlers = [
   http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, () =>
     HttpResponse.json(mockCategoriesResponse),
   ),
   http.get(`${MOCK_SERVER_URL}/api/zaim/accounts`, () => HttpResponse.json(mockAccountsResponse)),
   http.get(`${MOCK_SERVER_URL}/api/zaim/stores`, () => HttpResponse.json(mockStoresResponse)),
+  noDuplicateHandler,
 ];
 
 /** カテゴリ選択 → 金額入力まで行う共通セットアップ */
@@ -172,6 +177,77 @@ describe("MainScreen", () => {
 
     // フォームがリセットされ登録ボタンが再び無効になる
     await expect.element(page.getByRole("button", { name: "登録" })).toBeDisabled();
+  });
+
+  test("重複検出時に警告と「重複があっても登録」ボタンが表示される", async ({ worker }) => {
+    worker.use(
+      ...commonHandlers.filter((h) => h !== noDuplicateHandler),
+      http.get(`${MOCK_SERVER_URL}/api/zaim/payment/duplicate`, () =>
+        HttpResponse.json({
+          duplicates: [{ id: 1, date: "2024-01-09", amount: 1000 }],
+        }),
+      ),
+    );
+
+    await render(<Default.Component />);
+
+    await fillMinimumForm();
+    await page.getByRole("button", { name: "登録" }).click();
+
+    await expect.element(page.getByRole("alert")).toHaveTextContent("直近で同額");
+    await expect.element(page.getByRole("button", { name: "重複があっても登録" })).toBeVisible();
+  });
+
+  test("警告状態で再度ボタン押下するとPOSTが呼ばれる", async ({ worker }) => {
+    const postHandler = vi.fn<(body: unknown) => void>();
+    worker.use(
+      ...commonHandlers.filter((h) => h !== noDuplicateHandler),
+      http.get(`${MOCK_SERVER_URL}/api/zaim/payment/duplicate`, () =>
+        HttpResponse.json({
+          duplicates: [{ id: 1, date: "2024-01-09", amount: 1000 }],
+        }),
+      ),
+      http.post(`${MOCK_SERVER_URL}/api/zaim/payment`, async ({ request }) => {
+        postHandler(await request.json());
+        return HttpResponse.json({ id: 999, modified: "2024-01-01T00:00:00Z" }, { status: 201 });
+      }),
+    );
+
+    await render(<Default.Component />);
+
+    await fillMinimumForm();
+    await page.getByRole("button", { name: "登録" }).click();
+    await expect.element(page.getByRole("button", { name: "重複があっても登録" })).toBeVisible();
+
+    await page.getByRole("button", { name: "重複があっても登録" }).click();
+
+    await vi.waitFor(() => {
+      expect(postHandler).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: 1000, genre_id: 1001 }),
+      );
+    });
+  });
+
+  test("警告表示中に金額を変更すると警告がクリアされる", async ({ worker }) => {
+    worker.use(
+      ...commonHandlers.filter((h) => h !== noDuplicateHandler),
+      http.get(`${MOCK_SERVER_URL}/api/zaim/payment/duplicate`, () =>
+        HttpResponse.json({
+          duplicates: [{ id: 1, date: "2024-01-09", amount: 1000 }],
+        }),
+      ),
+    );
+
+    await render(<Default.Component />);
+
+    await fillMinimumForm();
+    await page.getByRole("button", { name: "登録" }).click();
+    await expect.element(page.getByRole("button", { name: "重複があっても登録" })).toBeVisible();
+
+    await page.getByPlaceholder("0").fill("2000");
+
+    await expect.element(page.getByRole("button", { name: "登録" })).toBeVisible();
+    await expect.element(page.getByRole("alert")).not.toBeInTheDocument();
   });
 
   test("登録失敗時にエラーメッセージが表示される", async ({ worker }) => {

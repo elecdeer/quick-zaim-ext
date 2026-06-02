@@ -108,6 +108,10 @@ const storesHandler = http.get(`${MOCK_SERVER_URL}/api/zaim/stores`, () =>
   HttpResponse.json(mockStoresResponse),
 );
 
+const noDuplicateHandler = http.get(`${MOCK_SERVER_URL}/api/zaim/payment/duplicate`, () =>
+  HttpResponse.json({ duplicates: [] }),
+);
+
 export const Default = meta.story({
   name: "支払いフォーム",
   parameters: {
@@ -118,6 +122,7 @@ export const Default = meta.story({
         ),
         accountsHandler,
         storesHandler,
+        noDuplicateHandler,
       ],
     },
   },
@@ -134,6 +139,7 @@ export const CategoriesLoading = meta.story({
         }),
         accountsHandler,
         storesHandler,
+        noDuplicateHandler,
       ],
     },
   },
@@ -150,6 +156,7 @@ export const CategoriesError = meta.story({
         ),
         accountsHandler,
         storesHandler,
+        noDuplicateHandler,
       ],
     },
   },
