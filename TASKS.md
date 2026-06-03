@@ -18,7 +18,7 @@
 
 ### LLM 自動入力
 
-- [ ] content script を追加して現在のページの内容（ARIA 属性・テキスト）を収集する
+- [x] content script を追加して現在のページの内容（ARIA 属性・テキスト）を収集する
 - [ ] サーバーに `POST /api/llm/extract-payment` エンドポイントを追加する（Anthropic API キーは Workers 環境変数で管理）
 - [ ] LLM プロンプトを設計する（ページ内容 + カテゴリ/店舗/口座一覧 → 支払い情報 JSON）
 - [ ] 「このページから自動入力」ボタンを実装する（ローディング表示あり）
