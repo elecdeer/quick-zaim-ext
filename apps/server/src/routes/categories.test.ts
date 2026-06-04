@@ -5,7 +5,12 @@
  */
 
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { createKVNamespaceMock, createTestClient, createZaimClientStub } from "../test-fixtures.ts";
+import {
+  createKVNamespaceMock,
+  createTestClient,
+  createTestEnv,
+  createZaimClientStub,
+} from "../test-fixtures.ts";
 import { categoriesRoutes } from "./categories.ts";
 import type { Env } from "../env.ts";
 import type { KVNamespace } from "@cloudflare/workers-types";
@@ -46,19 +51,8 @@ const MOCK_GENRES_RESPONSE = {
   ],
 };
 
-const makeEnv = (kvOverride?: KVNamespace): Env => {
-  const { kv } = createKVNamespaceMock();
-  return {
-    OIDC_ISSUER: "https://example.auth0.com/",
-    OIDC_CLIENT_ID: "test_client_id",
-    OIDC_CLIENT_SECRET: "test_client_secret",
-    OIDC_REDIRECT_URI: "https://example.com/callback",
-    OIDC_AUTH_SECRET: "test_auth_secret_32chars_minimum!",
-    ZAIM_CONSUMER_KEY: "zaim_consumer_key",
-    ZAIM_CONSUMER_SECRET: "zaim_consumer_secret",
-    ZAIM_KV: kvOverride ?? kv,
-  };
-};
+const makeEnv = (kvOverride?: KVNamespace): Env =>
+  kvOverride ? createTestEnv({ ZAIM_KV: kvOverride }) : createTestEnv();
 
 // ── GET /api/zaim/categories ──────────────────────────────────────────────────
 

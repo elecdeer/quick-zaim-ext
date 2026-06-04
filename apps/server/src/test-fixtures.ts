@@ -6,12 +6,13 @@
  */
 
 import { type MockedFunction, test, vi } from "vitest";
-import type { KVNamespace } from "@cloudflare/workers-types";
+import type { Ai, KVNamespace } from "@cloudflare/workers-types";
 import type { OidcAuth } from "@hono/oidc-auth";
 import type { createClient } from "@repo/zaim-api/client";
 import { getLogger } from "@logtape/logtape";
 import { Hono } from "hono";
 import { testClient } from "hono/testing";
+import type { LanguageModel } from "ai";
 import type { Env, HonoEnv } from "./env.ts";
 import { createMiddleware } from "hono/factory";
 
@@ -89,11 +90,39 @@ export const createKVNamespaceMock = (): KVNamespaceMock => {
   return { kv, mockGet, mockPut, mockDelete };
 };
 
+/**
+ * テスト用の Env オブジェクトを生成する。
+ *
+ * 必須フィールドの一覧をテストごとに繰り返さなくて済むよう共通化する。
+ * 個別のテストで値を上書きしたい場合は overrides で指定する。
+ */
+export const createTestEnv = (overrides: Partial<Env> = {}): Env => {
+  const { kv } = createKVNamespaceMock();
+  // Workers AI binding は llmModel 注入のためテストでは使われない想定だが、
+  // 型を満たすためダミーを置く。
+  const ai = {} as unknown as Ai;
+  return {
+    OIDC_ISSUER: "https://example.auth0.com/",
+    OIDC_CLIENT_ID: "test_client_id",
+    OIDC_CLIENT_SECRET: "test_client_secret",
+    OIDC_REDIRECT_URI: "https://example.com/callback",
+    OIDC_AUTH_SECRET: "test_auth_secret_32chars_minimum!",
+    ZAIM_CONSUMER_KEY: "zaim_consumer_key",
+    ZAIM_CONSUMER_SECRET: "zaim_consumer_secret",
+    ZAIM_KV: kv,
+    AI: ai,
+    LLM_MODEL: "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+    ...overrides,
+  };
+};
+
 /** テストで注入するコンテキスト変数 */
 export interface RouteTestContext {
   oidcAuth?: OidcAuth | null;
   zaimClient?: ReturnType<typeof createClient>;
   zaimUserId?: string;
+  /** LLM ルート用：AI SDK の LanguageModel をモックで差し込む */
+  llmModel?: LanguageModel;
 }
 
 /**
@@ -115,6 +144,7 @@ export const createTestClient = <T extends Hono<HonoEnv, any, any>>(
     if ("oidcAuth" in context) c.set("oidcAuth", context.oidcAuth ?? null);
     if ("zaimClient" in context && context.zaimClient) c.set("zaimClient", context.zaimClient);
     if ("zaimUserId" in context && context.zaimUserId) c.set("zaimUserId", context.zaimUserId);
+    if ("llmModel" in context && context.llmModel) c.set("llmModel", context.llmModel);
     await next();
   });
 

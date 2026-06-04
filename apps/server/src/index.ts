@@ -8,6 +8,7 @@ import { requireOidcAuth } from "./middleware.ts";
 import { authRoutes } from "./routes/auth.ts";
 import { accountsRoutes } from "./routes/accounts.ts";
 import { categoriesRoutes } from "./routes/categories.ts";
+import { llmExtractPaymentRoutes } from "./routes/llmExtractPayment.ts";
 import { storesRoutes } from "./routes/stores.ts";
 import { paymentRoutes } from "./routes/payment.ts";
 import { zaimRoutes } from "./routes/zaim.ts";
@@ -70,6 +71,8 @@ const app = base
   .route("/", accountsRoutes)
   .route("/", storesRoutes)
   .route("/", paymentRoutes)
+  // LLM 抽出（/api/llm/*）- /api/* の OIDC ミドルウェアで保護済み
+  .route("/", llmExtractPaymentRoutes)
   .route("/", healthRoute);
 
 export default app;

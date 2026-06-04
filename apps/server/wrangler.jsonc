@@ -3,6 +3,16 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-04-13",
   "compatibility_flags": ["nodejs_compat"],
+  // 平文の環境変数（シークレットは `wrangler secret put <NAME>` で別途登録）
+  "vars": {
+    // Workers AI で叩くデフォルトモデル ID。差し替え可能。
+    "LLM_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+  },
+  // Workers AI binding（リクエストハンドラから env.AI として参照）
+  // remote: true は wrangler dev / getPlatformProxy で実 Workers AI を叩くために必須。
+  // Workers AI は本番のみ提供されローカルエミュレーションが存在しないため、
+  // ローカル開発・評価スクリプトでも実際の Cloudflare アカウントの利用枠を消費する。
+  "ai": { "binding": "AI", "remote": true },
   // KV ネームスペース
   // 本番用 ID は `wrangler kv namespace create ZAIM_KV` で取得してください
   "kv_namespaces": [

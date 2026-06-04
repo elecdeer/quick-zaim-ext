@@ -7,7 +7,7 @@
  */
 
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { createKVNamespaceMock, createTestClient } from "../test-fixtures.ts";
+import { createTestClient, createTestEnv } from "../test-fixtures.ts";
 import { authRoutes } from "./auth.ts";
 import type { Env } from "../env.ts";
 import type { OidcAuth } from "@hono/oidc-auth";
@@ -32,20 +32,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-const makeEnv = (overrides?: Partial<Env>): Env => {
-  const { kv } = createKVNamespaceMock();
-  return {
-    OIDC_ISSUER: "https://example.auth0.com/",
-    OIDC_CLIENT_ID: "test_client_id",
-    OIDC_CLIENT_SECRET: "test_client_secret",
-    OIDC_REDIRECT_URI: "https://example.com/callback",
-    OIDC_AUTH_SECRET: "test_auth_secret_32chars_minimum!",
-    ZAIM_CONSUMER_KEY: "zaim_consumer_key",
-    ZAIM_CONSUMER_SECRET: "zaim_consumer_secret",
-    ZAIM_KV: kv,
-    ...overrides,
-  };
-};
+const makeEnv = (overrides?: Partial<Env>): Env => createTestEnv(overrides);
 
 // ── /logout ──────────────────────────────────────────────────────────────────
 

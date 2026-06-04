@@ -1,4 +1,4 @@
-import type { KVNamespace } from "@cloudflare/workers-types";
+import type { Ai, KVNamespace } from "@cloudflare/workers-types";
 import type { Logger } from "./loggerMiddleware.ts";
 
 /**
@@ -23,6 +23,11 @@ export type Env = {
 
   /** OAuth トークン等の一時・永続ステートを保持する Cloudflare KV ネームスペース */
   ZAIM_KV: KVNamespace;
+
+  /** Cloudflare Workers AI binding（`wrangler.jsonc` の `ai.binding` で設定） */
+  AI: Ai;
+  /** Workers AI のモデル ID（例: "@cf/meta/llama-3.3-70b-instruct-fp8-fast"）。`wrangler.jsonc` の vars で設定する */
+  LLM_MODEL: string;
 };
 
 /** Hono アプリ全体で共有する環境型 */

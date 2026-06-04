@@ -14,7 +14,7 @@ import { HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { moneyGetMoneyMockHandler, paymentOperationsCreateMockHandler } from "@repo/zaim-api";
 import { createClient } from "@repo/zaim-api/client";
-import { createKVNamespaceMock, createTestClient } from "../test-fixtures.ts";
+import { createKVNamespaceMock, createTestClient, createTestEnv } from "../test-fixtures.ts";
 import { paymentRoutes } from "./payment.ts";
 import type { Env } from "../env.ts";
 import type { KVNamespace } from "@cloudflare/workers-types";
@@ -89,19 +89,8 @@ const MOCK_MONEY_ITEMS = [
   },
 ];
 
-const makeEnv = (kvOverride?: KVNamespace): Env => {
-  const { kv } = createKVNamespaceMock();
-  return {
-    OIDC_ISSUER: "https://example.auth0.com/",
-    OIDC_CLIENT_ID: "test_client_id",
-    OIDC_CLIENT_SECRET: "test_client_secret",
-    OIDC_REDIRECT_URI: "https://example.com/callback",
-    OIDC_AUTH_SECRET: "test_auth_secret_32chars_minimum!",
-    ZAIM_CONSUMER_KEY: "zaim_consumer_key",
-    ZAIM_CONSUMER_SECRET: "zaim_consumer_secret",
-    ZAIM_KV: kvOverride ?? kv,
-  };
-};
+const makeEnv = (kvOverride?: KVNamespace): Env =>
+  kvOverride ? createTestEnv({ ZAIM_KV: kvOverride }) : createTestEnv();
 
 const createZaimRealClient = () => createClient({ baseUrl: "https://api.zaim.net" });
 

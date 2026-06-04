@@ -27,6 +27,12 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Local environment files for scripts (e.g. eval scripts)
+.env
+
+# LLM eval script outputs
+apps/server/scripts/eval-results/
+
 # AI agent worktrees
 .claude/worktrees/
 

@@ -18,16 +18,20 @@
     "build": "wrangler deploy --dry-run --outdir dist",
     "build:types": "tsdown",
     "test": "vitest run",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "eval:extract-payment": "node --env-file-if-exists=.env --experimental-strip-types scripts/eval-extract-payment.ts"
   },
   "dependencies": {
+    "@ai-sdk/valibot": "^2.0.28",
     "@hono/oidc-auth": "^1.8.1",
     "@hono/standard-validator": "catalog:",
     "@logtape/hono": "catalog:",
     "@logtape/logtape": "catalog:",
     "@repo/zaim-api": "workspace:*",
+    "ai": "^6.0.195",
     "hono": "^4.12.14",
-    "valibot": "catalog:"
+    "valibot": "catalog:",
+    "workers-ai-provider": "^3.1.14"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260423.1",

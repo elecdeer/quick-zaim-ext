@@ -110,7 +110,7 @@ importers:
         version: 2.9.16
       vitest:
         specifier: ^4.1.7
-        version: 4.1.7(@types/node@25.6.0)(@vitest/browser-playwright@4.1.7)(msw@2.13.6(@types/node@25.6.0)(typescript@6.0.3))(vite@8.0.14(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3))
+        version: 4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.7)(msw@2.13.6(@types/node@25.6.0)(typescript@6.0.3))(vite@8.0.14(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3))
 
   apps/extension:
     dependencies:
@@ -195,7 +195,7 @@ importers:
         version: 8.0.14(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3)
       vitest:
         specifier: ^4.1.7
-        version: 4.1.7(@types/node@25.6.0)(@vitest/browser-playwright@4.1.7)(msw@2.13.6(@types/node@25.6.0)(typescript@6.0.3))(vite@8.0.14(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3))
+        version: 4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.7)(msw@2.13.6(@types/node@25.6.0)(typescript@6.0.3))(vite@8.0.14(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3))
       vitest-browser-react:
         specifier: 'catalog:'
         version: 2.2.0(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(vitest@4.1.7)
@@ -205,6 +205,9 @@ importers:
 
   apps/server:
     dependencies:
+      '@ai-sdk/valibot':
+        specifier: ^2.0.28
+        version: 2.0.28(@valibot/to-json-schema@1.7.0(valibot@1.3.1(typescript@6.0.3)))(valibot@1.3.1(typescript@6.0.3))(zod@4.3.6)
       '@hono/oidc-auth':
         specifier: ^1.8.1
         version: 1.8.1(hono@4.12.14)
@@ -220,12 +223,18 @@ importers:
       '@repo/zaim-api':
         specifier: workspace:*
         version: link:../../packages/zaim-api
+      ai:
+        specifier: ^6.0.195
+        version: 6.0.195(zod@4.3.6)
       hono:
         specifier: ^4.12.14
         version: 4.12.14
       valibot:
         specifier: 'catalog:'
         version: 1.3.1(typescript@6.0.3)
+      workers-ai-provider:
+        specifier: ^3.1.14
+        version: 3.1.14(@ai-sdk/provider@3.0.10)(ai@6.0.195(zod@4.3.6))
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20260423.1
@@ -241,7 +250,7 @@ importers:
         version: 6.0.3
       vitest:
         specifier: ^4.1.7
-        version: 4.1.7(@types/node@25.6.0)(@vitest/browser-playwright@4.1.7)(msw@2.13.6(@types/node@25.6.0)(typescript@6.0.3))(vite@8.0.14(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3))
+        version: 4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.7)(msw@2.13.6(@types/node@25.6.0)(typescript@6.0.3))(vite@8.0.14(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3))
       wrangler:
         specifier: ^4.84.1
         version: 4.84.1(@cloudflare/workers-types@4.20260423.1)
@@ -275,7 +284,7 @@ importers:
         version: 6.0.3
       vitest:
         specifier: ^4.1.7
-        version: 4.1.7(@types/node@25.6.0)(@vitest/browser-playwright@4.1.7)(msw@2.13.6(@types/node@25.6.0)(typescript@6.0.3))(vite@8.0.14(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3))
+        version: 4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.7)(msw@2.13.6(@types/node@25.6.0)(typescript@6.0.3))(vite@8.0.14(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3))
 
 packages:
 
@@ -284,6 +293,29 @@ packages:
 
   '@adobe/css-tools@4.4.4':
     resolution: {integrity: sha512-Elp+iwUx5rN5+Y8xLt5/GRoG20WGoDCQ/1Fb+1LiGtvwbDavuSk0jhD/eZdckHAuzcDzccnkv+rEjyWfRx18gg==}
+
+  '@ai-sdk/gateway@3.0.123':
+    resolution: {integrity: sha512-rL+3Sp9crOlfE7MwguFPS30qVp6HFcr9na0KYMb4CcQdxAIjBJec3EEdCjc94UyRVZWLmgQ6Yr605FmPlFIi0w==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
+  '@ai-sdk/provider-utils@4.0.27':
+    resolution: {integrity: sha512-ubkAJ+xODouwtmN1tYlvTPphH1hPOBfZaEQe8U7skGvFAnIRs9PPpsq57bC2+Ky/MB4yzhd6YOsxTAx9sGpazw==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
+  '@ai-sdk/provider@3.0.10':
+    resolution: {integrity: sha512-Q3BZ27qfpYqnCYGvE3vt+Qi6LGOF9R5Nmzn+9JoM1lCRsD9mYaIhfJLkSunN48nfGXJ6n+XNV0J/XVpqGQl7Dw==}
+    engines: {node: '>=18'}
+
+  '@ai-sdk/valibot@2.0.28':
+    resolution: {integrity: sha512-IR1o0QA9kYxnWZjbVWyuqNiLvvGPGb1rxn5LDmGSe9OBbMf4t9EGQMFkADa96vp4lKk+CFVFX04ovpDm4oyo8g==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@valibot/to-json-schema': ^1.3.0
+      valibot: ^1.1.0
 
   '@aklinker1/rollup-plugin-visualizer@5.12.0':
     resolution: {integrity: sha512-X24LvEGw6UFmy0lpGJDmXsMyBD58XmX1bbwsaMLhNoM+UMQfQ3b2RtC+nz4b/NoRK5r6QJSKJHBNVeUdwqybaQ==}
@@ -1257,6 +1289,10 @@ packages:
 
   '@open-draft/until@2.1.0':
     resolution: {integrity: sha512-U69T3ItWHvLwGg5eJ0n3I62nWuE6ilHlmz7zM0npLBRvPRd7e6NYmg54vvRtP5mZG7kZqZCFVdsTWo7BPtBujg==}
+
+  '@opentelemetry/api@1.9.1':
+    resolution: {integrity: sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q==}
+    engines: {node: '>=8.0.0'}
 
   '@oxc-parser/binding-android-arm-eabi@0.127.0':
     resolution: {integrity: sha512-0LC7ye4hvqbIKxAzThzvswgHLFu2AURKzYLeSVvLdu2TBOYWQDmHnTqPLeA597BcUCxiLqLsS4CJ5uoI5WYWCQ==}
@@ -2457,6 +2493,15 @@ packages:
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
     deprecated: Potential CWE-502 - Update to 1.3.1 or higher
 
+  '@valibot/to-json-schema@1.7.0':
+    resolution: {integrity: sha512-Y3pPVibbIOHzohrlxSINvO7w/bvXkoYS3BQHoImV9ynE+bXKf171bdMucPurV2zp7gdmt0L1HCcNAsbo7cFRQw==}
+    peerDependencies:
+      valibot: ^1.4.0
+
+  '@vercel/oidc@3.2.0':
+    resolution: {integrity: sha512-UycprH3T6n3jH0k44NHMa7pnFHGu/N05MjojYr+Mc6I7obkoLIJujSWwin1pCvdy/eOxrI/l3uDLQsmcrOb4ug==}
+    engines: {node: '>= 20'}
+
   '@vitejs/plugin-react@6.0.2':
     resolution: {integrity: sha512-DlSMqo4WhThw4vB8Mpn0Woe9J+Jfq1geJ61AKW0QEgLzGMNwtIMdxbDUzLxcun8W7NbJO0e2Jg/Nxm3cCSVzzg==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -2554,6 +2599,12 @@ packages:
   adm-zip@0.5.17:
     resolution: {integrity: sha512-+Ut8d9LLqwEvHHJl1+PIHqoyDxFgVN847JTVM3Izi3xHDWPE4UtzzXysMZQs64DMcrJfBeS/uoEP4AD3HQHnQQ==}
     engines: {node: '>=12.0'}
+
+  ai@6.0.195:
+    resolution: {integrity: sha512-IYZpuVz0boWbpIQYyinfWFrvQ1N0dG+EVB63it45B2YAU/MxxCnwz4zBswjYnPtHnJBedpMPNrwVbeczbl2GKg==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
 
   ajv-draft-04@1.0.0:
     resolution: {integrity: sha512-mv00Te6nmYbRp5DCwclxtt7yV/joXJPGS7nM+97GdxvuttCOfgI3K4U25zboyeX0O+myI8ERluxQe5wljMmVIw==}
@@ -3107,6 +3158,10 @@ packages:
   eventemitter3@5.0.4:
     resolution: {integrity: sha512-mlsTRyGaPBjPedk6Bvw+aqbsXDtoAyAzm5MO7JgU+yVRyMQ5O8bD4Kcci7BS85f93veegeCPkL8R4GLClnjLFw==}
 
+  eventsource-parser@3.1.0:
+    resolution: {integrity: sha512-kJezFj9YFAMLeORyi7aCLxLbD5/qWMQnoMVlVPyHIll7lgRJCc3JVln9Vgl9nwQi0YkMnhdGTMNn7CkRRAptMg==}
+    engines: {node: '>=18.0.0'}
+
   expect-type@1.3.0:
     resolution: {integrity: sha512-knvyeauYhqjOYvQ66MznSMs83wmHrCycNEN6Ao+2AeYEfxUIkuiVxdEa1qlGEPK+We3n0THiDciYSsCcgW/DoA==}
     engines: {node: '>=12.0.0'}
@@ -3470,6 +3525,9 @@ packages:
 
   json-schema-traverse@1.0.0:
     resolution: {integrity: sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==}
+
+  json-schema@0.4.0:
+    resolution: {integrity: sha512-es94M3nTIfsEPisRafak+HDLfHXnKBhV3vU5eqPcS3flIWqcxJWgXHXiey3YrpaNsanY5ei1VoYEbOzijuq9BA==}
 
   json5@2.2.3:
     resolution: {integrity: sha512-XmOWe7eyHYH14cLdVPoyg+GOH3rYX++KpzrylJwSW98t3Nk+U8XOl8FWKOgwtzdb8lXGf6zYwDUzeHMWfxasyg==}
@@ -4883,6 +4941,12 @@ packages:
     engines: {node: '>=16'}
     hasBin: true
 
+  workers-ai-provider@3.1.14:
+    resolution: {integrity: sha512-/umrajFP6OkZVbDAxwkrO9NPdNFG4c+i0fiVqdf4PGsLN+CiDsLJCI6xW0WXDLDR1ZZyjE4T6Xp6O/IKBIWGHQ==}
+    peerDependencies:
+      '@ai-sdk/provider': ^3.0.0
+      ai: ^6.0.0
+
   wrangler@4.84.1:
     resolution: {integrity: sha512-Xe1S/Bik7pNdtdJ+asHsEZC2dX9k3WxYn2BbxFtOrrLVxN/LKi750zsrjX41jSAk00M/O1l7jzyQV4sQqw8ftg==}
     engines: {node: '>=20.3.0'}
@@ -5017,6 +5081,32 @@ snapshots:
       many-keys-map: 3.0.3
 
   '@adobe/css-tools@4.4.4': {}
+
+  '@ai-sdk/gateway@3.0.123(zod@4.3.6)':
+    dependencies:
+      '@ai-sdk/provider': 3.0.10
+      '@ai-sdk/provider-utils': 4.0.27(zod@4.3.6)
+      '@vercel/oidc': 3.2.0
+      zod: 4.3.6
+
+  '@ai-sdk/provider-utils@4.0.27(zod@4.3.6)':
+    dependencies:
+      '@ai-sdk/provider': 3.0.10
+      '@standard-schema/spec': 1.1.0
+      eventsource-parser: 3.1.0
+      zod: 4.3.6
+
+  '@ai-sdk/provider@3.0.10':
+    dependencies:
+      json-schema: 0.4.0
+
+  '@ai-sdk/valibot@2.0.28(@valibot/to-json-schema@1.7.0(valibot@1.3.1(typescript@6.0.3)))(valibot@1.3.1(typescript@6.0.3))(zod@4.3.6)':
+    dependencies:
+      '@ai-sdk/provider-utils': 4.0.27(zod@4.3.6)
+      '@valibot/to-json-schema': 1.7.0(valibot@1.3.1(typescript@6.0.3))
+      valibot: 1.3.1(typescript@6.0.3)
+    transitivePeerDependencies:
+      - zod
 
   '@aklinker1/rollup-plugin-visualizer@5.12.0':
     dependencies:
@@ -5826,6 +5916,8 @@ snapshots:
 
   '@open-draft/until@2.1.0': {}
 
+  '@opentelemetry/api@1.9.1': {}
+
   '@oxc-parser/binding-android-arm-eabi@0.127.0':
     optional: true
 
@@ -6320,7 +6412,7 @@ snapshots:
       '@vitest/browser': 4.1.7(msw@2.13.6(@types/node@25.6.0)(typescript@6.0.3))(vite@8.0.14(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3))(vitest@4.1.7)
       '@vitest/browser-playwright': 4.1.7(msw@2.13.6(@types/node@25.6.0)(typescript@6.0.3))(playwright@1.60.0)(vite@8.0.14(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3))(vitest@4.1.7)
       '@vitest/runner': 4.1.7
-      vitest: 4.1.7(@types/node@25.6.0)(@vitest/browser-playwright@4.1.7)(msw@2.13.6(@types/node@25.6.0)(typescript@6.0.3))(vite@8.0.14(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3))
+      vitest: 4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.7)(msw@2.13.6(@types/node@25.6.0)(typescript@6.0.3))(vite@8.0.14(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3))
     transitivePeerDependencies:
       - react
       - react-dom
@@ -6655,6 +6747,12 @@ snapshots:
 
   '@ungap/structured-clone@1.3.0': {}
 
+  '@valibot/to-json-schema@1.7.0(valibot@1.3.1(typescript@6.0.3))':
+    dependencies:
+      valibot: 1.3.1(typescript@6.0.3)
+
+  '@vercel/oidc@3.2.0': {}
+
   '@vitejs/plugin-react@6.0.2(vite@8.0.14(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3))':
     dependencies:
       '@rolldown/pluginutils': 1.0.1
@@ -6666,7 +6764,7 @@ snapshots:
       '@vitest/mocker': 4.1.7(msw@2.13.6(@types/node@25.6.0)(typescript@6.0.3))(vite@8.0.14(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3))
       playwright: 1.60.0
       tinyrainbow: 3.1.0
-      vitest: 4.1.7(@types/node@25.6.0)(@vitest/browser-playwright@4.1.7)(msw@2.13.6(@types/node@25.6.0)(typescript@6.0.3))(vite@8.0.14(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3))
+      vitest: 4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.7)(msw@2.13.6(@types/node@25.6.0)(typescript@6.0.3))(vite@8.0.14(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3))
     transitivePeerDependencies:
       - bufferutil
       - msw
@@ -6682,7 +6780,7 @@ snapshots:
       pngjs: 7.0.0
       sirv: 3.0.2
       tinyrainbow: 3.1.0
-      vitest: 4.1.7(@types/node@25.6.0)(@vitest/browser-playwright@4.1.7)(msw@2.13.6(@types/node@25.6.0)(typescript@6.0.3))(vite@8.0.14(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3))
+      vitest: 4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.7)(msw@2.13.6(@types/node@25.6.0)(typescript@6.0.3))(vite@8.0.14(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3))
       ws: 8.20.0
     transitivePeerDependencies:
       - bufferutil
@@ -6789,6 +6887,14 @@ snapshots:
   acorn@8.16.0: {}
 
   adm-zip@0.5.17: {}
+
+  ai@6.0.195(zod@4.3.6):
+    dependencies:
+      '@ai-sdk/gateway': 3.0.123(zod@4.3.6)
+      '@ai-sdk/provider': 3.0.10
+      '@ai-sdk/provider-utils': 4.0.27(zod@4.3.6)
+      '@opentelemetry/api': 1.9.1
+      zod: 4.3.6
 
   ajv-draft-04@1.0.0(ajv@8.18.0):
     optionalDependencies:
@@ -7295,6 +7401,8 @@ snapshots:
 
   eventemitter3@5.0.4: {}
 
+  eventsource-parser@3.1.0: {}
+
   expect-type@1.3.0: {}
 
   exsolve@1.0.8: {}
@@ -7590,6 +7698,8 @@ snapshots:
   json-parse-even-better-errors@3.0.2: {}
 
   json-schema-traverse@1.0.0: {}
+
+  json-schema@0.4.0: {}
 
   json5@2.2.3: {}
 
@@ -8993,12 +9103,12 @@ snapshots:
     dependencies:
       react: 19.2.5
       react-dom: 19.2.5(react@19.2.5)
-      vitest: 4.1.7(@types/node@25.6.0)(@vitest/browser-playwright@4.1.7)(msw@2.13.6(@types/node@25.6.0)(typescript@6.0.3))(vite@8.0.14(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3))
+      vitest: 4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.7)(msw@2.13.6(@types/node@25.6.0)(typescript@6.0.3))(vite@8.0.14(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3))
     optionalDependencies:
       '@types/react': 19.2.14
       '@types/react-dom': 19.2.3(@types/react@19.2.14)
 
-  vitest@4.1.7(@types/node@25.6.0)(@vitest/browser-playwright@4.1.7)(msw@2.13.6(@types/node@25.6.0)(typescript@6.0.3))(vite@8.0.14(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3)):
+  vitest@4.1.7(@opentelemetry/api@1.9.1)(@types/node@25.6.0)(@vitest/browser-playwright@4.1.7)(msw@2.13.6(@types/node@25.6.0)(typescript@6.0.3))(vite@8.0.14(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3)):
     dependencies:
       '@vitest/expect': 4.1.7
       '@vitest/mocker': 4.1.7(msw@2.13.6(@types/node@25.6.0)(typescript@6.0.3))(vite@8.0.14(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3))
@@ -9021,6 +9131,7 @@ snapshots:
       vite: 8.0.14(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3)
       why-is-node-running: 2.3.0
     optionalDependencies:
+      '@opentelemetry/api': 1.9.1
       '@types/node': 25.6.0
       '@vitest/browser-playwright': 4.1.7(msw@2.13.6(@types/node@25.6.0)(typescript@6.0.3))(playwright@1.60.0)(vite@8.0.14(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.3))(vitest@4.1.7)
     transitivePeerDependencies:
@@ -9104,6 +9215,11 @@ snapshots:
       '@cloudflare/workerd-linux-64': 1.20260421.1
       '@cloudflare/workerd-linux-arm64': 1.20260421.1
       '@cloudflare/workerd-windows-64': 1.20260421.1
+
+  workers-ai-provider@3.1.14(@ai-sdk/provider@3.0.10)(ai@6.0.195(zod@4.3.6)):
+    dependencies:
+      '@ai-sdk/provider': 3.0.10
+      ai: 6.0.195(zod@4.3.6)
 
   wrangler@4.84.1(@cloudflare/workers-types@4.20260423.1):
     dependencies:
