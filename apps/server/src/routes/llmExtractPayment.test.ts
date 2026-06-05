@@ -83,13 +83,12 @@ describe("POST /api/llm/extract-payment", () => {
     const res = await createTestClient(llmExtractPaymentRoutes, makeEnv(), {
       oidcAuth: MOCK_USER,
       llmModel: mockModelReturning({
-        amount: 1980,
         date: "2026-06-01",
         categoryId: 101,
         genreId: 201,
         accountId: 1,
         place: "スーパーA",
-        comment: null,
+        items: [{ name: null, amount: 1980, comment: null }],
         confidence: "high",
         reasoning: "ok",
       }),
@@ -102,13 +101,15 @@ describe("POST /api/llm/extract-payment", () => {
 
   test("正常系: LLM の抽出結果をそのまま返す", async () => {
     const expected: ExtractedPayment = {
-      amount: 1980,
       date: "2026-06-01",
       categoryId: 101,
       genreId: 201,
       accountId: 1,
       place: "スーパーA",
-      comment: null,
+      items: [
+        { name: "りんご", amount: 980, comment: null },
+        { name: "牛乳", amount: 1000, comment: "1L" },
+      ],
       confidence: "high",
       reasoning: "金額と日付が明確に記載されていた",
     };

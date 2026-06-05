@@ -55,16 +55,29 @@ export const ExtractPaymentBodySchema = v.object({
 export type ExtractPaymentBody = v.InferOutput<typeof ExtractPaymentBodySchema>;
 
 /**
+ * 抽出された 1 品目分のスキーマ。明細行 1 つに対応する。
+ */
+export const ExtractedPaymentItemSchema = v.object({
+  name: v.nullable(v.string()),
+  amount: v.nullable(v.number()),
+  comment: v.nullable(v.string()),
+});
+
+export type ExtractedPaymentItem = v.InferOutput<typeof ExtractedPaymentItemSchema>;
+
+/**
  * LLM に強制させる出力スキーマ。不明な項目は `null` を返させる。
+ *
+ * 1 回の支払い全体に共通する属性（日付・カテゴリ・口座・店舗）はトップレベルに、
+ * 個別の明細は `items` 配列に格納する。
  */
 export const ExtractedPaymentSchema = v.object({
-  amount: v.nullable(v.number()),
   date: v.nullable(v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/))),
   categoryId: v.nullable(v.number()),
   genreId: v.nullable(v.number()),
   accountId: v.nullable(v.number()),
   place: v.nullable(v.string()),
-  comment: v.nullable(v.string()),
+  items: v.array(ExtractedPaymentItemSchema),
   confidence: v.picklist(["high", "medium", "low"]),
   reasoning: v.string(),
 });
@@ -114,14 +127,20 @@ export const buildPrompt = (input: ExtractPaymentBody): { system: string; prompt
     "The page may be a receipt, order confirmation, transaction history, invoice, or similar.",
     "Pick the most likely values for the user's payment registration in Zaim.",
     "",
-    "Rules:",
+    "Top-level rules (apply to the whole payment):",
     "- Use only IDs from the provided category/genre/account lists. If unsure, set the field to null.",
     '- `date` must be in "YYYY-MM-DD" format. If multiple dates are present, prefer the order/purchase date.',
-    "- `amount` is the total payment amount in JPY (integer).",
     "- `place` should match an existing recent store name when one clearly fits; otherwise extract the store/merchant name from the page.",
-    "- `comment` should be a short note (e.g. main item name) only when it adds useful context.",
     "- Set `confidence` to high/medium/low based on how clearly the page conveys the payment.",
     "- Briefly justify your choices in `reasoning` (1-3 sentences).",
+    "",
+    "`items` rules (one element per line item):",
+    "- When the page shows multiple line items (e.g. an itemized receipt or order with several products), split them into multiple entries.",
+    "- When the page describes a single payment, return exactly one item.",
+    "- Each `amount` is the per-item subtotal in JPY (integer). The sum across items should match the total shown on the page when one is present.",
+    "- `name` is the product or service name for that line. `comment` is an optional short note (e.g. quantity, variant) only when it adds useful context.",
+    "- Set any field of an item to null when it cannot be determined.",
+    "- Never return an empty `items` array; include at least one entry, even if every field is null.",
   ].join("\n");
 
   const ariaSnapshot = truncate(input.pageContent.ariaSnapshot, ARIA_SNAPSHOT_MAX_CHARS);

@@ -95,13 +95,12 @@ const loadFixtures = async (): Promise<Fixture[]> => {
 };
 
 const EVAL_FIELDS = [
-  "amount",
   "date",
   "categoryId",
   "genreId",
   "accountId",
   "place",
-  "comment",
+  "items",
 ] as const satisfies ReadonlyArray<keyof ExtractedPayment>;
 
 interface CaseResult {
@@ -126,7 +125,12 @@ interface ModelResult {
 
 const compareField = (expected: unknown, actual: unknown): boolean => {
   if (expected === undefined) return true; // expected で未指定なら評価対象外
-  return expected === actual;
+  if (expected === actual) return true;
+  // items のような配列・オブジェクトは JSON 文字列で深い等価判定する
+  if (typeof expected === "object" && expected !== null) {
+    return JSON.stringify(expected) === JSON.stringify(actual);
+  }
+  return false;
 };
 
 const runCase = async (target: ModelTarget, fixture: Fixture, ai: Ai): Promise<CaseResult> => {
