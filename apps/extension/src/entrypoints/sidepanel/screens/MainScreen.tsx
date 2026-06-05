@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { AccountCombobox } from "../../../components/AccountCombobox.tsx";
 import { CategoryCombobox, type CategorySelection } from "../../../components/CategoryCombobox.tsx";
 import { StoreCombobox, type StoreSelection } from "../../../components/StoreCombobox.tsx";
+import { collectFromActiveTab } from "../../../page-collector/collectFromActiveTab.ts";
 import { createClient } from "server/client";
 
 interface Item {
@@ -61,6 +62,81 @@ export default function MainScreen({ serverUrl }: Props) {
     setDuplicateState("unchecked");
     setDuplicatesByItemId({});
   }, [date, categorySelection?.genreId, itemsAmountSignature]);
+
+  const extractMutation = useMutation({
+    mutationFn: async () => {
+      const client = createClient(serverUrl);
+      const collected = await collectFromActiveTab();
+
+      const [categoriesRes, accountsRes, storesRes] = await Promise.all([
+        client.api.zaim.categories.$get({ query: {} }, { init: { credentials: "include" } }),
+        client.api.zaim.accounts.$get({ query: {} }, { init: { credentials: "include" } }),
+        client.api.zaim.stores.$get({ query: {} }, { init: { credentials: "include" } }),
+      ]);
+      if (!categoriesRes.ok)
+        throw new Error(`カテゴリの取得に失敗しました（${categoriesRes.status}）`);
+      if (!accountsRes.ok) throw new Error(`口座の取得に失敗しました（${accountsRes.status}）`);
+      if (!storesRes.ok) throw new Error(`店舗の取得に失敗しました（${storesRes.status}）`);
+
+      const categoriesBody = await categoriesRes.json();
+      const accountsBody = await accountsRes.json();
+      const storesBody = await storesRes.json();
+
+      const activeAccounts = accountsBody.accounts
+        .filter((account) => account.active === 1)
+        .map((account) => ({ id: account.id, name: account.name }));
+
+      const extractRes = await client.api.llm["extract-payment"].$post(
+        {
+          json: {
+            pageContent: {
+              url: collected.url,
+              title: collected.title,
+              ariaSnapshot: collected.ariaSnapshot,
+              collectedAt: collected.collectedAt,
+            },
+            categories: categoriesBody.categories,
+            accounts: activeAccounts,
+            recentStores: storesBody.stores,
+          },
+        },
+        { init: { credentials: "include" } },
+      );
+      if (!extractRes.ok) {
+        throw new Error(`自動入力に失敗しました（${extractRes.status}）`);
+      }
+      const extracted = await extractRes.json();
+      return { extracted, recentStores: storesBody.stores };
+    },
+    onSuccess: ({ extracted, recentStores }) => {
+      if (extracted.date !== null) setDate(extracted.date);
+      if (extracted.categoryId !== null && extracted.genreId !== null) {
+        setCategorySelection({
+          categoryId: extracted.categoryId,
+          genreId: extracted.genreId,
+        });
+      }
+      if (extracted.accountId !== null) setAccountId(extracted.accountId);
+      if (extracted.place !== null) {
+        const matched = recentStores.find((s) => s.place === extracted.place);
+        setStoreSelection(
+          matched
+            ? { place: matched.place, placeUid: matched.placeUid }
+            : { place: extracted.place, placeUid: "" },
+        );
+      }
+      if (extracted.items.length > 0) {
+        setItems(
+          extracted.items.map((item) => ({
+            id: crypto.randomUUID(),
+            name: item.name ?? "",
+            amount: item.amount !== null ? String(item.amount) : "",
+            comment: item.comment ?? "",
+          })),
+        );
+      }
+    },
+  });
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -164,6 +240,23 @@ export default function MainScreen({ serverUrl }: Props) {
 
   return (
     <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+      <div className="flex flex-col gap-1">
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={extractMutation.isPending || mutation.isPending}
+          onClick={() => extractMutation.mutate()}
+        >
+          {extractMutation.isPending ? "自動入力中…" : "このページから自動入力"}
+        </Button>
+        {extractMutation.isError && (
+          <p role="alert" className="text-sm font-medium text-red-600">
+            {extractMutation.error instanceof Error
+              ? extractMutation.error.message
+              : "自動入力に失敗しました"}
+          </p>
+        )}
+      </div>
       <CategoryCombobox
         serverUrl={serverUrl}
         value={categorySelection}
