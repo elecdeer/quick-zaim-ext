@@ -4,6 +4,7 @@ import { defineConfig } from "wxt";
 export default defineConfig({
   srcDir: "src",
   browser: "chrome",
+  imports: false,
   modules: ["@wxt-dev/module-react"],
   manifest: {
     name: "Quick Zaim",
