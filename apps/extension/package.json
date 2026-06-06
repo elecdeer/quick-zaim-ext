@@ -9,6 +9,7 @@
   "scripts": {
     "test": "vitest run",
     "test:visual": "vitest run --config vitest.config.visual.ts",
+    "dev": "wxt",
     "build": "wxt build",
     "prepare": "node -e \"if(!process.env.CI)require('child_process').execSync('wxt prepare',{stdio:'inherit'})\"",
     "storybook": "storybook dev -p 6006",
