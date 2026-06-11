@@ -45,9 +45,20 @@ export const SettingsOverlay = ({ open, onOpenChange }: Props) => {
     retry: false,
   });
 
+  // 認証/連携完了時、未認証で失敗していた Zaim データ系クエリも再 fetch させる
+  const invalidateZaimDataQueries = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["categories", serverUrl] }),
+      queryClient.invalidateQueries({ queryKey: ["accounts", serverUrl] }),
+      queryClient.invalidateQueries({ queryKey: ["stores", serverUrl] }),
+    ]);
+
   const zaimConnectMutation = useMutation({
     mutationFn: () => launchZaimConnect(serverUrl),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["authStatus", serverUrl] }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["authStatus", serverUrl] });
+      await invalidateZaimDataQueries();
+    },
   });
 
   const zaimDisconnectMutation = useMutation({
@@ -90,6 +101,8 @@ export const SettingsOverlay = ({ open, onOpenChange }: Props) => {
     try {
       await launchServerLogin(serverUrl);
       await queryClient.invalidateQueries({ queryKey: ["authStatus", serverUrl] });
+      // Zaim 連携が既に済んでいるケースで Combobox の失敗状態を解消する
+      await invalidateZaimDataQueries();
     } catch {
       // ユーザーがポップアップを閉じた場合など
     }
