@@ -36,7 +36,7 @@
 
 - [x] DateをTemporal APIに置き換える
 - [x] コンポーネントは常にkumo-uiのものを使用する
-- [ ] LLMレイテンシ改善
+- [x] LLMレイテンシ改善
   - input tokenを減らすプロンプト設計
 
 ## Ph2

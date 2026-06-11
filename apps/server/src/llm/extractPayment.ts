@@ -96,32 +96,36 @@ export type ExtractedPayment = v.InferOutput<typeof ExtractedPaymentSchema>;
 const truncate = (text: string, max: number): string =>
   text.length <= max ? text : `${text.slice(0, max)}\n…[truncated ${text.length - max} chars]`;
 
+const RECENT_STORES_LIMIT = 20;
+
+/**
+ * カテゴリ一覧を 1 カテゴリ 1 行のコンパクトな形式にまとめる。
+ *
+ * 1 カテゴリ + サブカテゴリで 6 行以上消費していた旧形式に比べ、
+ * トークン消費を概ね半分以下に削減できる。
+ */
 const formatCategoriesForPrompt = (categories: ExtractPaymentBody["categories"]): string => {
   const paymentCategories = categories.filter((category) => category.mode === "payment");
-  if (paymentCategories.length === 0) return "(no payment categories available)";
+  if (paymentCategories.length === 0) return "(none)";
   return paymentCategories
     .map((category) => {
-      const subs = category.subCategories
-        .map((sub) => `    - genreId=${sub.id}: ${sub.name}`)
-        .join("\n");
-      return `- categoryId=${category.id}: ${category.name}\n${subs || "    (no subcategories)"}`;
+      const subs =
+        category.subCategories.map((sub) => `${sub.id}=${sub.name}`).join(", ") || "(none)";
+      return `${category.id}=${category.name}: ${subs}`;
     })
     .join("\n");
 };
 
 const formatAccountsForPrompt = (accounts: ExtractPaymentBody["accounts"]): string => {
-  if (accounts.length === 0) return "(no accounts available)";
-  return accounts.map((account) => `- accountId=${account.id}: ${account.name}`).join("\n");
+  if (accounts.length === 0) return "(none)";
+  return accounts.map((account) => `${account.id}=${account.name}`).join(", ");
 };
 
 const formatRecentStoresForPrompt = (stores: ExtractPaymentBody["recentStores"]): string => {
-  if (stores.length === 0) return "(no recent stores)";
+  if (stores.length === 0) return "(none)";
   return stores
-    .slice(0, 30)
-    .map(
-      (store) =>
-        `- ${store.place} (used ${store.count} times, latest ${store.latestDate}, placeUid=${store.placeUid})`,
-    )
+    .slice(0, RECENT_STORES_LIMIT)
+    .map((store) => `${store.place} [uid=${store.placeUid}, ${store.count}x, ${store.latestDate}]`)
     .join("\n");
 };
 
@@ -132,24 +136,21 @@ const formatRecentStoresForPrompt = (stores: ExtractPaymentBody["recentStores"])
  */
 export const buildPrompt = (input: ExtractPaymentBody): { system: string; prompt: string } => {
   const system = [
-    "You are an assistant that extracts payment information from a web page accessibility snapshot.",
-    "The page may be a receipt, order confirmation, transaction history, invoice, or similar.",
-    "Pick the most likely values for the user's payment registration in Zaim.",
+    "Extract payment info from a web page accessibility snapshot (receipt, order confirmation, invoice, transaction history, etc.) for Zaim registration.",
     "",
-    "Top-level rules (apply to the whole payment):",
-    "- Use only IDs from the provided category/genre/account lists. If unsure, set the field to null.",
-    '- `date` must be in "YYYY-MM-DD" format. If multiple dates are present, prefer the order/purchase date.',
-    "- `place` should match an existing recent store name when one clearly fits; otherwise extract the store/merchant name from the page.",
-    "- Set `confidence` to high/medium/low based on how clearly the page conveys the payment.",
-    "- Briefly justify your choices in `reasoning` (1-3 sentences).",
+    "Rules:",
+    "- IDs must come from the provided categories/genres/accounts; otherwise null.",
+    '- `date`: "YYYY-MM-DD"; prefer the order/purchase date when several exist.',
+    "- `place`: match a recent store when it clearly fits, else extract the merchant name from the page.",
+    "- `confidence`: high/medium/low based on how clearly the page conveys the payment.",
+    "- `reasoning`: 1-3 sentences justifying your choices.",
     "",
-    "`items` rules (one element per line item):",
-    "- When the page shows multiple line items (e.g. an itemized receipt or order with several products), split them into multiple entries.",
-    "- When the page describes a single payment, return exactly one item.",
-    "- Each `amount` is the per-item subtotal in JPY (integer). The sum across items should match the total shown on the page when one is present.",
-    "- `name` is the product or service name for that line. `comment` is an optional short note (e.g. quantity, variant) only when it adds useful context.",
-    "- Set any field of an item to null when it cannot be determined.",
-    "- Never return an empty `items` array; include at least one entry, even if every field is null.",
+    "`items` (one per line item):",
+    "- Split itemized receipts/orders into one entry per product; single payments → one item.",
+    "- `amount` is the per-item subtotal in JPY (integer); items should sum to the page total when shown.",
+    "- `name` is the product/service name; `comment` is a short note (e.g. quantity, variant) only when helpful.",
+    "- Use null for fields that cannot be determined.",
+    "- `items` is never empty; include at least one entry even if every field is null.",
   ].join("\n");
 
   const ariaSnapshot = truncate(input.pageContent.ariaSnapshot, ARIA_SNAPSHOT_MAX_CHARS);
@@ -159,13 +160,13 @@ export const buildPrompt = (input: ExtractPaymentBody): { system: string; prompt
     `Title: ${input.pageContent.title}`,
     `Collected at: ${input.pageContent.collectedAt}`,
     "",
-    "## Available payment categories (categoryId / genreId)",
+    "## Categories (format: `categoryId=name: genreId=name, ...`)",
     formatCategoriesForPrompt(input.categories),
     "",
-    "## Available accounts",
+    "## Accounts (format: `accountId=name, ...`)",
     formatAccountsForPrompt(input.accounts),
     "",
-    "## Recently used stores",
+    "## Recent stores (format: `name [uid=placeUid, count, latestDate]`)",
     formatRecentStoresForPrompt(input.recentStores),
     "",
     "## Page accessibility snapshot",
