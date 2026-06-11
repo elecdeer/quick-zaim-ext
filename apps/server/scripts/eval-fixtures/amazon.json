@@ -1,0 +1,277 @@
+{
+  "name": "amazon-order-multi-item",
+  "input": {
+    "pageContent": {
+      "url": "https://www.amazon.co.jp/gp/your-account/order-details?orderID=XXX-XXXXXXX-XXXXXXX",
+      "title": "注文の詳細",
+      "ariaSnapshot": "- generic:\n  - main:\n    - heading \"領収書\" [level=1]\n    - text: 注文日\n    - text: 2026年5月29日\n    - presentation\n    - text: 注文 #\n    - text: XXX-XXXXXXX-XXXXXXX\n    - button \"[印刷]\"\n    - heading \"お届け先\" [level=5]\n    - list:\n      - listitem \"Redacted\"\n      - listitem \"Redacted 東京都\":\n        - text: Redacted\n        - text: 東京都\n      - listitem \"日本\"\n    - heading \"支払い方法\" [level=5]\n    - generic \"payment method list\":\n      - generic \"payment method\":\n        - presentation:\n          - presentation:\n            - img\n        - text: Amazon Prime Mastercard\n        - text: ••••\n        - text: \n    - heading \"注文概要\" [level=5]\n    - list:\n      - listitem \"商品の小計： ￥10,876\":\n        - text: 商品の小計：\n        - text: ￥10,876\n      - listitem \"配送料・手数料： ￥0\":\n        - text: 配送料・手数料：\n        - text: ￥0\n      - listitem \"注文合計： ￥10,876\":\n        - text: 注文合計：\n        - text: ￥10,876\n      - listitem \"ご請求額： ￥10,876\":\n        - text: ご請求額：\n        - text: ￥10,876\n    - heading \"5月31日にお届け済み\" [level=4]:\n      - text: 5月31日\n      - text: にお届け済み\n    - link:\n      - img \"レノア クエン酸in 超消臭 衣類のすすぎ消臭剤 部屋干し フレッシュグリーンの香り 詰め替え 1110mL×2袋\"\n    - link \"レノア クエン酸in 超消臭 衣類のすすぎ消臭剤 部屋干し フレッシュグリーンの香り 詰め替え 1110mL×2袋\"\n    - text: 販売: Amazon.co.jp\n    - text: ￥2,299\n    - link:\n      - img \"BOTANIST ボタニスト シャンプー トリートメント セット 詰め替え スカルプクレンズ\"\n    - link \"BOTANIST ボタニスト シャンプー トリートメント セット 詰め替え スカルプクレンズ\"\n    - text: 販売:\n    - link \"[公式]【BOTANIST/SALONIA/YOLU メーカーオフィシャルサイト】アンドハビット\"\n    - text: ￥2,047\n    - link:\n      - img \"【3枚組】 NIMASO アップルウォッチ フィルム 41mm Apple Watch series 9 / 8 / 7 対応 保護フィルム NSW23L982\"\n    - link \"【3枚組】 NIMASO アップルウォッチ フィルム 41mm Apple Watch series 9 / 8 / 7 対応 保護フィルム NSW23L982\"\n    - text: 販売:\n    - link \"NimasoDirect\"\n    - text: 商品の返品: 2026年6月30日まで有効\n    - text: ￥932\n    - link:\n      - img \"UNIQ Apple Watch バンド 42mm 41mm 40mm : Series 10 / 9 / 8 / 7 / 6 / SE / 5 / 4 対応 メッシュ サージカル ステンレス ミラネーゼループ ベルト アップルウォッチ DANTE (グラファイト)\"\n    - link \"UNIQ Apple Watch バンド 42mm 41mm 40mm : Series 10 / 9 / 8 / 7 / 6 / SE / 5 / 4 対応 メッシュ サージカル ステンレス ミラネーゼループ ベルト アップルウォッチ DANTE (グラファイト)\"\n    - text: 販売:\n    - link \"KENZAN\"\n    - text: 商品の返品: 2026年6月30日まで有効\n    - text: ￥5,598\n  - button \"トップへ戻る\"\n  - link \"Amazon Japan Home\"\n  - link \"ショッピングに使用する言語を選択します。現在日本語が選択されています。\":\n    - text: 日本語\n  - button \"展開して言語または国を変更する\"\n  - button \"ショッピングする国/地域を選択します。現在の選択は日本です。\":\n    - text: 日本\n  - list:\n    - listitem \"ヘルプ・サポート\":\n      - link \"ヘルプ・サポート\"\n  - list:\n    - listitem \"利用規約\":\n      - link \"利用規約\"\n    - listitem \"プライバシー規約\":\n      - link \"プライバシー規約\"\n    - listitem \"パーソナライズド広告規約\":\n      - link \"パーソナライズド広告規約\"\n    - listitem \"各種規約\":\n      - link \"各種規約\"\n    - listitem \"特定商取引法に基づく表示\":\n      - link \"特定商取引法に基づく表示\"\n  - text: © 1996-2026, Amazon.com, Inc. またはその関連会社\n  - alert\n  - alert\n  - alert",
+      "collectedAt": "2026-06-11T15:56:00.116Z"
+    },
+    "categories": [
+      { "id": 11, "name": "給与所得", "mode": "income", "subCategories": [] },
+      { "id": 12, "name": "立替金返済", "mode": "income", "subCategories": [] },
+      { "id": 13, "name": "賞与", "mode": "income", "subCategories": [] },
+      { "id": 14, "name": "臨時収入", "mode": "income", "subCategories": [] },
+      { "id": 15, "name": "事業所得", "mode": "income", "subCategories": [] },
+      { "id": 19, "name": "その他", "mode": "income", "subCategories": [] },
+      {
+        "id": 101,
+        "name": "食費",
+        "mode": "payment",
+        "subCategories": [
+          { "id": 10101, "name": "食料品" },
+          { "id": 10102, "name": "カフェ" },
+          { "id": 10103, "name": "朝ご飯" },
+          { "id": 10104, "name": "昼ご飯" },
+          { "id": 10105, "name": "晩ご飯" },
+          { "id": 10199, "name": "その他" }
+        ]
+      },
+      {
+        "id": 102,
+        "name": "日用雑貨",
+        "mode": "payment",
+        "subCategories": [
+          { "id": 10201, "name": "消耗品" },
+          { "id": 10202, "name": "子ども関連" },
+          { "id": 10203, "name": "ペット関連" },
+          { "id": 10204, "name": "タバコ" },
+          { "id": 10299, "name": "その他" }
+        ]
+      },
+      {
+        "id": 103,
+        "name": "交通",
+        "mode": "payment",
+        "subCategories": [
+          { "id": 10301, "name": "電車" },
+          { "id": 10302, "name": "タクシー" },
+          { "id": 10303, "name": "バス" },
+          { "id": 10304, "name": "飛行機" },
+          { "id": 10399, "name": "その他" }
+        ]
+      },
+      {
+        "id": 104,
+        "name": "通信",
+        "mode": "payment",
+        "subCategories": [
+          { "id": 10401, "name": "携帯電話料金" },
+          { "id": 10402, "name": "固定電話料金" },
+          { "id": 10403, "name": "インターネット関連費" },
+          { "id": 10404, "name": "放送サービス料金" },
+          { "id": 10405, "name": "宅配便" },
+          { "id": 10406, "name": "切手・はがき" },
+          { "id": 10499, "name": "その他" }
+        ]
+      },
+      {
+        "id": 105,
+        "name": "水道・光熱",
+        "mode": "payment",
+        "subCategories": [
+          { "id": 10501, "name": "水道料金" },
+          { "id": 10502, "name": "電気料金" },
+          { "id": 10503, "name": "ガス料金" },
+          { "id": 10599, "name": "その他" }
+        ]
+      },
+      {
+        "id": 106,
+        "name": "住まい",
+        "mode": "payment",
+        "subCategories": [
+          { "id": 10601, "name": "家賃" },
+          { "id": 10602, "name": "住宅ローン返済" },
+          { "id": 10603, "name": "家具" },
+          { "id": 10604, "name": "家電" },
+          { "id": 10605, "name": "リフォーム" },
+          { "id": 10606, "name": "住宅保険" },
+          { "id": 10699, "name": "その他" }
+        ]
+      },
+      {
+        "id": 107,
+        "name": "交際費",
+        "mode": "payment",
+        "subCategories": [
+          { "id": 10701, "name": "飲み会" },
+          { "id": 10702, "name": "プレゼント" },
+          { "id": 10703, "name": "ご祝儀・香典" },
+          { "id": 10799, "name": "その他" }
+        ]
+      },
+      {
+        "id": 108,
+        "name": "エンタメ",
+        "mode": "payment",
+        "subCategories": [
+          { "id": 10801, "name": "レジャー" },
+          { "id": 10802, "name": "イベント" },
+          { "id": 10803, "name": "映画・動画" },
+          { "id": 10804, "name": "音楽" },
+          { "id": 10805, "name": "漫画" },
+          { "id": 10806, "name": "書籍" },
+          { "id": 10807, "name": "ゲーム" },
+          { "id": 10899, "name": "その他" }
+        ]
+      },
+      {
+        "id": 109,
+        "name": "教育・教養",
+        "mode": "payment",
+        "subCategories": [
+          { "id": 10901, "name": "習い事" },
+          { "id": 10902, "name": "新聞" },
+          { "id": 10903, "name": "参考書" },
+          { "id": 10904, "name": "受験料" },
+          { "id": 10905, "name": "学費" },
+          { "id": 10906, "name": "学資保険" },
+          { "id": 10907, "name": "塾" },
+          { "id": 10999, "name": "その他" }
+        ]
+      },
+      {
+        "id": 110,
+        "name": "医療・保険",
+        "mode": "payment",
+        "subCategories": [
+          { "id": 11001, "name": "病院代" },
+          { "id": 11002, "name": "薬代" },
+          { "id": 11003, "name": "生命保険" },
+          { "id": 11004, "name": "医療保険" },
+          { "id": 11099, "name": "その他" }
+        ]
+      },
+      {
+        "id": 111,
+        "name": "美容・衣服",
+        "mode": "payment",
+        "subCategories": [
+          { "id": 11101, "name": "洋服" },
+          { "id": 11102, "name": "アクセサリー・小物" },
+          { "id": 11103, "name": "下着" },
+          { "id": 11104, "name": "ジム・健康" },
+          { "id": 11105, "name": "美容院" },
+          { "id": 11106, "name": "コスメ" },
+          { "id": 11107, "name": "エステ・ネイル" },
+          { "id": 11108, "name": "クリーニング" },
+          { "id": 11199, "name": "その他" }
+        ]
+      },
+      {
+        "id": 112,
+        "name": "クルマ",
+        "mode": "payment",
+        "subCategories": [
+          { "id": 11201, "name": "ガソリン" },
+          { "id": 11202, "name": "駐車場" },
+          { "id": 11203, "name": "自動車保険" },
+          { "id": 11204, "name": "自動車税" },
+          { "id": 11205, "name": "自動車ローン" },
+          { "id": 11206, "name": "免許教習" },
+          { "id": 11207, "name": "高速料金" },
+          { "id": 11299, "name": "その他" }
+        ]
+      },
+      {
+        "id": 113,
+        "name": "税金",
+        "mode": "payment",
+        "subCategories": [
+          { "id": 11301, "name": "年金" },
+          { "id": 11302, "name": "所得税" },
+          { "id": 11303, "name": "消費税" },
+          { "id": 11304, "name": "住民税" },
+          { "id": 11305, "name": "個人事業税" },
+          { "id": 11399, "name": "その他" }
+        ]
+      },
+      {
+        "id": 114,
+        "name": "大型出費",
+        "mode": "payment",
+        "subCategories": [
+          { "id": 11401, "name": "旅行" },
+          { "id": 11402, "name": "住宅" },
+          { "id": 11403, "name": "自動車" },
+          { "id": 11404, "name": "バイク" },
+          { "id": 11405, "name": "結婚" },
+          { "id": 11406, "name": "出産" },
+          { "id": 11407, "name": "介護" },
+          { "id": 11408, "name": "家具" },
+          { "id": 11409, "name": "家電" },
+          { "id": 11499, "name": "その他" }
+        ]
+      },
+      {
+        "id": 199,
+        "name": "その他",
+        "mode": "payment",
+        "subCategories": [
+          { "id": 19901, "name": "仕送り" },
+          { "id": 19902, "name": "お小遣い" },
+          { "id": 19903, "name": "使途不明金" },
+          { "id": 19904, "name": "立替金" },
+          { "id": 19905, "name": "未分類" },
+          { "id": 19906, "name": "現金の引出" },
+          { "id": 19907, "name": "カードの引落" },
+          { "id": 19908, "name": "電子マネーにチャージ" },
+          { "id": 19999, "name": "その他" }
+        ]
+      }
+    ],
+    "accounts": [
+      { "id": 1, "name": "Amazon MasterCard クラシック" },
+      { "id": 2, "name": "現金" }
+    ],
+    "recentStores": [
+      {
+        "place": "ヨドバシカメラ",
+        "placeUid": "zm-recent-store-001",
+        "latestDate": "2025-07-03",
+        "count": 7
+      },
+      {
+        "place": "Amazon.co.jp",
+        "placeUid": "zm-recent-store-002",
+        "latestDate": "2025-06-22",
+        "count": 1
+      },
+      {
+        "place": "テスト店舗",
+        "placeUid": "zm-recent-store-003",
+        "latestDate": "2024-10-20",
+        "count": 1
+      }
+    ]
+  },
+  "expected": {
+    "date": "2026-05-29",
+    "place": "Amazon.co.jp",
+    "accountId": 1,
+    "items": [
+      {
+        "name": "レノア クエン酸in 超消臭 衣類のすすぎ消臭剤 部屋干し フレッシュグリーンの香り 詰め替え 1110mL×2袋",
+        "amount": 2299,
+        "comment": null
+      },
+      {
+        "name": "BOTANIST ボタニスト シャンプー トリートメント セット 詰め替え スカルプクレンズ",
+        "amount": 2047,
+        "comment": null
+      },
+      {
+        "name": "【3枚組】 NIMASO アップルウォッチ フィルム 41mm Apple Watch series 9 / 8 / 7 対応 保護フィルム NSW23L982",
+        "amount": 932,
+        "comment": null
+      },
+      {
+        "name": "UNIQ Apple Watch バンド 42mm 41mm 40mm : Series 10 / 9 / 8 / 7 / 6 / SE / 5 / 4 対応 メッシュ サージカル ステンレス ミラネーゼループ ベルト アップルウォッチ DANTE (グラファイト)",
+        "amount": 5598,
+        "comment": null
+      }
+    ],
+    "confidence": "high"
+  }
+}
