@@ -213,18 +213,39 @@ const extractAssistantPayload = (output: WorkersAiChatResponse): unknown => {
 };
 
 /**
+ * 各処理フェーズの所要時間（ms）。ボトルネック切り分け用にハンドラ側でログする。
+ */
+export interface ExtractPaymentTiming {
+  /** プロンプト構築（buildPrompt）にかかった時間 */
+  promptMs: number;
+  /** `env.AI.run` の往復時間。LLM 推論 + ネットワーク + ゲートウェイの合計 */
+  aiMs: number;
+  /** レスポンスから JSON を抜き出して JSON.parse する時間 */
+  parseMs: number;
+  /** 抽出結果を valibot で v.parse する時間 */
+  validateMs: number;
+}
+
+/**
  * Workers AI binding を使って支払い情報を抽出する。
  *
  * `env.AI.run(model, ...)` を直接呼び出し、OpenAI Structured Outputs の
  * `response_format.json_schema` に valibot 由来の JSON Schema を渡す。
+ *
+ * 戻り値にはフェーズごとの所要時間（`timing`）を含める。ハンドラ側でこれを
+ * 構造化ログに出すことで「5 秒のうち ai.run が何 ms、parse が何 ms」を即時に
+ * 切り分けられる。
  */
 export const runExtractPayment = async (params: {
   ai: Ai;
   model: string;
   input: ExtractPaymentBody;
   abortSignal?: AbortSignal;
-}): Promise<{ object: ExtractedPayment; usage: unknown }> => {
+}): Promise<{ object: ExtractedPayment; usage: unknown; timing: ExtractPaymentTiming }> => {
+  const tStart = performance.now();
   const { system, prompt } = buildPrompt(params.input);
+  const tAfterPrompt = performance.now();
+
   const inputs: Record<string, unknown> = {
     messages: [
       { role: "system", content: system },
@@ -242,7 +263,22 @@ export const runExtractPayment = async (params: {
   const output: WorkersAiChatResponse = await params.ai.run(params.model, inputs, {
     signal: params.abortSignal,
   });
+  const tAfterAi = performance.now();
+
   const payload = extractAssistantPayload(output);
+  const tAfterParse = performance.now();
+
   const object = v.parse(ExtractedPaymentSchema, payload);
-  return { object, usage: output.usage };
+  const tAfterValidate = performance.now();
+
+  return {
+    object,
+    usage: output.usage,
+    timing: {
+      promptMs: Math.round(tAfterPrompt - tStart),
+      aiMs: Math.round(tAfterAi - tAfterPrompt),
+      parseMs: Math.round(tAfterParse - tAfterAi),
+      validateMs: Math.round(tAfterValidate - tAfterParse),
+    },
+  };
 };

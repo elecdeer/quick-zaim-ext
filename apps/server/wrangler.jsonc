@@ -3,6 +3,15 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-04-13",
   "compatibility_flags": ["nodejs_compat"],
+  // Cloudflare Workers の自動トレーシング。workerd が全 I/O（fetch / AI / KV など）を
+  // 自動で span 化し、Workers ダッシュボードで確認できる。デバッグ目的なので head
+  // サンプリング率は 100% に固定。本番投入時にコスト都合で下げる場合は 0.05 等へ。
+  "observability": {
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+    },
+  },
   // 平文の環境変数（シークレットは `wrangler secret put <NAME>` で別途登録）
   "vars": {
     // Workers AI で叩くデフォルトモデル ID。差し替え可能。

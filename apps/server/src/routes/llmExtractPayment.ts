@@ -28,7 +28,7 @@ const extractPaymentRoute = new Hono<HonoEnv>().post(
     const input = c.req.valid("json");
 
     try {
-      const { object, usage } = await runExtractPayment({
+      const { object, usage, timing } = await runExtractPayment({
         ai: c.env.AI,
         model: c.env.LLM_MODEL,
         input,
@@ -38,8 +38,11 @@ const extractPaymentRoute = new Hono<HonoEnv>().post(
           model: c.env.LLM_MODEL,
           usage,
           confidence: object.confidence,
+          ...timing,
         })
-        .debug("LLM extract-payment completed (confidence={confidence})");
+        .debug(
+          "LLM extract-payment completed (confidence={confidence}, ai={aiMs}ms, parse={parseMs}ms, validate={validateMs}ms)",
+        );
       return c.json(object);
     } catch (error) {
       logger
