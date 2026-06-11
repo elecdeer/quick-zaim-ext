@@ -8,19 +8,16 @@
  *   - 既存の `/api/*` 共通ミドルウェア（`oidcAuthMiddleware()` + `requireOidcAuth`）で
  *     OIDC 認証は済んでいる前提だが、テスト用にもう一度 `requireOidcAuth` を付ける。
  *   - Zaim API は呼ばないので `requireZaimClient` は不要。
- *   - `c.var.llmModel` が設定されていればそれを使う（テスト時のモック差し込み用）。
- *     未設定なら `c.env` から LLM プロバイダ／モデルを構築する。
+ *   - LLM 呼び出しは `env.AI.run` を直接叩く（テストでは `env.AI` をモックで差し替える）。
  */
 
 import { sValidator } from "@hono/standard-validator";
-import type { LanguageModel } from "ai";
 import { Hono } from "hono";
 import type { HonoEnv } from "../env.ts";
 import { ExtractPaymentBodySchema, runExtractPayment } from "../llm/extractPayment.ts";
-import { createLanguageModel } from "../llm/model.ts";
 import { requireOidcAuth } from "../middleware.ts";
 
-const extractPaymentRoute = new Hono<HonoEnv & { Variables: { llmModel?: LanguageModel } }>().post(
+const extractPaymentRoute = new Hono<HonoEnv>().post(
   "/api/llm/extract-payment",
   requireOidcAuth,
   sValidator("json", ExtractPaymentBodySchema, (result, c) => {
@@ -30,11 +27,12 @@ const extractPaymentRoute = new Hono<HonoEnv & { Variables: { llmModel?: Languag
     const logger = c.var.logger;
     const input = c.req.valid("json");
 
-    const model =
-      c.var.llmModel ?? createLanguageModel({ binding: c.env.AI, model: c.env.LLM_MODEL });
-
     try {
-      const { object, usage } = await runExtractPayment({ model, input });
+      const { object, usage } = await runExtractPayment({
+        ai: c.env.AI,
+        model: c.env.LLM_MODEL,
+        input,
+      });
       logger
         .with({
           model: c.env.LLM_MODEL,

@@ -3,14 +3,14 @@
  *
  * POST /api/llm/extract-payment - ページ内容から支払い情報を抽出する
  *
- * AI SDK の `MockLanguageModelV3` を `c.var.llmModel` に注入することで
- * 実 API を叩かずに振る舞いをテストする。
+ * Workers AI binding (`env.AI`) をモックで差し替えて実 API を叩かずに振る舞いをテストする。
+ * `runExtractPayment` は OpenAI 互換チャットレスポンス形（`choices[0].message.content` に
+ * JSON 文字列）を期待するので、モックも同じ形で返す。
  */
 
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import type { OidcAuth } from "@hono/oidc-auth";
-import type { KVNamespace } from "@cloudflare/workers-types";
-import { MockLanguageModelV3 } from "ai/test";
+import type { Ai } from "@cloudflare/workers-types";
 import type { Env } from "../env.ts";
 import { createTestClient, createTestEnv } from "../test-fixtures.ts";
 import { llmExtractPaymentRoutes } from "./llmExtractPayment.ts";
@@ -24,8 +24,32 @@ const MOCK_USER = {
   ssnexp: 9999999999,
 } as OidcAuth;
 
-const makeEnv = (kvOverride?: KVNamespace): Env =>
-  kvOverride ? createTestEnv({ ZAIM_KV: kvOverride }) : createTestEnv();
+/**
+ * `env.AI.run` がチャット完了レスポンスを返すスタブを作る。
+ */
+const mockAiReturning = (object: ExtractedPayment): Ai => {
+  const run = vi.fn(async () => ({
+    choices: [
+      {
+        message: { content: JSON.stringify(object) },
+      },
+    ],
+    usage: { prompt_tokens: 100, completion_tokens: 50, total_tokens: 150 },
+  }));
+  return { run } as unknown as Ai;
+};
+
+/**
+ * `env.AI.run` が例外を投げるスタブを作る。
+ */
+const mockAiThrowing = (): Ai => {
+  const run = vi.fn(async () => {
+    throw new Error("LLM API timeout");
+  });
+  return { run } as unknown as Ai;
+};
+
+const makeEnv = (overrides: Partial<Env> = {}): Env => createTestEnv(overrides);
 
 const makeBody = (): ExtractPaymentBody => ({
   pageContent: {
@@ -48,29 +72,6 @@ const makeBody = (): ExtractPaymentBody => ({
   ],
 });
 
-/**
- * generateObject が期待する形でテキストを返すモックモデルを生成する。
- */
-const mockModelReturning = (object: ExtractedPayment): MockLanguageModelV3 =>
-  new MockLanguageModelV3({
-    doGenerate: async () => ({
-      content: [{ type: "text", text: JSON.stringify(object) }],
-      finishReason: { unified: "stop", raw: "stop" },
-      usage: {
-        inputTokens: { total: 100, noCache: 100, cacheRead: undefined, cacheWrite: undefined },
-        outputTokens: { total: 50, text: 50, reasoning: undefined },
-      },
-      warnings: [],
-    }),
-  });
-
-const mockModelThrowing = (): MockLanguageModelV3 =>
-  new MockLanguageModelV3({
-    doGenerate: async () => {
-      throw new Error("LLM API timeout");
-    },
-  });
-
 describe("POST /api/llm/extract-payment", () => {
   test("OIDC未認証のとき401を返す", async () => {
     const res = await createTestClient(llmExtractPaymentRoutes, makeEnv(), {
@@ -80,18 +81,18 @@ describe("POST /api/llm/extract-payment", () => {
   });
 
   test("リクエストボディが不正のとき400を返す", async () => {
-    const res = await createTestClient(llmExtractPaymentRoutes, makeEnv(), {
+    const ai = mockAiReturning({
+      date: "2026-06-01",
+      categoryId: 101,
+      genreId: 201,
+      accountId: 1,
+      place: "スーパーA",
+      items: [{ name: null, amount: 1980, comment: null }],
+      confidence: "high",
+      reasoning: "ok",
+    });
+    const res = await createTestClient(llmExtractPaymentRoutes, makeEnv({ AI: ai }), {
       oidcAuth: MOCK_USER,
-      llmModel: mockModelReturning({
-        date: "2026-06-01",
-        categoryId: 101,
-        genreId: 201,
-        accountId: 1,
-        place: "スーパーA",
-        items: [{ name: null, amount: 1980, comment: null }],
-        confidence: "high",
-        reasoning: "ok",
-      }),
       // pageContent が欠如
     }).api.llm["extract-payment"].$post({
       json: { categories: [], accounts: [], recentStores: [] } as unknown as ExtractPaymentBody,
@@ -114,10 +115,13 @@ describe("POST /api/llm/extract-payment", () => {
       reasoning: "金額と日付が明確に記載されていた",
     };
 
-    const res = await createTestClient(llmExtractPaymentRoutes, makeEnv(), {
-      oidcAuth: MOCK_USER,
-      llmModel: mockModelReturning(expected),
-    }).api.llm["extract-payment"].$post({ json: makeBody() });
+    const res = await createTestClient(
+      llmExtractPaymentRoutes,
+      makeEnv({ AI: mockAiReturning(expected) }),
+      {
+        oidcAuth: MOCK_USER,
+      },
+    ).api.llm["extract-payment"].$post({ json: makeBody() });
 
     expect(res.status).toBe(200);
     const body = (await res.json()) as ExtractedPayment;
@@ -125,9 +129,8 @@ describe("POST /api/llm/extract-payment", () => {
   });
 
   test("LLM 呼び出しが失敗したとき502を返す", async () => {
-    const res = await createTestClient(llmExtractPaymentRoutes, makeEnv(), {
+    const res = await createTestClient(llmExtractPaymentRoutes, makeEnv({ AI: mockAiThrowing() }), {
       oidcAuth: MOCK_USER,
-      llmModel: mockModelThrowing(),
     }).api.llm["extract-payment"].$post({ json: makeBody() });
 
     expect(res.status).toBe(502);

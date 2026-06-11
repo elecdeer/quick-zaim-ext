@@ -2,11 +2,17 @@
  * LLM による支払い情報抽出のスキーマとプロンプト構築。
  *
  * `POST /api/llm/extract-payment` ハンドラと評価スクリプトの両方から再利用するため、
- * バリデーションスキーマと `buildPrompt` をここに集約する。
+ * バリデーションスキーマと `buildPrompt`／`runExtractPayment` をここに集約する。
+ *
+ * Cloudflare Workers AI binding (`env.AI.run`) を直接叩く。`workers-ai-provider` を
+ * 経由しないのは、同プロバイダが OpenAI 互換モデル（例: `openai/gpt-5.4-mini`）に対して
+ * `response_format.json_schema.name` を埋めず OpenAI 側で `Missing required parameter`
+ * エラーになるためで、ここでは valibot スキーマを `@valibot/to-json-schema` で
+ * JSON Schema に変換し、`json_schema.name`/`strict` を明示して送る。
  */
 
-import { valibotSchema } from "@ai-sdk/valibot";
-import { generateText, Output, type LanguageModel } from "ai";
+import type { Ai } from "@cloudflare/workers-types";
+import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
 
 const ARIA_SNAPSHOT_MAX_CHARS = 16000;
@@ -56,8 +62,11 @@ export type ExtractPaymentBody = v.InferOutput<typeof ExtractPaymentBodySchema>;
 
 /**
  * 抽出された 1 品目分のスキーマ。明細行 1 つに対応する。
+ *
+ * OpenAI Structured Outputs の strict モードは object に `additionalProperties: false`
+ * を要求する。`v.strictObject` を使うと `@valibot/to-json-schema` が自動で付けてくれる。
  */
-export const ExtractedPaymentItemSchema = v.object({
+export const ExtractedPaymentItemSchema = v.strictObject({
   name: v.nullable(v.string()),
   amount: v.nullable(v.number()),
   comment: v.nullable(v.string()),
@@ -71,7 +80,7 @@ export type ExtractedPaymentItem = v.InferOutput<typeof ExtractedPaymentItemSche
  * 1 回の支払い全体に共通する属性（日付・カテゴリ・口座・店舗）はトップレベルに、
  * 個別の明細は `items` 配列に格納する。
  */
-export const ExtractedPaymentSchema = v.object({
+export const ExtractedPaymentSchema = v.strictObject({
   date: v.nullable(v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/))),
   categoryId: v.nullable(v.number()),
   genreId: v.nullable(v.number()),
@@ -169,27 +178,71 @@ export const buildPrompt = (input: ExtractPaymentBody): { system: string; prompt
 };
 
 /**
- * LanguageModel を使って支払い情報を抽出する。
+ * `ExtractedPaymentSchema` を OpenAI 互換の JSON Schema に変換した結果をキャッシュする。
+ * 毎回ビルドする必要はないため module スコープで一度だけ計算する。
+ */
+const EXTRACTED_PAYMENT_JSON_SCHEMA = toJsonSchema(ExtractedPaymentSchema);
+
+interface WorkersAiChatResponse {
+  response?: unknown;
+  choices?: Array<{ message?: { content?: unknown } }>;
+  usage?: unknown;
+}
+
+/**
+ * Workers AI の chat 系レスポンスから assistant メッセージ本体を取り出す。
  *
- * `workers-ai-provider` 公式パターンに合わせ `generateText` + `Output.object` を使う。
- * （`generateObject` は OpenAI/Anthropic 等のネイティブ JSON モード前提で、
- *   Workers AI ではこちらが推奨される構造化出力経路。）
+ * OpenAI 互換モデルは `choices[0].message.content` を返し、Workers AI ネイティブ
+ * モデルは `response` を返す。さらに `json_schema` 指定時は文字列ではなくパース済み
+ * オブジェクトで返るケースがあるため、両ケースを正規化する。
+ */
+const extractAssistantPayload = (output: WorkersAiChatResponse): unknown => {
+  const choiceContent = output.choices?.[0]?.message?.content;
+  if (choiceContent != null && choiceContent !== "") {
+    if (typeof choiceContent === "string") {
+      return JSON.parse(choiceContent);
+    }
+    return choiceContent;
+  }
+  if ("response" in output) {
+    const response = output.response;
+    if (typeof response === "string") return JSON.parse(response);
+    if (response !== null && response !== undefined) return response;
+  }
+  throw new Error(`Workers AI returned no usable content: ${JSON.stringify(output)}`);
+};
+
+/**
+ * Workers AI binding を使って支払い情報を抽出する。
+ *
+ * `env.AI.run(model, ...)` を直接呼び出し、OpenAI Structured Outputs の
+ * `response_format.json_schema` に valibot 由来の JSON Schema を渡す。
  */
 export const runExtractPayment = async (params: {
-  model: LanguageModel;
+  ai: Ai;
+  model: string;
   input: ExtractPaymentBody;
   abortSignal?: AbortSignal;
 }): Promise<{ object: ExtractedPayment; usage: unknown }> => {
   const { system, prompt } = buildPrompt(params.input);
-  const result = await generateText({
-    model: params.model,
-    system,
-    prompt,
-    output: Output.object({ schema: valibotSchema(ExtractedPaymentSchema) }),
-    abortSignal: params.abortSignal,
+  const inputs: Record<string, unknown> = {
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: prompt },
+    ],
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "ExtractedPayment",
+        strict: true,
+        schema: EXTRACTED_PAYMENT_JSON_SCHEMA,
+      },
+    },
+  };
+  const output: WorkersAiChatResponse = await params.ai.run(params.model, inputs, {
+    signal: params.abortSignal,
   });
-  if (!result.output) {
-    throw new Error("LLM returned no structured output");
-  }
-  return { object: result.output, usage: result.usage };
+  const payload = extractAssistantPayload(output);
+  const object = v.parse(ExtractedPaymentSchema, payload);
+  return { object, usage: output.usage };
 };

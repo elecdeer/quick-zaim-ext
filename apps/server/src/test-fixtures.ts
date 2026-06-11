@@ -12,7 +12,6 @@ import type { createClient } from "@repo/zaim-api/client";
 import { getLogger } from "@logtape/logtape";
 import { Hono } from "hono";
 import { testClient } from "hono/testing";
-import type { LanguageModel } from "ai";
 import type { Env, HonoEnv } from "./env.ts";
 import { createMiddleware } from "hono/factory";
 
@@ -121,8 +120,6 @@ export interface RouteTestContext {
   oidcAuth?: OidcAuth | null;
   zaimClient?: ReturnType<typeof createClient>;
   zaimUserId?: string;
-  /** LLM ルート用：AI SDK の LanguageModel をモックで差し込む */
-  llmModel?: LanguageModel;
 }
 
 /**
@@ -144,7 +141,6 @@ export const createTestClient = <T extends Hono<HonoEnv, any, any>>(
     if ("oidcAuth" in context) c.set("oidcAuth", context.oidcAuth ?? null);
     if ("zaimClient" in context && context.zaimClient) c.set("zaimClient", context.zaimClient);
     if ("zaimUserId" in context && context.zaimUserId) c.set("zaimUserId", context.zaimUserId);
-    if ("llmModel" in context && context.llmModel) c.set("llmModel", context.llmModel);
     await next();
   });
 

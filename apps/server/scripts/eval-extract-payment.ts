@@ -31,7 +31,6 @@ import {
   type ExtractPaymentBody,
   type ExtractedPayment,
 } from "../src/llm/extractPayment.ts";
-import { createLanguageModel } from "../src/llm/model.ts";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const FIXTURES_DIR = join(SCRIPT_DIR, "eval-fixtures");
@@ -134,12 +133,11 @@ const compareField = (expected: unknown, actual: unknown): boolean => {
 };
 
 const runCase = async (target: ModelTarget, fixture: Fixture, ai: Ai): Promise<CaseResult> => {
-  const model = createLanguageModel({ binding: ai, model: target.model });
-
   const started = performance.now();
   try {
     const { object, usage } = await runExtractPayment({
-      model,
+      ai,
+      model: target.model,
       input: fixture.input as ExtractPaymentBody,
     });
     const durationMs = performance.now() - started;

@@ -6,7 +6,7 @@
   // 平文の環境変数（シークレットは `wrangler secret put <NAME>` で別途登録）
   "vars": {
     // Workers AI で叩くデフォルトモデル ID。差し替え可能。
-    "LLM_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+    "LLM_MODEL": "openai/gpt-5.4-mini",
   },
   // Workers AI binding（リクエストハンドラから env.AI として参照）
   // remote: true は wrangler dev / getPlatformProxy で実 Workers AI を叩くために必須。
