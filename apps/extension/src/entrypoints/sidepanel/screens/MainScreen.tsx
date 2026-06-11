@@ -23,16 +23,7 @@ type DuplicateState = "unchecked" | "checking" | "warned";
 
 const newItem = (): Item => ({ id: crypto.randomUUID(), name: "", amount: "", comment: "" });
 
-const localDateString = () => {
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-};
-
-const cellInput =
-  "w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
+const localDateString = () => Temporal.Now.plainDateISO().toString();
 
 export default function MainScreen({ serverUrl }: Props) {
   const [items, setItems] = useState<Item[]>([newItem()]);
@@ -273,14 +264,17 @@ export default function MainScreen({ serverUrl }: Props) {
 
           {items.map((item) => (
             <Fragment key={item.id}>
-              <input
-                className={cellInput}
+              <Input
+                size="sm"
+                aria-label="品目名"
                 placeholder="品目名"
                 value={item.name}
                 onChange={(e) => updateItem(item.id, { name: e.target.value })}
               />
-              <input
-                className={`${cellInput} text-right`}
+              <Input
+                size="sm"
+                className="text-right"
+                aria-label="金額"
                 type="number"
                 min={1}
                 step={1}
@@ -288,31 +282,35 @@ export default function MainScreen({ serverUrl }: Props) {
                 value={item.amount}
                 onChange={(e) => updateItem(item.id, { amount: e.target.value })}
               />
-              <input
-                className={cellInput}
+              <Input
+                size="sm"
+                aria-label="メモ"
                 placeholder="メモ"
                 value={item.comment}
                 onChange={(e) => updateItem(item.id, { comment: e.target.value })}
               />
-              <button
-                className="flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              <Button
+                size="sm"
+                variant="ghost"
                 type="button"
                 onClick={() => removeItem(item.id)}
                 aria-label="品目を削除"
               >
                 ×
-              </button>
+              </Button>
             </Fragment>
           ))}
         </div>
 
-        <button
-          className="self-start text-sm text-blue-600 hover:underline"
+        <Button
+          className="self-start"
+          size="sm"
+          variant="ghost"
           type="button"
           onClick={() => setItems((prev) => [...prev, newItem()])}
         >
           + 品目を追加
-        </button>
+        </Button>
 
         <div className="flex items-center justify-between border-t border-gray-200 pt-2">
           <span className="text-sm font-semibold text-gray-700">合計</span>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Button } from "@cloudflare/kumo";
 import { Gear } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { browser } from "wxt/browser";
@@ -39,14 +40,14 @@ export default function App() {
     <div className="flex min-h-screen flex-col gap-4 bg-gray-50 p-4">
       <header className="flex items-center justify-between">
         <h1 className="text-lg font-bold text-gray-900">Quick Zaim</h1>
-        <button
+        <Button
           type="button"
+          variant="ghost"
           aria-label="設定"
           onClick={() => setSettingsOpen(true)}
-          className="flex h-8 w-8 items-center justify-center rounded-md text-gray-500 hover:bg-gray-200 hover:text-gray-700"
         >
           <Gear size={20} weight="regular" />
-        </button>
+        </Button>
       </header>
       <MainScreen serverUrl={serverUrl} />
       <SettingsOverlay open={settingsOpen} onOpenChange={setSettingsOpen} />
