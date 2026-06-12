@@ -75,8 +75,6 @@ const commonHandlers = [
 /** カテゴリ選択 → 金額入力まで行う共通セットアップ */
 const fillMinimumForm = async () => {
   await page.getByRole("combobox", { name: "カテゴリ" }).click();
-  await page.getByRole("option", { name: "食費" }).click();
-  await page.getByRole("combobox", { name: "サブカテゴリ" }).click();
   await page.getByRole("option", { name: "食料品" }).click();
   await page.getByPlaceholder("0").fill("1000");
 };

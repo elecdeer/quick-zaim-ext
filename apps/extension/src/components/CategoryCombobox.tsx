@@ -1,5 +1,6 @@
 import { Combobox } from "@cloudflare/kumo";
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { createClient } from "server/client";
 
 type SubCategory = { id: number; name: string };
@@ -14,6 +15,19 @@ type CategoriesResponse = { fetchedAt: string; categories: Category[] };
 export type CategorySelection = {
   categoryId: number;
   genreId: number;
+};
+
+type GenreItem = {
+  categoryId: number;
+  categoryName: string;
+  genreId: number;
+  genreName: string;
+};
+
+type GenreGroup = {
+  categoryId: number;
+  categoryName: string;
+  items: GenreItem[];
 };
 
 interface Props {
@@ -33,8 +47,8 @@ const fetchCategories = async (serverUrl: string): Promise<CategoriesResponse> =
 };
 
 /**
- * カテゴリ（大カテゴリ → サブカテゴリ連動）の combobox コンポーネント。
- * paymentモードのカテゴリのみ表示し、カテゴリ選択時にサブカテゴリが連動して表示される。
+ * カテゴリ（大カテゴリでグループ化されたサブカテゴリ）の combobox コンポーネント。
+ * paymentモードのカテゴリのみ対象。1つの Combobox 内でカテゴリごとにグループ表示する。
  */
 export const CategoryCombobox = ({ serverUrl, value, onChange }: Props) => {
   const { data, isLoading, isError } = useQuery({
@@ -43,31 +57,35 @@ export const CategoryCombobox = ({ serverUrl, value, onChange }: Props) => {
     enabled: !!serverUrl,
   });
 
-  const categories = (data?.categories ?? []).filter((c) => c.mode === "payment");
-  const selectedCategory = categories.find((c) => c.id === value?.categoryId) ?? null;
-  const subCategories = selectedCategory?.subCategories ?? [];
-  const selectedSubCategory = subCategories.find((g) => g.id === value?.genreId) ?? null;
+  const groups = useMemo<GenreGroup[]>(() => {
+    const categories = (data?.categories ?? []).filter((c) => c.mode === "payment");
+    return categories.map((c) => ({
+      categoryId: c.id,
+      categoryName: c.name,
+      items: c.subCategories.map((sc) => ({
+        categoryId: c.id,
+        categoryName: c.name,
+        genreId: sc.id,
+        genreName: sc.name,
+      })),
+    }));
+  }, [data]);
 
-  const handleCategoryChange = (cat: Category | null) => {
-    if (!cat) {
+  const selectedItem = useMemo<GenreItem | null>(() => {
+    if (!value) return null;
+    for (const g of groups) {
+      const found = g.items.find((i) => i.genreId === value.genreId);
+      if (found) return found;
+    }
+    return null;
+  }, [groups, value]);
+
+  const handleChange = (item: GenreItem | null) => {
+    if (!item) {
       onChange(null);
       return;
     }
-    // カテゴリ変更時はサブカテゴリを先頭にリセット
-    const firstGenre = cat.subCategories[0];
-    onChange({ categoryId: cat.id, genreId: firstGenre?.id ?? 0 });
-  };
-
-  /**
-   * @param genre - 選択されたサブカテゴリ。null はクリア操作を意味する
-   */
-  const handleGenreChange = (genre: SubCategory | null) => {
-    if (!value) return;
-    if (!genre) {
-      onChange({ ...value, genreId: 0 });
-      return;
-    }
-    onChange({ ...value, genreId: genre.id });
+    onChange({ categoryId: item.categoryId, genreId: item.genreId });
   };
 
   if (isLoading) {
@@ -87,58 +105,36 @@ export const CategoryCombobox = ({ serverUrl, value, onChange }: Props) => {
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <Combobox
-        label="カテゴリ"
-        items={categories}
-        value={selectedCategory}
-        onValueChange={(v) => handleCategoryChange(v as Category | null)}
-        itemToStringLabel={(item: Category) => item.name}
-        isItemEqualToValue={(a: Category, b: Category) => a.id === b.id}
-      >
-        <Combobox.TriggerInput
-          placeholder="カテゴリを選択"
-          clearLabel="クリア"
-          showOptionsLabel="選択肢を表示"
-        />
-        <Combobox.Content>
-          <Combobox.List>
-            {(item: Category) => (
-              <Combobox.Item key={item.id} value={item}>
-                {item.name}
-              </Combobox.Item>
-            )}
-          </Combobox.List>
-          <Combobox.Empty>カテゴリが見つかりません</Combobox.Empty>
-        </Combobox.Content>
-      </Combobox>
-
-      {selectedCategory !== null && (
-        <Combobox
-          label="サブカテゴリ"
-          items={subCategories}
-          value={selectedSubCategory}
-          onValueChange={(v) => handleGenreChange(v as SubCategory | null)}
-          itemToStringLabel={(item: SubCategory) => item.name}
-          isItemEqualToValue={(a: SubCategory, b: SubCategory) => a.id === b.id}
-        >
-          <Combobox.TriggerInput
-            placeholder="サブカテゴリを選択"
-            clearLabel="クリア"
-            showOptionsLabel="選択肢を表示"
-          />
-          <Combobox.Content>
-            <Combobox.List>
-              {(item: SubCategory) => (
-                <Combobox.Item key={item.id} value={item}>
-                  {item.name}
-                </Combobox.Item>
-              )}
-            </Combobox.List>
-            <Combobox.Empty>サブカテゴリが見つかりません</Combobox.Empty>
-          </Combobox.Content>
-        </Combobox>
-      )}
-    </div>
+    <Combobox
+      label="カテゴリ"
+      items={groups}
+      value={selectedItem}
+      onValueChange={(v) => handleChange(v as GenreItem | null)}
+      itemToStringLabel={(item: GenreItem) => `${item.categoryName} > ${item.genreName}`}
+      isItemEqualToValue={(a: GenreItem, b: GenreItem) => a.genreId === b.genreId}
+    >
+      <Combobox.TriggerInput
+        placeholder="カテゴリを選択"
+        clearLabel="クリア"
+        showOptionsLabel="選択肢を表示"
+      />
+      <Combobox.Content>
+        <Combobox.List>
+          {(group: GenreGroup) => (
+            <Combobox.Group key={group.categoryId} items={group.items}>
+              <Combobox.GroupLabel>{group.categoryName}</Combobox.GroupLabel>
+              <Combobox.Collection>
+                {(item: GenreItem) => (
+                  <Combobox.Item key={item.genreId} value={item}>
+                    {item.genreName}
+                  </Combobox.Item>
+                )}
+              </Combobox.Collection>
+            </Combobox.Group>
+          )}
+        </Combobox.List>
+        <Combobox.Empty>カテゴリが見つかりません</Combobox.Empty>
+      </Combobox.Content>
+    </Combobox>
   );
 };

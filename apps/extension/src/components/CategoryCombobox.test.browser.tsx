@@ -71,7 +71,7 @@ describe("CategoryCombobox", () => {
     await expect.element(page.getByRole("status", { name: "カテゴリを読み込み中" })).toBeVisible();
   });
 
-  test("paymentモードのカテゴリのみ表示される", async ({ worker }) => {
+  test("paymentモードのサブカテゴリだけがグループ化されて表示される", async ({ worker }) => {
     worker.use(
       http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, () =>
         HttpResponse.json(mockCategoriesResponse),
@@ -80,40 +80,22 @@ describe("CategoryCombobox", () => {
 
     await render(<ControlledCategoryCombobox />);
 
-    // カテゴリのコンボボックスのトリガーを開く
     await page.getByRole("combobox", { name: "カテゴリ" }).click();
 
-    // paymentモードのカテゴリが表示される
-    await expect.element(page.getByRole("option", { name: "食費" })).toBeVisible();
-    await expect.element(page.getByRole("option", { name: "交通費" })).toBeVisible();
+    // payment モードのサブカテゴリは表示される
+    await expect.element(page.getByRole("option", { name: "食料品" })).toBeVisible();
+    await expect.element(page.getByRole("option", { name: "外食" })).toBeVisible();
+    await expect.element(page.getByRole("option", { name: "電車・バス" })).toBeVisible();
 
-    // incomeモードのカテゴリは表示されない
-    await expect.element(page.getByRole("option", { name: "給与" })).not.toBeInTheDocument();
+    // カテゴリ名はグループラベルとして表示される
+    await expect.element(page.getByText("食費")).toBeVisible();
+    await expect.element(page.getByText("交通費")).toBeVisible();
+
+    // income モードのサブカテゴリは表示されない
+    await expect.element(page.getByRole("option", { name: "給料" })).not.toBeInTheDocument();
   });
 
-  test("カテゴリを選択するとサブカテゴリが表示される", async ({ worker }) => {
-    worker.use(
-      http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, () =>
-        HttpResponse.json(mockCategoriesResponse),
-      ),
-    );
-
-    await render(<ControlledCategoryCombobox />);
-
-    // 初期状態ではサブカテゴリが表示されない
-    await expect
-      .element(page.getByRole("combobox", { name: "サブカテゴリ" }))
-      .not.toBeInTheDocument();
-
-    // カテゴリを選択
-    await page.getByRole("combobox", { name: "カテゴリ" }).click();
-    await page.getByRole("option", { name: "食費" }).click();
-
-    // サブカテゴリが表示される
-    await expect.element(page.getByRole("combobox", { name: "サブカテゴリ" })).toBeVisible();
-  });
-
-  test("カテゴリ選択時にonChangeが最初のサブカテゴリIDで呼ばれる", async ({ worker }) => {
+  test("サブカテゴリを選択するとonChangeがcategoryIdとgenreIdで呼ばれる", async ({ worker }) => {
     worker.use(
       http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, () =>
         HttpResponse.json(mockCategoriesResponse),
@@ -124,30 +106,9 @@ describe("CategoryCombobox", () => {
     await render(<ControlledCategoryCombobox onChange={onChange} />);
 
     await page.getByRole("combobox", { name: "カテゴリ" }).click();
-    await page.getByRole("option", { name: "食費" }).click();
-
-    expect(onChange).toHaveBeenCalledWith({ categoryId: 101, genreId: 1001 });
-  });
-
-  test("サブカテゴリを選択するとonChangeがgenreIdで呼ばれる", async ({ worker }) => {
-    worker.use(
-      http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, () =>
-        HttpResponse.json(mockCategoriesResponse),
-      ),
-    );
-
-    const onChange = vi.fn<(value: CategorySelection | null) => void>();
-    await render(<ControlledCategoryCombobox onChange={onChange} />);
-
-    // まずカテゴリを選択
-    await page.getByRole("combobox", { name: "カテゴリ" }).click();
-    await page.getByRole("option", { name: "食費" }).click();
-
-    // 次にサブカテゴリを選択
-    await page.getByRole("combobox", { name: "サブカテゴリ" }).click();
     await page.getByRole("option", { name: "外食" }).click();
 
-    expect(onChange).toHaveBeenLastCalledWith({ categoryId: 101, genreId: 1002 });
+    expect(onChange).toHaveBeenCalledWith({ categoryId: 101, genreId: 1002 });
   });
 
   test("カテゴリ取得エラー時にエラーメッセージが表示される", async ({ worker }) => {

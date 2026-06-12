@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@cloudflare/kumo";
-import { Gear } from "@phosphor-icons/react";
+import { GearIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { browser } from "wxt/browser";
 import { SettingsOverlay } from "../../components/SettingsOverlay.tsx";
@@ -46,7 +46,7 @@ export default function App() {
           aria-label="設定"
           onClick={() => setSettingsOpen(true)}
         >
-          <Gear size={20} weight="regular" />
+          <GearIcon size={20} weight="regular" />
         </Button>
       </header>
       <MainScreen serverUrl={serverUrl} />

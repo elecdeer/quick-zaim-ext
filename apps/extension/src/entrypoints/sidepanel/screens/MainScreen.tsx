@@ -3,6 +3,7 @@ import { Button, Input } from "@cloudflare/kumo";
 import { useMutation } from "@tanstack/react-query";
 import { AccountCombobox } from "../../../components/AccountCombobox.tsx";
 import { CategoryCombobox, type CategorySelection } from "../../../components/CategoryCombobox.tsx";
+import { DateField } from "../../../components/DateField.tsx";
 import { StoreCombobox, type StoreSelection } from "../../../components/StoreCombobox.tsx";
 import { collectFromActiveTab } from "../../../page-collector/collectFromActiveTab.ts";
 import { createClient } from "server/client";
@@ -166,7 +167,7 @@ export default function MainScreen({ serverUrl }: Props) {
     },
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!categorySelection) return;
 
@@ -258,7 +259,7 @@ export default function MainScreen({ serverUrl }: Props) {
       <section className="flex flex-col gap-2">
         <div className="grid grid-cols-[1fr_5rem_5rem_1.5rem] items-center gap-x-1 gap-y-1">
           <span className="text-xs font-semibold text-gray-500">品目名</span>
-          <span className="text-right text-xs font-semibold text-gray-500">金額</span>
+          <span className="text-xs font-semibold text-gray-500">金額</span>
           <span className="text-xs font-semibold text-gray-500">メモ</span>
           <span />
 
@@ -318,13 +319,7 @@ export default function MainScreen({ serverUrl }: Props) {
         </div>
       </section>
 
-      <Input
-        label="日付"
-        type="date"
-        value={date}
-        onChange={(e) => setDate(e.target.value)}
-        required
-      />
+      <DateField value={date} onChange={setDate} required />
 
       {duplicateState === "warned" && (
         <div
