@@ -6,7 +6,13 @@ import { defineProject } from "vitest/config";
 export default defineProject({
   plugins: [react(), tailwindcss()],
   optimizeDeps: {
-    include: ["react", "react-dom/client", "react/jsx-dev-runtime", "vitest-browser-react"],
+    include: [
+      "react",
+      "react-dom/client",
+      "react/jsx-dev-runtime",
+      "vitest-browser-react",
+      "@phosphor-icons/react",
+    ],
   },
   test: {
     name: "extension/browser",

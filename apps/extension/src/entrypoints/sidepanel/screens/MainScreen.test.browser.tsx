@@ -72,7 +72,7 @@ const commonHandlers = [
   noDuplicateHandler,
 ];
 
-/** カテゴリ選択 → 金額入力まで行う共通セットアップ */
+/** 1 行目のカテゴリ選択 → 金額入力まで行う共通セットアップ */
 const fillMinimumForm = async () => {
   await page.getByRole("combobox", { name: "カテゴリ" }).click();
   await page.getByRole("option", { name: "食料品" }).click();
@@ -80,14 +80,11 @@ const fillMinimumForm = async () => {
 };
 
 describe("MainScreen", () => {
-  test("初期状態でヘッダーと登録ボタン（無効）が表示される", async ({ worker }) => {
+  test("初期状態で登録ボタンが無効", async ({ worker }) => {
     worker.use(...commonHandlers);
 
     await render(<Default.Component />);
 
-    await expect.element(page.getByText("品目名")).toBeVisible();
-    await expect.element(page.getByText("金額")).toBeVisible();
-    await expect.element(page.getByText("メモ")).toBeVisible();
     await expect.element(page.getByRole("button", { name: "登録" })).toBeDisabled();
   });
 
@@ -106,11 +103,13 @@ describe("MainScreen", () => {
 
     await render(<Default.Component />);
 
+    // 初期は 1 行
+    await expect.element(page.getByRole("button", { name: "品目を削除" })).toBeVisible();
+    expect(page.getByRole("button", { name: "品目を削除" }).all().length).toBe(1);
+
     await page.getByRole("button", { name: "+ 品目を追加" }).click();
 
-    const nameInputs = page.getByPlaceholder("品目名");
-    await expect.element(nameInputs.nth(0)).toBeVisible();
-    await expect.element(nameInputs.nth(1)).toBeVisible();
+    expect(page.getByRole("button", { name: "品目を削除" }).all().length).toBe(2);
   });
 
   test("品目を削除すると行が減り合計がリセットされる", async ({ worker }) => {
@@ -136,7 +135,7 @@ describe("MainScreen", () => {
     await expect.element(page.getByRole("button", { name: "登録" })).toBeEnabled();
   });
 
-  test("登録ボタン押下でPOST APIが呼ばれる", async ({ worker }) => {
+  test("登録ボタン押下でPOST APIが品目ごとのカテゴリで呼ばれる", async ({ worker }) => {
     const postHandler = vi.fn<(body: unknown) => void>();
     worker.use(
       ...commonHandlers,
@@ -263,5 +262,63 @@ describe("MainScreen", () => {
     await page.getByRole("button", { name: "登録" }).click();
 
     await expect.element(page.getByRole("alert")).toHaveTextContent("登録に失敗しました（502）");
+  });
+
+  test("品目名と メモはモーダル経由で編集できる", async ({ worker }) => {
+    worker.use(...commonHandlers);
+
+    await render(<Default.Component />);
+
+    // 品目名ボタンを押すと編集モーダルが開く
+    await page.getByRole("button", { name: "品目名を編集" }).click();
+
+    const nameInput = page.getByRole("textbox", { name: "品目名" });
+    const commentInput = page.getByRole("textbox", { name: "メモ" });
+
+    await nameInput.fill("りんご");
+    await commentInput.fill("特売");
+    await page.getByRole("button", { name: "保存" }).click();
+
+    // 閉じた後、品目名ボタンに反映されている
+    await expect
+      .element(page.getByRole("button", { name: "品目名を編集" }))
+      .toHaveTextContent("りんご");
+  });
+
+  test("品目ごとに異なるカテゴリを選んで登録できる", async ({ worker }) => {
+    const postHandler = vi.fn<(body: unknown) => void>();
+    worker.use(
+      ...commonHandlers,
+      http.post(`${MOCK_SERVER_URL}/api/zaim/payment`, async ({ request }) => {
+        postHandler(await request.json());
+        return HttpResponse.json({ id: 999, modified: "2024-01-01T00:00:00Z" }, { status: 201 });
+      }),
+    );
+
+    await render(<Default.Component />);
+
+    // 1 行目: カテゴリ=食料品, 金額=1000
+    const firstCategory = page.getByRole("combobox", { name: "カテゴリ" }).first();
+    await firstCategory.click();
+    await page.getByRole("option", { name: "食料品" }).click();
+    await page.getByPlaceholder("0").first().fill("1000");
+
+    // 2 行目を追加し、カテゴリ=電車・バス, 金額=500
+    await page.getByRole("button", { name: "+ 品目を追加" }).click();
+    const secondCategory = page.getByRole("combobox", { name: "カテゴリ" }).nth(1);
+    await secondCategory.click();
+    await page.getByRole("option", { name: "電車・バス" }).click();
+    await page.getByPlaceholder("0").nth(1).fill("500");
+
+    await page.getByRole("button", { name: "登録" }).click();
+
+    await vi.waitFor(() => {
+      expect(postHandler).toHaveBeenCalledWith(
+        expect.objectContaining({ genre_id: 1001, amount: 1000 }),
+      );
+      expect(postHandler).toHaveBeenCalledWith(
+        expect.objectContaining({ genre_id: 1003, amount: 500 }),
+      );
+    });
   });
 });

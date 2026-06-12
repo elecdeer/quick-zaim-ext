@@ -34,6 +34,10 @@ interface Props {
   serverUrl: string;
   value: CategorySelection | null;
   onChange: (value: CategorySelection | null) => void;
+  /** Combobox の表示サイズ。省略時は `base`。 */
+  size?: "xs" | "sm" | "base" | "lg";
+  /** 表示ラベル。null の場合はラベル領域を出さない（インライン用途）。 */
+  label?: string | null;
 }
 
 const fetchCategories = async (serverUrl: string): Promise<CategoriesResponse> => {
@@ -50,7 +54,13 @@ const fetchCategories = async (serverUrl: string): Promise<CategoriesResponse> =
  * カテゴリ（大カテゴリでグループ化されたサブカテゴリ）の combobox コンポーネント。
  * paymentモードのカテゴリのみ対象。1つの Combobox 内でカテゴリごとにグループ表示する。
  */
-export const CategoryCombobox = ({ serverUrl, value, onChange }: Props) => {
+export const CategoryCombobox = ({
+  serverUrl,
+  value,
+  onChange,
+  size,
+  label = "カテゴリ",
+}: Props) => {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["categories", serverUrl],
     queryFn: () => fetchCategories(serverUrl),
@@ -106,7 +116,8 @@ export const CategoryCombobox = ({ serverUrl, value, onChange }: Props) => {
 
   return (
     <Combobox
-      label="カテゴリ"
+      label={label ?? undefined}
+      size={size}
       items={groups}
       value={selectedItem}
       onValueChange={(v) => handleChange(v as GenreItem | null)}
@@ -117,6 +128,7 @@ export const CategoryCombobox = ({ serverUrl, value, onChange }: Props) => {
         placeholder="カテゴリを選択"
         clearLabel="クリア"
         showOptionsLabel="選択肢を表示"
+        aria-label={label === null ? "カテゴリ" : undefined}
       />
       <Combobox.Content>
         <Combobox.List>

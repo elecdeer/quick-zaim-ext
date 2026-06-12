@@ -1,9 +1,11 @@
-import { Fragment, useEffect, useState } from "react";
-import { Button, Input } from "@cloudflare/kumo";
+import { useEffect, useState } from "react";
+import { Button, Input, Popover } from "@cloudflare/kumo";
+import { ChatTextIcon } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
 import { AccountCombobox } from "../../../components/AccountCombobox.tsx";
 import { CategoryCombobox, type CategorySelection } from "../../../components/CategoryCombobox.tsx";
 import { DateField } from "../../../components/DateField.tsx";
+import { ItemEditModal } from "../../../components/ItemEditModal.tsx";
 import { StoreCombobox, type StoreSelection } from "../../../components/StoreCombobox.tsx";
 import { collectFromActiveTab } from "../../../page-collector/collectFromActiveTab.ts";
 import { createClient } from "server/client";
@@ -13,6 +15,7 @@ interface Item {
   name: string;
   amount: string;
   comment: string;
+  category: CategorySelection | null;
 }
 
 interface Props {
@@ -22,18 +25,28 @@ interface Props {
 type DuplicateInfo = { id: number; date: string; amount: number };
 type DuplicateState = "unchecked" | "checking" | "warned";
 
-const newItem = (): Item => ({ id: crypto.randomUUID(), name: "", amount: "", comment: "" });
+const newItem = (category: CategorySelection | null = null): Item => ({
+  id: crypto.randomUUID(),
+  name: "",
+  amount: "",
+  comment: "",
+  category,
+});
 
 const localDateString = () => Temporal.Now.plainDateISO().toString();
+
+const isItemReady = (item: Item): boolean =>
+  parseInt(item.amount, 10) > 0 && item.category !== null && item.category.genreId > 0;
 
 export default function MainScreen({ serverUrl }: Props) {
   const [items, setItems] = useState<Item[]>([newItem()]);
   const [date, setDate] = useState(localDateString);
-  const [categorySelection, setCategorySelection] = useState<CategorySelection | null>(null);
   const [accountId, setAccountId] = useState<number | null>(null);
   const [storeSelection, setStoreSelection] = useState<StoreSelection | null>(null);
   const [duplicateState, setDuplicateState] = useState<DuplicateState>("unchecked");
   const [duplicatesByItemId, setDuplicatesByItemId] = useState<Record<string, DuplicateInfo[]>>({});
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const editingItem = items.find((item) => item.id === editingItemId) ?? null;
 
   const total = items.reduce((sum, item) => {
     const n = parseInt(item.amount, 10);
@@ -49,11 +62,13 @@ export default function MainScreen({ serverUrl }: Props) {
   };
 
   // 入力（カテゴリ・日付・各品目金額）が変わったら重複チェック結果をリセット
-  const itemsAmountSignature = items.map((i) => `${i.id}:${i.amount}`).join(",");
+  const itemsSignature = items
+    .map((i) => `${i.id}:${i.amount}:${i.category?.genreId ?? ""}`)
+    .join(",");
   useEffect(() => {
     setDuplicateState("unchecked");
     setDuplicatesByItemId({});
-  }, [date, categorySelection?.genreId, itemsAmountSignature]);
+  }, [date, itemsSignature]);
 
   const extractMutation = useMutation({
     mutationFn: async () => {
@@ -102,12 +117,10 @@ export default function MainScreen({ serverUrl }: Props) {
     },
     onSuccess: ({ extracted, recentStores }) => {
       if (extracted.date !== null) setDate(extracted.date);
-      if (extracted.categoryId !== null && extracted.genreId !== null) {
-        setCategorySelection({
-          categoryId: extracted.categoryId,
-          genreId: extracted.genreId,
-        });
-      }
+      const extractedCategory: CategorySelection | null =
+        extracted.categoryId !== null && extracted.genreId !== null
+          ? { categoryId: extracted.categoryId, genreId: extracted.genreId }
+          : null;
       if (extracted.accountId !== null) setAccountId(extracted.accountId);
       if (extracted.place !== null) {
         const matched = recentStores.find((s) => s.place === extracted.place);
@@ -124,22 +137,26 @@ export default function MainScreen({ serverUrl }: Props) {
             name: item.name ?? "",
             amount: item.amount !== null ? String(item.amount) : "",
             comment: item.comment ?? "",
+            category: extractedCategory,
           })),
         );
+      } else if (extractedCategory) {
+        // items が空でもカテゴリだけは現在の各品目に反映
+        setItems((prev) => prev.map((item) => ({ ...item, category: extractedCategory })));
       }
     },
   });
 
   const mutation = useMutation({
     mutationFn: async () => {
-      if (!categorySelection) return;
       const client = createClient(serverUrl);
       for (const item of items) {
+        if (!item.category) throw new Error("カテゴリが選択されていません");
         const res = await client.api.zaim.payment.$post(
           {
             json: {
-              category_id: categorySelection.categoryId,
-              genre_id: categorySelection.genreId,
+              category_id: item.category.categoryId,
+              genre_id: item.category.genreId,
               amount: parseInt(item.amount, 10),
               date,
               ...(accountId !== null && { from_account_id: accountId }),
@@ -159,7 +176,6 @@ export default function MainScreen({ serverUrl }: Props) {
     onSuccess: () => {
       setItems([newItem()]);
       setDate(localDateString());
-      setCategorySelection(null);
       setAccountId(null);
       setStoreSelection(null);
       setDuplicateState("unchecked");
@@ -169,7 +185,7 @@ export default function MainScreen({ serverUrl }: Props) {
 
   const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!categorySelection) return;
+    if (!items.every(isItemReady)) return;
 
     if (duplicateState === "warned") {
       mutation.mutate();
@@ -178,17 +194,17 @@ export default function MainScreen({ serverUrl }: Props) {
 
     setDuplicateState("checking");
     const client = createClient(serverUrl);
-    const genreId = categorySelection.genreId;
 
     try {
       const results = await Promise.all(
         items.map(async (item) => {
+          if (!item.category) throw new Error("カテゴリが選択されていません");
           const res = await client.api.zaim.payment.duplicate.$get(
             {
               query: {
                 date,
                 amount: String(parseInt(item.amount, 10)),
-                genre_id: String(genreId),
+                genre_id: String(item.category.genreId),
               },
             },
             { init: { credentials: "include" } },
@@ -214,12 +230,7 @@ export default function MainScreen({ serverUrl }: Props) {
     }
   };
 
-  const canSubmit =
-    items.length > 0 &&
-    items.every((item) => parseInt(item.amount, 10) > 0) &&
-    date !== "" &&
-    categorySelection !== null &&
-    categorySelection.genreId > 0;
+  const canSubmit = items.length > 0 && items.every(isItemReady) && date !== "";
 
   const buttonLabel =
     duplicateState === "checking"
@@ -249,29 +260,34 @@ export default function MainScreen({ serverUrl }: Props) {
           </p>
         )}
       </div>
-      <CategoryCombobox
-        serverUrl={serverUrl}
-        value={categorySelection}
-        onChange={setCategorySelection}
-      />
       <AccountCombobox serverUrl={serverUrl} value={accountId} onChange={setAccountId} />
       <StoreCombobox serverUrl={serverUrl} value={storeSelection} onChange={setStoreSelection} />
-      <section className="flex flex-col gap-2">
-        <div className="grid grid-cols-[1fr_5rem_5rem_1.5rem] items-center gap-x-1 gap-y-1">
-          <span className="text-xs font-semibold text-gray-500">品目名</span>
-          <span className="text-xs font-semibold text-gray-500">金額</span>
-          <span className="text-xs font-semibold text-gray-500">メモ</span>
-          <span />
-
-          {items.map((item) => (
-            <Fragment key={item.id}>
-              <Input
+      <section className="flex flex-col gap-3">
+        {items.map((item) => (
+          <div
+            key={item.id}
+            className="flex flex-col gap-1 rounded-md border border-gray-200 bg-white p-2"
+          >
+            <CategoryCombobox
+              serverUrl={serverUrl}
+              value={item.category}
+              onChange={(value) => updateItem(item.id, { category: value })}
+              size="sm"
+              label={null}
+            />
+            <div className="grid grid-cols-[1fr_5rem_2rem_1.5rem] items-center gap-x-1">
+              <Button
                 size="sm"
-                aria-label="品目名"
-                placeholder="品目名"
-                value={item.name}
-                onChange={(e) => updateItem(item.id, { name: e.target.value })}
-              />
+                variant="ghost"
+                type="button"
+                className="justify-start truncate text-left font-normal"
+                onClick={() => setEditingItemId(item.id)}
+                aria-label="品目名を編集"
+              >
+                <span className={item.name ? "text-gray-900" : "text-gray-400"}>
+                  {item.name || "品目名"}
+                </span>
+              </Button>
               <Input
                 size="sm"
                 className="text-right"
@@ -283,13 +299,30 @@ export default function MainScreen({ serverUrl }: Props) {
                 value={item.amount}
                 onChange={(e) => updateItem(item.id, { amount: e.target.value })}
               />
-              <Input
-                size="sm"
-                aria-label="メモ"
-                placeholder="メモ"
-                value={item.comment}
-                onChange={(e) => updateItem(item.id, { comment: e.target.value })}
-              />
+              <Popover>
+                <Popover.Trigger
+                  openOnHover
+                  delay={200}
+                  render={
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      type="button"
+                      onClick={() => setEditingItemId(item.id)}
+                      aria-label={item.comment ? `メモ: ${item.comment}` : "メモを編集"}
+                    >
+                      <ChatTextIcon
+                        size={16}
+                        weight={item.comment ? "fill" : "regular"}
+                        className={item.comment ? "text-blue-600" : "text-gray-400"}
+                      />
+                    </Button>
+                  }
+                />
+                <Popover.Content align="end" sideOffset={4} className="max-w-64 p-2 text-xs">
+                  {item.comment ? item.comment : <span className="text-gray-400">メモなし</span>}
+                </Popover.Content>
+              </Popover>
               <Button
                 size="sm"
                 variant="ghost"
@@ -299,16 +332,16 @@ export default function MainScreen({ serverUrl }: Props) {
               >
                 ×
               </Button>
-            </Fragment>
-          ))}
-        </div>
+            </div>
+          </div>
+        ))}
 
         <Button
           className="self-start"
           size="sm"
           variant="ghost"
           type="button"
-          onClick={() => setItems((prev) => [...prev, newItem()])}
+          onClick={() => setItems((prev) => [...prev, newItem(prev.at(-1)?.category ?? null)])}
         >
           + 品目を追加
         </Button>
@@ -358,6 +391,18 @@ export default function MainScreen({ serverUrl }: Props) {
         <p role="alert" className="text-sm font-medium text-red-600">
           {mutation.error instanceof Error ? mutation.error.message : "登録に失敗しました"}
         </p>
+      )}
+
+      {editingItem && (
+        <ItemEditModal
+          open={editingItemId !== null}
+          onOpenChange={(open) => {
+            if (!open) setEditingItemId(null);
+          }}
+          initialName={editingItem.name}
+          initialComment={editingItem.comment}
+          onSubmit={(next) => updateItem(editingItem.id, next)}
+        />
       )}
     </form>
   );

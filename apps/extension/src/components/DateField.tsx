@@ -47,6 +47,7 @@ export const DateField = ({ label = "日付", value, onChange, required }: Props
     <Field label={label}>
       <div className="flex items-center gap-1">
         <Input
+          aria-label={label}
           className="flex-1"
           type="text"
           inputMode="numeric"
