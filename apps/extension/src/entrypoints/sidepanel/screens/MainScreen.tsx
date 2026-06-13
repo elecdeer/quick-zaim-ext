@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Input, Popover } from "@cloudflare/kumo";
+import { Button, InputGroup, Popover } from "@cloudflare/kumo";
 import { ChatTextIcon } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
 import { AccountCombobox } from "../../../components/AccountCombobox.tsx";
@@ -268,37 +268,34 @@ export default function MainScreen({ serverUrl }: Props) {
             key={item.id}
             className="flex flex-col gap-1 rounded-md border border-gray-200 bg-white p-2"
           >
-            <CategoryCombobox
-              serverUrl={serverUrl}
-              value={item.category}
-              onChange={(value) => updateItem(item.id, { category: value })}
-              size="sm"
-              label={null}
-            />
-            <div className="grid grid-cols-[1fr_5rem_2rem_1.5rem] items-center gap-x-1">
+            <div className="grid grid-cols-[minmax(0,1fr)_6rem_2rem_1.5rem] items-center gap-x-1">
               <Button
                 size="sm"
                 variant="ghost"
                 type="button"
-                className="justify-start truncate text-left font-normal"
+                className="min-w-0 justify-start text-left font-normal"
                 onClick={() => setEditingItemId(item.id)}
                 aria-label="品目名を編集"
               >
-                <span className={item.name ? "text-gray-900" : "text-gray-400"}>
+                <span
+                  className={`block w-full truncate ${item.name ? "text-gray-900" : "text-gray-400"}`}
+                >
                   {item.name || "品目名"}
                 </span>
               </Button>
-              <Input
-                size="sm"
-                className="text-right"
-                aria-label="金額"
-                type="number"
-                min={1}
-                step={1}
-                placeholder="0"
-                value={item.amount}
-                onChange={(e) => updateItem(item.id, { amount: e.target.value })}
-              />
+              <InputGroup size="sm" className="min-w-0">
+                <InputGroup.Addon>¥</InputGroup.Addon>
+                <InputGroup.Input
+                  className="text-right"
+                  aria-label="金額"
+                  type="number"
+                  min={1}
+                  step={1}
+                  placeholder="0"
+                  value={item.amount}
+                  onChange={(e) => updateItem(item.id, { amount: e.target.value })}
+                />
+              </InputGroup>
               <Popover>
                 <Popover.Trigger
                   openOnHover
@@ -333,6 +330,13 @@ export default function MainScreen({ serverUrl }: Props) {
                 ×
               </Button>
             </div>
+            <CategoryCombobox
+              serverUrl={serverUrl}
+              value={item.category}
+              onChange={(value) => updateItem(item.id, { category: value })}
+              size="sm"
+              label={null}
+            />
           </div>
         ))}
 

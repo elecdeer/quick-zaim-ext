@@ -16,7 +16,7 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
-    "@cloudflare/kumo": "^1.19.0",
+    "@cloudflare/kumo": "catalog:",
     "@phosphor-icons/react": "^2.1.10",
     "@tanstack/react-query": "catalog:",
     "hono": "^4.12.14",

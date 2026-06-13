@@ -4,6 +4,7 @@ packages:
   - tools/*
 
 catalog:
+  "@cloudflare/kumo": ^2.5.2
   "@hey-api/openapi-ts": ^0.97.1
   "@hono/cli": ^0.1.10
   "@hono/standard-validator": ^0.2.2
