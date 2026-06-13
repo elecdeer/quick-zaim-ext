@@ -21,7 +21,7 @@ RUN CI=true pnpm install --offline --frozen-lockfile
 # ソースファイルをコピーしてwxt prepareを実行
 COPY . .
 
-RUN cd apps/extension && pnpm exec wxt prepare
+RUN cd apps/extension && CI=true pnpm exec wxt prepare
 
 WORKDIR /app/apps/extension
 
