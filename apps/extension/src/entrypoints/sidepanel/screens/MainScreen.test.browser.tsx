@@ -272,6 +272,20 @@ describe("MainScreen", () => {
     await expect.element(page.getByRole("alert")).toHaveTextContent("登録に失敗しました（502）");
   });
 
+  test("品目編集モーダルはクリックした項目にフォーカスが当たって開く", async ({ worker }) => {
+    worker.use(...commonHandlers);
+
+    await render(<Default.Component />);
+
+    await page.getByRole("button", { name: "金額を編集" }).click();
+    await expect.element(page.getByRole("spinbutton", { name: "金額" })).toHaveFocus();
+
+    // モーダルを閉じて別の項目を開く
+    await page.getByRole("button", { name: "完了" }).click();
+    await page.getByRole("button", { name: "メモを編集" }).click();
+    await expect.element(page.getByRole("textbox", { name: "メモ" })).toHaveFocus();
+  });
+
   test("品名・メモはモーダル経由で編集できる", async ({ worker }) => {
     worker.use(...commonHandlers);
 
