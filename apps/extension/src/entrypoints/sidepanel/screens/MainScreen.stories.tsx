@@ -1,6 +1,7 @@
 import { http, HttpResponse } from "msw";
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { userEvent, within } from "storybook/test";
 import preview from "#storybook/preview";
 import MainScreen from "./MainScreen.tsx";
 
@@ -112,19 +113,77 @@ const noDuplicateHandler = http.get(`${MOCK_SERVER_URL}/api/zaim/payment/duplica
   HttpResponse.json({ duplicates: [] }),
 );
 
+const categoriesHandler = http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, () =>
+  HttpResponse.json(mockCategoriesResponse),
+);
+
+const extractPaymentHandler = http.post(`${MOCK_SERVER_URL}/api/llm/extract-payment`, () =>
+  HttpResponse.json({
+    date: "2026-06-13",
+    categoryId: 101,
+    genreId: 1001,
+    accountId: 2,
+    place: "スーパーA",
+    items: [
+      { name: "牛乳 1L パック", amount: 250, comment: null },
+      { name: "食パン 6枚切り 国産小麦", amount: 198, comment: "朝食用" },
+      { name: "卵 10個入り 特売", amount: 298, comment: null },
+    ],
+  }),
+);
+
+/**
+ * Storybook 上で collectFromActiveTab() が叩く chrome.* API を成功レスポンスでスタブする。
+ * preview.ts で globalThis.chrome = fakeBrowser されているため、その上にメソッドを上書きする。
+ */
+const stubCollectFromActiveTab = () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const chromeAny = globalThis.chrome as any;
+  chromeAny.tabs.query = async () => [{ id: 1, url: "https://example.com" }];
+  chromeAny.scripting = chromeAny.scripting ?? {};
+  chromeAny.scripting.executeScript = async () => [];
+  chromeAny.tabs.sendMessage = async () => ({
+    ok: true,
+    url: "https://example.com",
+    title: "サンプル商品ページ",
+    ariaSnapshot: "",
+    collectedAt: new Date().toISOString(),
+  });
+};
+
 export const Default = meta.story({
   name: "支払いフォーム",
   parameters: {
     msw: {
+      handlers: [categoriesHandler, accountsHandler, storesHandler, noDuplicateHandler],
+    },
+  },
+});
+
+export const AllFilled = meta.story({
+  name: "全項目入力済み",
+  parameters: {
+    msw: {
       handlers: [
-        http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, () =>
-          HttpResponse.json(mockCategoriesResponse),
-        ),
+        categoriesHandler,
         accountsHandler,
         storesHandler,
         noDuplicateHandler,
+        extractPaymentHandler,
       ],
     },
+  },
+  decorators: [
+    (Story) => {
+      stubCollectFromActiveTab();
+      return <Story />;
+    },
+  ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const button = await canvas.findByRole("button", { name: "このページから自動入力" });
+    await userEvent.click(button);
+    await canvas.findByDisplayValue("250");
   },
 });
 
