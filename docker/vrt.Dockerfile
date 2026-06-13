@@ -25,4 +25,4 @@ RUN cd apps/extension && pnpm exec wxt prepare
 
 WORKDIR /app/apps/extension
 
-CMD ["pnpm", "run", "test:visual"]
+CMD ["pnpm", "run", "test:browser"]

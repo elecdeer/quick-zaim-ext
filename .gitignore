@@ -48,13 +48,13 @@ storybook-static/
 # Vitest browser test attachments (差分・失敗時スクリーンショット。参照画像は __screenshots__/ で管理)
 .vitest-attachments/
 
-# Vitest browser-mode が非 visual な *.test.browser.{ts,tsx} に対しても
-# __screenshots__/ を自動生成するため無視する。
-# visual regression 用の *.visual.test.browser.{ts,tsx} の参照画像のみ残す。
-**/__screenshots__/*.test.browser.ts/
-**/__screenshots__/*.test.browser.tsx/
-!**/__screenshots__/*.visual.test.browser.ts/
-!**/__screenshots__/*.visual.test.browser.tsx/
+# Vitest browser-mode が toMatchScreenshot を使わないテストに対しても
+# __screenshots__/ を自動生成する。参照画像は明示的に -chromium-linux.png 名で
+# コミットしたもののみ残し、それ以外は無視する。
+**/__screenshots__/*.test.browser.ts/*
+**/__screenshots__/*.test.browser.tsx/*
+!**/__screenshots__/*.test.browser.ts/*-chromium-linux.png
+!**/__screenshots__/*.test.browser.tsx/*-chromium-linux.png
 
 .gitignore
 packages/zaim-api/src/generated/
