@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button, Input, InputGroup, Popover } from "@cloudflare/kumo";
+import { PencilSimpleIcon } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
 import { AccountCombobox } from "../../../components/AccountCombobox.tsx";
 import { CategoryCombobox, type CategorySelection } from "../../../components/CategoryCombobox.tsx";
@@ -294,8 +295,13 @@ export default function MainScreen({ serverUrl }: Props) {
                       className="min-w-0 flex-1 justify-start text-left font-normal"
                       aria-label="メモを編集"
                     >
+                      <PencilSimpleIcon
+                        size={14}
+                        className="shrink-0 text-gray-400"
+                        aria-hidden="true"
+                      />
                       <span
-                        className={`block w-full truncate ${item.comment ? "text-gray-900" : "text-gray-400"}`}
+                        className={`min-w-0 truncate ${item.comment ? "text-gray-900" : "text-gray-400"}`}
                       >
                         {item.comment || "メモ"}
                       </span>
