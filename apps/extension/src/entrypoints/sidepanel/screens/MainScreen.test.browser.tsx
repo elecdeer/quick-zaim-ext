@@ -264,25 +264,21 @@ describe("MainScreen", () => {
     await expect.element(page.getByRole("alert")).toHaveTextContent("登録に失敗しました（502）");
   });
 
-  test("品目名と メモはモーダル経由で編集できる", async ({ worker }) => {
+  test("品名は直接入力、メモはポップオーバー経由で入力できる", async ({ worker }) => {
     worker.use(...commonHandlers);
 
     await render(<Default.Component />);
 
-    // 品目名ボタンを押すと編集モーダルが開く
-    await page.getByRole("button", { name: "品目名を編集" }).click();
+    await page.getByRole("textbox", { name: "品名" }).fill("りんご");
+    await expect.element(page.getByRole("textbox", { name: "品名" })).toHaveValue("りんご");
 
-    const nameInput = page.getByRole("textbox", { name: "品目名" });
-    const commentInput = page.getByRole("textbox", { name: "メモ" });
+    await page.getByRole("button", { name: "メモを編集" }).click();
+    await page.getByRole("textbox", { name: "メモ" }).fill("特売");
 
-    await nameInput.fill("りんご");
-    await commentInput.fill("特売");
-    await page.getByRole("button", { name: "保存" }).click();
-
-    // 閉じた後、品目名ボタンに反映されている
+    // ポップオーバーを閉じても表示に反映されている
     await expect
-      .element(page.getByRole("button", { name: "品目名を編集" }))
-      .toHaveTextContent("りんご");
+      .element(page.getByRole("button", { name: "メモを編集" }))
+      .toHaveTextContent("特売");
   });
 
   test("品目ごとに異なるカテゴリを選んで登録できる", async ({ worker }) => {

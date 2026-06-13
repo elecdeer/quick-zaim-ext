@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
-import { Button, InputGroup, Popover } from "@cloudflare/kumo";
-import { ChatTextIcon } from "@phosphor-icons/react";
+import { Button, Input, InputGroup, Popover } from "@cloudflare/kumo";
 import { useMutation } from "@tanstack/react-query";
 import { AccountCombobox } from "../../../components/AccountCombobox.tsx";
 import { CategoryCombobox, type CategorySelection } from "../../../components/CategoryCombobox.tsx";
 import { DateField } from "../../../components/DateField.tsx";
-import { ItemEditModal } from "../../../components/ItemEditModal.tsx";
 import { StoreCombobox, type StoreSelection } from "../../../components/StoreCombobox.tsx";
 import { collectFromActiveTab } from "../../../page-collector/collectFromActiveTab.ts";
 import { createClient } from "server/client";
@@ -45,8 +43,6 @@ export default function MainScreen({ serverUrl }: Props) {
   const [storeSelection, setStoreSelection] = useState<StoreSelection | null>(null);
   const [duplicateState, setDuplicateState] = useState<DuplicateState>("unchecked");
   const [duplicatesByItemId, setDuplicatesByItemId] = useState<Record<string, DuplicateInfo[]>>({});
-  const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  const editingItem = items.find((item) => item.id === editingItemId) ?? null;
 
   const total = items.reduce((sum, item) => {
     const n = parseInt(item.amount, 10);
@@ -266,60 +262,17 @@ export default function MainScreen({ serverUrl }: Props) {
         {items.map((item) => (
           <div
             key={item.id}
-            className="flex flex-col gap-1 rounded-md border border-gray-200 bg-white p-2"
+            className="flex flex-col gap-1 rounded-md border border-gray-200 bg-white py-2 pl-2"
           >
-            <div className="grid grid-cols-[minmax(0,1fr)_6rem_2rem_1.5rem] items-center gap-x-1">
-              <Button
+            <div className="flex items-center gap-1">
+              <Input
                 size="sm"
-                variant="ghost"
-                type="button"
-                className="min-w-0 justify-start text-left font-normal"
-                onClick={() => setEditingItemId(item.id)}
-                aria-label="品目名を編集"
-              >
-                <span
-                  className={`block w-full truncate ${item.name ? "text-gray-900" : "text-gray-400"}`}
-                >
-                  {item.name || "品目名"}
-                </span>
-              </Button>
-              <InputGroup size="sm" className="min-w-0">
-                <InputGroup.Addon>¥</InputGroup.Addon>
-                <InputGroup.Input
-                  className="text-right"
-                  aria-label="金額"
-                  type="number"
-                  min={1}
-                  step={1}
-                  placeholder="0"
-                  value={item.amount}
-                  onChange={(e) => updateItem(item.id, { amount: e.target.value })}
-                />
-              </InputGroup>
-              <Popover>
-                <Popover.Trigger
-                  openOnHover
-                  delay={200}
-                  render={
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      type="button"
-                      onClick={() => setEditingItemId(item.id)}
-                      aria-label={item.comment ? `メモ: ${item.comment}` : "メモを編集"}
-                    >
-                      <ChatTextIcon
-                        size={16}
-                        weight={item.comment ? "fill" : "regular"}
-                        className={item.comment ? "text-blue-600" : "text-gray-400"}
-                      />
-                    </Button>
-                  }
-                />
-                <Popover.Content align="end" sideOffset={4} className="max-w-64 p-2 text-xs">
-                  {item.comment ? item.comment : <span className="text-gray-400">メモなし</span>}
-                </Popover.Content>
-              </Popover>
+                className="min-w-0 flex-1"
+                aria-label="品名"
+                placeholder="品名"
+                value={item.name}
+                onChange={(e) => updateItem(item.id, { name: e.target.value })}
+              />
               <Button
                 size="sm"
                 variant="ghost"
@@ -330,13 +283,58 @@ export default function MainScreen({ serverUrl }: Props) {
                 ×
               </Button>
             </div>
-            <CategoryCombobox
-              serverUrl={serverUrl}
-              value={item.category}
-              onChange={(value) => updateItem(item.id, { category: value })}
-              size="sm"
-              label={null}
-            />
+            <div className="flex items-center gap-1 pr-2">
+              <Popover>
+                <Popover.Trigger
+                  render={
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      type="button"
+                      className="min-w-0 flex-1 justify-start text-left font-normal"
+                      aria-label="メモを編集"
+                    >
+                      <span
+                        className={`block w-full truncate ${item.comment ? "text-gray-900" : "text-gray-400"}`}
+                      >
+                        {item.comment || "メモ"}
+                      </span>
+                    </Button>
+                  }
+                />
+                <Popover.Content align="start" sideOffset={4} className="w-64 p-2">
+                  <Input
+                    size="sm"
+                    aria-label="メモ"
+                    placeholder="メモ"
+                    value={item.comment}
+                    onChange={(e) => updateItem(item.id, { comment: e.target.value })}
+                  />
+                </Popover.Content>
+              </Popover>
+              <InputGroup size="sm" className="w-24 min-w-0">
+                <InputGroup.Addon>¥</InputGroup.Addon>
+                <InputGroup.Input
+                  className="appearance-none text-right [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  aria-label="金額"
+                  type="number"
+                  min={1}
+                  step={1}
+                  placeholder="0"
+                  value={item.amount}
+                  onChange={(e) => updateItem(item.id, { amount: e.target.value })}
+                />
+              </InputGroup>
+            </div>
+            <div className="pr-2">
+              <CategoryCombobox
+                serverUrl={serverUrl}
+                value={item.category}
+                onChange={(value) => updateItem(item.id, { category: value })}
+                size="sm"
+                label={null}
+              />
+            </div>
           </div>
         ))}
 
@@ -350,7 +348,7 @@ export default function MainScreen({ serverUrl }: Props) {
           + 品目を追加
         </Button>
 
-        <div className="flex items-center justify-between border-t border-gray-200 pt-2">
+        <div className="flex items-center justify-between border-t border-gray-200 pt-2 pr-2">
           <span className="text-sm font-semibold text-gray-700">合計</span>
           <span className="text-lg font-bold text-gray-900">¥{total.toLocaleString("ja-JP")}</span>
         </div>
@@ -395,18 +393,6 @@ export default function MainScreen({ serverUrl }: Props) {
         <p role="alert" className="text-sm font-medium text-red-600">
           {mutation.error instanceof Error ? mutation.error.message : "登録に失敗しました"}
         </p>
-      )}
-
-      {editingItem && (
-        <ItemEditModal
-          open={editingItemId !== null}
-          onOpenChange={(open) => {
-            if (!open) setEditingItemId(null);
-          }}
-          initialName={editingItem.name}
-          initialComment={editingItem.comment}
-          onSubmit={(next) => updateItem(editingItem.id, next)}
-        />
       )}
     </form>
   );
