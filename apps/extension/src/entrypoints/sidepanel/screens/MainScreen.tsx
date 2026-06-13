@@ -66,7 +66,7 @@ const ItemRow = ({ item, serverUrl, onEdit, onRemove }: ItemRowProps) => {
           aria-label="品名を編集"
         >
           <span
-            className={`min-w-0 truncate text-sm ${item.name ? "text-gray-900" : "text-gray-400"}`}
+            className={`min-w-0 truncate text-base ${item.name ? "text-gray-900" : "text-gray-400"}`}
           >
             {item.name || "品名"}
           </span>
@@ -99,7 +99,7 @@ const ItemRow = ({ item, serverUrl, onEdit, onRemove }: ItemRowProps) => {
           onClick={() => onEdit("amount")}
           aria-label="金額を編集"
         >
-          <span className={`text-sm ${item.amount ? "text-gray-900" : "text-gray-400"}`}>
+          <span className={`text-base ${item.amount ? "text-gray-900" : "text-gray-400"}`}>
             ¥{amountLabel}
           </span>
         </Button>
