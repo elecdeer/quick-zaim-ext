@@ -1,9 +1,8 @@
-import { Button, DatePicker, Field, Input, Popover } from "@cloudflare/kumo";
+import { Button, DatePicker, Input, Popover } from "@cloudflare/kumo";
 import { CalendarBlankIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 
 interface Props {
-  label?: string;
   /** ISO date string `YYYY-MM-DD` */
   value: string;
   onChange: (value: string) => void;
@@ -33,7 +32,7 @@ const fromJsDate = (d: Date): string =>
 /**
  * 日付入力フィールド。テキスト直接入力（YYYY-MM-DD）と、カレンダーポップアップによる選択を併用する。
  */
-export const DateField = ({ label = "日付", value, onChange, required }: Props) => {
+export const DateField = ({ value, onChange, required }: Props) => {
   const [open, setOpen] = useState(false);
   const selectedDate = toJsDate(value);
 
@@ -44,37 +43,35 @@ export const DateField = ({ label = "日付", value, onChange, required }: Props
   };
 
   return (
-    <Field label={label}>
-      <div className="flex items-center gap-1">
-        <Input
-          aria-label={label}
-          className="flex-1"
-          type="text"
-          inputMode="numeric"
-          pattern="\d{4}-\d{2}-\d{2}"
-          placeholder="YYYY-MM-DD"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          required={required}
+    <div className="flex items-center gap-2">
+      <Popover open={open} onOpenChange={setOpen}>
+        <Popover.Trigger
+          render={
+            <Button type="button" variant="ghost" size="sm" aria-label="カレンダーを開く">
+              <CalendarBlankIcon size={20} weight="regular" className="text-gray-500" />
+            </Button>
+          }
         />
-        <Popover open={open} onOpenChange={setOpen}>
-          <Popover.Trigger
-            render={
-              <Button type="button" variant="ghost" size="sm" aria-label="カレンダーを開く">
-                <CalendarBlankIcon size={18} weight="regular" />
-              </Button>
-            }
+        <Popover.Content align="start" sideOffset={4}>
+          <DatePicker
+            mode="single"
+            selected={selectedDate}
+            defaultMonth={selectedDate}
+            onChange={handleCalendarSelect}
           />
-          <Popover.Content align="end" sideOffset={4}>
-            <DatePicker
-              mode="single"
-              selected={selectedDate}
-              defaultMonth={selectedDate}
-              onChange={handleCalendarSelect}
-            />
-          </Popover.Content>
-        </Popover>
-      </div>
-    </Field>
+        </Popover.Content>
+      </Popover>
+      <Input
+        aria-label="日付"
+        className="min-w-0 flex-1"
+        type="text"
+        inputMode="numeric"
+        pattern="\d{4}-\d{2}-\d{2}"
+        placeholder="YYYY-MM-DD"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        required={required}
+      />
+    </div>
   );
 };

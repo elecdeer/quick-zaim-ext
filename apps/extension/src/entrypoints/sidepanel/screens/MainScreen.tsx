@@ -257,6 +257,7 @@ export default function MainScreen({ serverUrl }: Props) {
           </p>
         )}
       </div>
+      <DateField value={date} onChange={setDate} required />
       <AccountCombobox serverUrl={serverUrl} value={accountId} onChange={setAccountId} />
       <StoreCombobox serverUrl={serverUrl} value={storeSelection} onChange={setStoreSelection} />
       <section className="flex flex-col gap-3">
@@ -359,8 +360,6 @@ export default function MainScreen({ serverUrl }: Props) {
           <span className="text-lg font-bold text-gray-900">¥{total.toLocaleString("ja-JP")}</span>
         </div>
       </section>
-
-      <DateField value={date} onChange={setDate} required />
 
       {duplicateState === "warned" && (
         <div

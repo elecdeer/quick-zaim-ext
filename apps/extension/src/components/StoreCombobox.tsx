@@ -1,4 +1,5 @@
 import { Combobox } from "@cloudflare/kumo";
+import { StorefrontIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "server/client";
 
@@ -52,41 +53,55 @@ export const StoreCombobox = ({ serverUrl, value, onChange }: Props) => {
 
   if (isLoading) {
     return (
-      <output
-        className="block h-9 animate-pulse rounded-lg bg-gray-200"
-        aria-label="店舗を読み込み中"
-      />
+      <div className="flex items-center gap-2">
+        <StorefrontIcon size={20} className="shrink-0 text-gray-500" aria-hidden="true" />
+        <output
+          className="block h-9 flex-1 animate-pulse rounded-lg bg-gray-200"
+          aria-label="店舗を読み込み中"
+        />
+      </div>
     );
   }
 
   if (isError) {
-    return <p className="text-sm text-red-600">店舗の取得に失敗しました</p>;
+    return (
+      <div className="flex items-center gap-2">
+        <StorefrontIcon size={20} className="shrink-0 text-gray-500" aria-hidden="true" />
+        <p className="text-sm text-red-600">店舗の取得に失敗しました</p>
+      </div>
+    );
   }
 
   return (
-    <Combobox
-      label="店舗"
-      items={stores}
-      value={selectedStore}
-      onValueChange={(v) => handleChange(v as Store | null)}
-      itemToStringLabel={(item: Store) => item.place}
-      isItemEqualToValue={(a: Store, b: Store) => a.placeUid === b.placeUid}
-    >
-      <Combobox.TriggerInput
-        placeholder="店舗を選択（任意）"
-        clearLabel="クリア"
-        showOptionsLabel="選択肢を表示"
-      />
-      <Combobox.Content>
-        <Combobox.List>
-          {(item: Store) => (
-            <Combobox.Item key={item.placeUid || item.place} value={item}>
-              {item.place}
-            </Combobox.Item>
-          )}
-        </Combobox.List>
-        <Combobox.Empty>店舗が見つかりません</Combobox.Empty>
-      </Combobox.Content>
-    </Combobox>
+    <div className="flex items-center gap-2">
+      <StorefrontIcon size={20} className="shrink-0 text-gray-500" aria-hidden="true" />
+      <div className="min-w-0 flex-1">
+        <Combobox
+          label={null}
+          aria-label="店舗"
+          items={stores}
+          value={selectedStore}
+          onValueChange={(v) => handleChange(v as Store | null)}
+          itemToStringLabel={(item: Store) => item.place}
+          isItemEqualToValue={(a: Store, b: Store) => a.placeUid === b.placeUid}
+        >
+          <Combobox.TriggerInput
+            placeholder="店舗を選択（任意）"
+            clearLabel="クリア"
+            showOptionsLabel="選択肢を表示"
+          />
+          <Combobox.Content>
+            <Combobox.List>
+              {(item: Store) => (
+                <Combobox.Item key={item.placeUid || item.place} value={item}>
+                  {item.place}
+                </Combobox.Item>
+              )}
+            </Combobox.List>
+            <Combobox.Empty>店舗が見つかりません</Combobox.Empty>
+          </Combobox.Content>
+        </Combobox>
+      </div>
+    </div>
   );
 };
