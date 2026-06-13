@@ -12,7 +12,10 @@
     "jsx": "react-jsx",
     "jsxImportSource": "react",
     "allowImportingTsExtensions": true,
-    "types": ["vite/client", "chrome"]
+    "types": ["vite/client", "chrome"],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": [".storybook/*.ts", "**/*", ".wxt/wxt.d.ts"]
 }

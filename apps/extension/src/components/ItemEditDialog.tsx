@@ -1,6 +1,9 @@
 import { useMemo, useRef } from "react";
-import { Button, Input, InputGroup } from "@cloudflare/kumo";
-import { Dialog } from "@base-ui/react/dialog";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { CategoryCombobox, type CategorySelection } from "./CategoryCombobox.tsx";
 
 export type ItemEditField = "name" | "memo" | "amount" | "category";
@@ -25,9 +28,6 @@ interface Props {
 /**
  * 品目（品名・メモ・金額・カテゴリ）をまとめて編集するためのモーダル。
  * `initialFocus` で指定した項目に開いた直後フォーカスを当てる。
- *
- * kumo の `Dialog` ラッパーは base-ui の `initialFocus` を露出しないため、
- * 同じスタイリングで base-ui の Dialog 一式を直接使う。
  */
 export const ItemEditDialog = ({
   open,
@@ -52,7 +52,7 @@ export const ItemEditDialog = ({
         case "amount":
           return amountRef.current;
         case "category":
-          return categoryRef.current?.querySelector<HTMLElement>("input, [role=combobox]") ?? null;
+          return categoryRef.current?.querySelector<HTMLElement>("button, [role=combobox]") ?? null;
         default:
           return null;
       }
@@ -61,37 +61,37 @@ export const ItemEditDialog = ({
   );
 
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 bg-kumo-recessed opacity-80 transition-all duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0" />
-        <Dialog.Popup
-          initialFocus={initialFocusFn}
-          className="shadow-m ring ring-kumo-line fixed top-1/2 left-1/2 flex w-full max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-3 overflow-hidden rounded-xl bg-kumo-base p-4 text-kumo-default duration-150 data-ending-style:scale-90 data-ending-style:opacity-0 data-starting-style:scale-90 data-starting-style:opacity-0 sm:w-auto sm:min-w-72"
-        >
-          <Dialog.Title className="m-0 text-base leading-6 font-medium">品目を編集</Dialog.Title>
-          <Input
-            ref={nameRef}
-            size="sm"
-            label="品名"
-            placeholder="品名"
-            value={item.name}
-            onChange={(e) => onChange({ name: e.target.value })}
-          />
-          <Input
-            ref={memoRef}
-            size="sm"
-            label="メモ"
-            placeholder="メモ"
-            value={item.comment}
-            onChange={(e) => onChange({ comment: e.target.value })}
-          />
-          <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-gray-700">金額</span>
-            <InputGroup size="sm" className="isolate">
-              <InputGroup.Addon>¥</InputGroup.Addon>
-              <InputGroup.Input
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent initialFocus={initialFocusFn} className="sm:min-w-72">
+        <DialogTitle>品目を編集</DialogTitle>
+        <FieldGroup>
+          <Field>
+            <FieldLabel htmlFor="item-edit-name">品名</FieldLabel>
+            <Input
+              ref={nameRef}
+              id="item-edit-name"
+              placeholder="品名"
+              value={item.name}
+              onChange={(e) => onChange({ name: e.target.value })}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="item-edit-memo">メモ</FieldLabel>
+            <Input
+              ref={memoRef}
+              id="item-edit-memo"
+              placeholder="メモ"
+              value={item.comment}
+              onChange={(e) => onChange({ comment: e.target.value })}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="item-edit-amount">金額</FieldLabel>
+            <InputGroup className="isolate">
+              <InputGroupAddon>¥</InputGroupAddon>
+              <InputGroupInput
                 ref={amountRef}
-                aria-label="金額"
+                id="item-edit-amount"
                 className="appearance-none text-right [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 type="number"
                 min={1}
@@ -101,24 +101,17 @@ export const ItemEditDialog = ({
                 onChange={(e) => onChange({ amount: e.target.value })}
               />
             </InputGroup>
-          </div>
+          </Field>
           <div ref={categoryRef}>
             <CategoryCombobox
               serverUrl={serverUrl}
               value={item.category}
               onChange={(value) => onChange({ category: value })}
-              size="sm"
             />
           </div>
-          <Dialog.Close
-            render={
-              <Button variant="primary" type="button">
-                完了
-              </Button>
-            }
-          />
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+          <DialogClose render={<Button type="button">完了</Button>} />
+        </FieldGroup>
+      </DialogContent>
+    </Dialog>
   );
 };

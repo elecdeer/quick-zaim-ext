@@ -1,6 +1,8 @@
-import { Button, DatePicker, Input, Popover } from "@cloudflare/kumo";
 import { CalendarBlankIcon } from "@phosphor-icons/react";
 import { useState } from "react";
+import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface Props {
   /** ISO date string `YYYY-MM-DD` */
@@ -45,21 +47,20 @@ export const DateField = ({ value, onChange, required }: Props) => {
   return (
     <div className="flex items-center gap-2">
       <Popover open={open} onOpenChange={setOpen}>
-        <Popover.Trigger
-          render={
-            <Button type="button" variant="ghost" size="sm" aria-label="カレンダーを開く">
-              <CalendarBlankIcon size={20} weight="regular" className="text-gray-500" />
-            </Button>
-          }
-        />
-        <Popover.Content align="start" sideOffset={4}>
-          <DatePicker
+        <PopoverTrigger
+          className="shrink-0 cursor-pointer rounded-sm text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+          aria-label="カレンダーを開く"
+        >
+          <CalendarBlankIcon size={20} weight="regular" aria-hidden="true" />
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start" sideOffset={4}>
+          <Calendar
             mode="single"
             selected={selectedDate}
             defaultMonth={selectedDate}
-            onChange={handleCalendarSelect}
+            onSelect={handleCalendarSelect}
           />
-        </Popover.Content>
+        </PopoverContent>
       </Popover>
       <Input
         aria-label="日付"

@@ -1,7 +1,19 @@
-import { Combobox } from "@cloudflare/kumo";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { ChevronsUpDownIcon } from "lucide-react";
+import { useMemo, useState } from "react";
 import { createClient } from "server/client";
+import { Button } from "@/components/ui/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { FieldLabel } from "@/components/ui/field";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 type SubCategory = { id: number; name: string };
 type Category = {
@@ -34,8 +46,8 @@ interface Props {
   serverUrl: string;
   value: CategorySelection | null;
   onChange: (value: CategorySelection | null) => void;
-  /** Combobox の表示サイズ。省略時は `base`。 */
-  size?: "xs" | "sm" | "base" | "lg";
+  /** ボタンのサイズ。省略時は `default`。 */
+  size?: "xs" | "sm" | "default" | "lg";
   /** 表示ラベル。null の場合はラベル領域を出さない（インライン用途）。 */
   label?: string | null;
 }
@@ -73,15 +85,16 @@ export const useCategoryDisplayName = (
 
 /**
  * カテゴリ（大カテゴリでグループ化されたサブカテゴリ）の combobox コンポーネント。
- * paymentモードのカテゴリのみ対象。1つの Combobox 内でカテゴリごとにグループ表示する。
+ * paymentモードのカテゴリのみ対象。1つの Popover 内でカテゴリごとにグループ表示する。
  */
 export const CategoryCombobox = ({
   serverUrl,
   value,
   onChange,
-  size,
+  size = "default",
   label = "カテゴリ",
 }: Props) => {
+  const [open, setOpen] = useState(false);
   const { data, isLoading, isError } = useQuery({
     queryKey: ["categories", serverUrl],
     queryFn: () => fetchCategories(serverUrl),
@@ -111,20 +124,12 @@ export const CategoryCombobox = ({
     return null;
   }, [groups, value]);
 
-  const handleChange = (item: GenreItem | null) => {
-    if (!item) {
-      onChange(null);
-      return;
-    }
-    onChange({ categoryId: item.categoryId, genreId: item.genreId });
-  };
-
   if (isLoading) {
     return (
       <div className="flex flex-col gap-2">
         {/* output element has implicit ARIA role="status" */}
         <output
-          className="block h-9 animate-pulse rounded-lg bg-gray-200"
+          className="block h-8 animate-pulse rounded-lg bg-muted"
           aria-label="カテゴリを読み込み中"
         />
       </div>
@@ -132,42 +137,69 @@ export const CategoryCombobox = ({
   }
 
   if (isError) {
-    return <p className="text-sm text-red-600">カテゴリの取得に失敗しました</p>;
+    return <p className="text-sm text-destructive">カテゴリの取得に失敗しました</p>;
+  }
+
+  const triggerLabel = selectedItem
+    ? `${selectedItem.categoryName} > ${selectedItem.genreName}`
+    : "カテゴリを選択";
+
+  const trigger = (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        render={
+          <Button
+            type="button"
+            variant="outline"
+            size={size}
+            role="combobox"
+            aria-label="カテゴリ"
+            aria-expanded={open}
+            className="w-full justify-between font-normal"
+          />
+        }
+      >
+        <span className={cn("truncate", !selectedItem && "text-muted-foreground")}>
+          {triggerLabel}
+        </span>
+        <ChevronsUpDownIcon className="ml-2 opacity-50" />
+      </PopoverTrigger>
+      <PopoverContent className="w-[var(--anchor-width)] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="カテゴリを検索" />
+          <CommandList>
+            <CommandEmpty>カテゴリが見つかりません</CommandEmpty>
+            {groups.map((group) => (
+              <CommandGroup key={group.categoryId} heading={group.categoryName}>
+                {group.items.map((item) => (
+                  <CommandItem
+                    key={item.genreId}
+                    value={`${item.categoryName} ${item.genreName}`}
+                    data-checked={item.genreId === value?.genreId}
+                    onSelect={() => {
+                      onChange({ categoryId: item.categoryId, genreId: item.genreId });
+                      setOpen(false);
+                    }}
+                  >
+                    {item.genreName}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            ))}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+
+  if (label === null) {
+    return trigger;
   }
 
   return (
-    <Combobox
-      label={label ?? undefined}
-      size={size}
-      items={groups}
-      value={selectedItem}
-      onValueChange={(v) => handleChange(v as GenreItem | null)}
-      itemToStringLabel={(item: GenreItem) => `${item.categoryName} > ${item.genreName}`}
-      isItemEqualToValue={(a: GenreItem, b: GenreItem) => a.genreId === b.genreId}
-    >
-      <Combobox.TriggerInput
-        placeholder="カテゴリを選択"
-        clearLabel="クリア"
-        showOptionsLabel="選択肢を表示"
-        aria-label={label === null ? "カテゴリ" : undefined}
-      />
-      <Combobox.Content>
-        <Combobox.List>
-          {(group: GenreGroup) => (
-            <Combobox.Group key={group.categoryId} items={group.items}>
-              <Combobox.GroupLabel>{group.categoryName}</Combobox.GroupLabel>
-              <Combobox.Collection>
-                {(item: GenreItem) => (
-                  <Combobox.Item key={item.genreId} value={item}>
-                    {item.genreName}
-                  </Combobox.Item>
-                )}
-              </Combobox.Collection>
-            </Combobox.Group>
-          )}
-        </Combobox.List>
-        <Combobox.Empty>カテゴリが見つかりません</Combobox.Empty>
-      </Combobox.Content>
-    </Combobox>
+    <div className="flex flex-col gap-1.5">
+      <FieldLabel>{label}</FieldLabel>
+      {trigger}
+    </div>
   );
 };

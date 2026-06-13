@@ -12,5 +12,13 @@ export default defineConfig({
         "vitest/no-standalone-expect": "off",
       },
     },
+    {
+      // shadcn/ui が自動生成するコンポーネントは関数宣言スタイルなのでルールを緩める
+      files: ["src/components/ui/**/*.{ts,tsx}"],
+      rules: {
+        "func-style": "off",
+        "jsx-a11y/label-has-associated-control": "off",
+      },
+    },
   ],
 });

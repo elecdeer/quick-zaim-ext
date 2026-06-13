@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
-import { Button, Dialog, Input } from "@cloudflare/kumo";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { browser } from "wxt/browser";
+import { useEffect, useState } from "react";
 import { createClient } from "server/client";
+import { browser } from "wxt/browser";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { launchServerLogin } from "../auth/serverAuth.ts";
 import { launchZaimConnect } from "../auth/zaimAuth.ts";
 import { UNAUTHENTICATED, fetchAuthStatus } from "../entrypoints/sidepanel/authQueries.ts";
@@ -114,24 +117,24 @@ export const SettingsOverlay = ({ open, onOpenChange }: Props) => {
   };
 
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog className="flex flex-col gap-4 p-6">
-        <Dialog.Title className="text-base font-semibold text-gray-900">設定</Dialog.Title>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex flex-col gap-4">
+        <DialogTitle>設定</DialogTitle>
 
         <section className="flex items-end gap-2">
-          <Input
-            id="settings-server-url"
-            label="サーバー URL"
-            className="min-w-0 flex-1"
-            type="url"
-            value={serverUrlInput}
-            onChange={(e) => setServerUrlInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSaveServerUrl()}
-            placeholder="https://your-server.workers.dev"
-          />
+          <Field className="min-w-0 flex-1">
+            <FieldLabel htmlFor="settings-server-url">サーバー URL</FieldLabel>
+            <Input
+              id="settings-server-url"
+              type="url"
+              value={serverUrlInput}
+              onChange={(e) => setServerUrlInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSaveServerUrl()}
+              placeholder="https://your-server.workers.dev"
+            />
+          </Field>
           <Button
             type="button"
-            variant="primary"
             onClick={handleSaveServerUrl}
             disabled={!serverUrlInput || serverUrlInput === serverUrl}
           >
@@ -140,7 +143,9 @@ export const SettingsOverlay = ({ open, onOpenChange }: Props) => {
         </section>
 
         {errorMessage && (
-          <p className="rounded-md bg-red-50 p-2 text-xs text-red-600">{errorMessage}</p>
+          <p className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">
+            {errorMessage}
+          </p>
         )}
 
         {serverUrl && (
@@ -172,15 +177,15 @@ export const SettingsOverlay = ({ open, onOpenChange }: Props) => {
         )}
 
         <div className="flex justify-end">
-          <Dialog.Close
-            render={(p) => (
-              <Button {...p} type="button" variant="secondary">
+          <DialogClose
+            render={
+              <Button type="button" variant="secondary">
                 閉じる
               </Button>
-            )}
+            }
           />
         </div>
-      </Dialog>
-    </Dialog.Root>
+      </DialogContent>
+    </Dialog>
   );
 };

@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { playwright } from "@vitest/browser-playwright";
@@ -5,6 +6,11 @@ import { defineProject } from "vitest/config";
 
 export default defineProject({
   plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+    },
+  },
   // MSWサービスワーカー（mockServiceWorker.js）を /mockServiceWorker.js として配信する
   publicDir: "./storybook-public",
   optimizeDeps: {

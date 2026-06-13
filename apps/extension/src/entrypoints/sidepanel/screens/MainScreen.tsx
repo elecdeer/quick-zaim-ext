@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import { Button } from "@cloudflare/kumo";
 import { PencilSimpleIcon } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { AccountCombobox } from "../../../components/AccountCombobox.tsx";
 import {
   type CategorySelection,
@@ -55,7 +55,7 @@ const ItemRow = ({ item, serverUrl, onEdit, onRemove }: ItemRowProps) => {
     Number.isInteger(amountNum) && amountNum > 0 ? amountNum.toLocaleString("ja-JP") : "0";
 
   return (
-    <div className="flex flex-col gap-1 rounded-md border border-gray-200 bg-white py-2 pl-2 pr-2">
+    <div className="flex flex-col gap-1 rounded-md border bg-card py-2 pl-2 pr-2">
       <div className="flex items-center gap-1">
         <Button
           size="sm"
@@ -66,7 +66,7 @@ const ItemRow = ({ item, serverUrl, onEdit, onRemove }: ItemRowProps) => {
           aria-label="品名を編集"
         >
           <span
-            className={`min-w-0 truncate text-base ${item.name ? "text-gray-900" : "text-gray-400"}`}
+            className={`min-w-0 truncate text-base ${item.name ? "text-foreground" : "text-muted-foreground"}`}
           >
             {item.name || "品名"}
           </span>
@@ -84,9 +84,13 @@ const ItemRow = ({ item, serverUrl, onEdit, onRemove }: ItemRowProps) => {
           onClick={() => onEdit("memo")}
           aria-label="メモを編集"
         >
-          <PencilSimpleIcon size={12} className="shrink-0 text-gray-400" aria-hidden="true" />
+          <PencilSimpleIcon
+            size={12}
+            className="shrink-0 text-muted-foreground"
+            aria-hidden="true"
+          />
           <span
-            className={`min-w-0 truncate text-[11px] ${item.comment ? "text-gray-900" : "text-gray-400"}`}
+            className={`min-w-0 truncate text-[11px] ${item.comment ? "text-foreground" : "text-muted-foreground"}`}
           >
             {item.comment || "メモ"}
           </span>
@@ -99,7 +103,9 @@ const ItemRow = ({ item, serverUrl, onEdit, onRemove }: ItemRowProps) => {
           onClick={() => onEdit("amount")}
           aria-label="金額を編集"
         >
-          <span className={`text-base ${item.amount ? "text-gray-900" : "text-gray-400"}`}>
+          <span
+            className={`text-base ${item.amount ? "text-foreground" : "text-muted-foreground"}`}
+          >
             ¥{amountLabel}
           </span>
         </Button>
@@ -112,7 +118,9 @@ const ItemRow = ({ item, serverUrl, onEdit, onRemove }: ItemRowProps) => {
         onClick={() => onEdit("category")}
         aria-label="カテゴリを編集"
       >
-        <span className={`text-[11px] ${categoryName ? "text-gray-900" : "text-gray-400"}`}>
+        <span
+          className={`text-[11px] ${categoryName ? "text-foreground" : "text-muted-foreground"}`}
+        >
           {categoryName ?? "カテゴリを選択"}
         </span>
       </Button>
@@ -341,7 +349,7 @@ export default function MainScreen({ serverUrl }: Props) {
           {extractMutation.isPending ? "自動入力中…" : "このページから自動入力"}
         </Button>
         {extractMutation.isError && (
-          <p role="alert" className="text-sm font-medium text-red-600">
+          <p role="alert" className="text-sm font-medium text-destructive">
             {extractMutation.error instanceof Error
               ? extractMutation.error.message
               : "自動入力に失敗しました"}
@@ -372,9 +380,11 @@ export default function MainScreen({ serverUrl }: Props) {
           + 品目を追加
         </Button>
 
-        <div className="flex items-center justify-between border-t border-gray-200 pt-2 pr-2">
-          <span className="text-sm font-semibold text-gray-700">合計</span>
-          <span className="text-lg font-bold text-gray-900">¥{total.toLocaleString("ja-JP")}</span>
+        <div className="flex items-center justify-between border-t pt-2 pr-2">
+          <span className="text-sm font-semibold text-foreground">合計</span>
+          <span className="text-lg font-bold text-foreground">
+            ¥{total.toLocaleString("ja-JP")}
+          </span>
         </div>
       </section>
 
@@ -402,17 +412,17 @@ export default function MainScreen({ serverUrl }: Props) {
 
       <Button
         type="submit"
-        variant={duplicateState === "warned" ? "destructive" : "primary"}
+        variant={duplicateState === "warned" ? "destructive" : "default"}
         disabled={!canSubmit || mutation.isPending || duplicateState === "checking"}
       >
         {buttonLabel}
       </Button>
 
       {mutation.isSuccess && (
-        <output className="text-sm font-medium text-green-600">登録しました</output>
+        <output className="text-sm font-medium text-foreground">登録しました</output>
       )}
       {mutation.isError && (
-        <p role="alert" className="text-sm font-medium text-red-600">
+        <p role="alert" className="text-sm font-medium text-destructive">
           {mutation.error instanceof Error ? mutation.error.message : "登録に失敗しました"}
         </p>
       )}

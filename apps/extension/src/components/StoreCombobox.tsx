@@ -1,7 +1,19 @@
-import { Combobox } from "@cloudflare/kumo";
 import { StorefrontIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
+import { ChevronsUpDownIcon, XIcon } from "lucide-react";
+import { useState } from "react";
 import { createClient } from "server/client";
+import { Button } from "@/components/ui/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 type Store = {
   place: string;
@@ -38,6 +50,7 @@ const fetchStores = async (serverUrl: string): Promise<StoresResponse> => {
  * 過去の支払い履歴から店舗候補を表示し、一覧から選択する。
  */
 export const StoreCombobox = ({ serverUrl, value, onChange }: Props) => {
+  const [open, setOpen] = useState(false);
   const { data, isLoading, isError } = useQuery({
     queryKey: ["stores", serverUrl],
     queryFn: () => fetchStores(serverUrl),
@@ -47,16 +60,12 @@ export const StoreCombobox = ({ serverUrl, value, onChange }: Props) => {
   const stores = data?.stores ?? [];
   const selectedStore = stores.find((s) => s.placeUid === value?.placeUid) ?? null;
 
-  const handleChange = (store: Store | null) => {
-    onChange(store ? { place: store.place, placeUid: store.placeUid } : null);
-  };
-
   if (isLoading) {
     return (
       <div className="flex items-center gap-2">
-        <StorefrontIcon size={20} className="shrink-0 text-gray-500" aria-hidden="true" />
+        <StorefrontIcon size={20} className="shrink-0 text-muted-foreground" aria-hidden="true" />
         <output
-          className="block h-9 flex-1 animate-pulse rounded-lg bg-gray-200"
+          className="block h-8 flex-1 animate-pulse rounded-lg bg-muted"
           aria-label="店舗を読み込み中"
         />
       </div>
@@ -66,41 +75,73 @@ export const StoreCombobox = ({ serverUrl, value, onChange }: Props) => {
   if (isError) {
     return (
       <div className="flex items-center gap-2">
-        <StorefrontIcon size={20} className="shrink-0 text-gray-500" aria-hidden="true" />
-        <p className="text-sm text-red-600">店舗の取得に失敗しました</p>
+        <StorefrontIcon size={20} className="shrink-0 text-muted-foreground" aria-hidden="true" />
+        <p className="text-sm text-destructive">店舗の取得に失敗しました</p>
       </div>
     );
   }
 
   return (
     <div className="flex items-center gap-2">
-      <StorefrontIcon size={20} className="shrink-0 text-gray-500" aria-hidden="true" />
-      <div className="min-w-0 flex-1">
-        <Combobox
-          label={null}
-          aria-label="店舗"
-          items={stores}
-          value={selectedStore}
-          onValueChange={(v) => handleChange(v as Store | null)}
-          itemToStringLabel={(item: Store) => item.place}
-          isItemEqualToValue={(a: Store, b: Store) => a.placeUid === b.placeUid}
-        >
-          <Combobox.TriggerInput
-            placeholder="店舗を選択（任意）"
-            clearLabel="クリア"
-            showOptionsLabel="選択肢を表示"
-          />
-          <Combobox.Content>
-            <Combobox.List>
-              {(item: Store) => (
-                <Combobox.Item key={item.placeUid || item.place} value={item}>
-                  {item.place}
-                </Combobox.Item>
-              )}
-            </Combobox.List>
-            <Combobox.Empty>店舗が見つかりません</Combobox.Empty>
-          </Combobox.Content>
-        </Combobox>
+      <StorefrontIcon size={20} className="shrink-0 text-muted-foreground" aria-hidden="true" />
+      <div className="flex min-w-0 flex-1 items-center gap-1">
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger
+            render={
+              <Button
+                type="button"
+                variant="outline"
+                role="combobox"
+                aria-label="店舗"
+                aria-expanded={open}
+                className="min-w-0 flex-1 justify-between font-normal"
+              />
+            }
+          >
+            <span className={cn("truncate", !selectedStore && "text-muted-foreground")}>
+              {selectedStore?.place ?? value?.place ?? "店舗を選択（任意）"}
+            </span>
+            <ChevronsUpDownIcon className="ml-2 opacity-50" />
+          </PopoverTrigger>
+          <PopoverContent className="w-[var(--anchor-width)] p-0" align="start">
+            <Command>
+              <CommandInput placeholder="店舗を検索" />
+              <CommandList>
+                <CommandEmpty>店舗が見つかりません</CommandEmpty>
+                <CommandGroup>
+                  {stores.map((item) => (
+                    <CommandItem
+                      key={item.placeUid || item.place}
+                      value={item.place}
+                      data-checked={item.placeUid === value?.placeUid}
+                      onSelect={() => {
+                        if (item.placeUid === value?.placeUid) {
+                          onChange(null);
+                        } else {
+                          onChange({ place: item.place, placeUid: item.placeUid });
+                        }
+                        setOpen(false);
+                      }}
+                    >
+                      {item.place}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+        {value && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label="クリア"
+            onClick={() => onChange(null)}
+          >
+            <XIcon />
+          </Button>
+        )}
       </div>
     </div>
   );
