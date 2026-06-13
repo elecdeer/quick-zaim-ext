@@ -51,6 +51,27 @@ const fetchCategories = async (serverUrl: string): Promise<CategoriesResponse> =
 };
 
 /**
+ * 選択中の CategorySelection を「大カテゴリ > サブカテゴリ」形式の文字列で返す。
+ * カテゴリ未取得時や該当しない値の場合は null を返す。
+ */
+export const useCategoryDisplayName = (
+  serverUrl: string,
+  value: CategorySelection | null,
+): string | null => {
+  const { data } = useQuery({
+    queryKey: ["categories", serverUrl],
+    queryFn: () => fetchCategories(serverUrl),
+    enabled: !!serverUrl,
+  });
+
+  if (!value) return null;
+  const category = data?.categories.find((c) => c.id === value.categoryId);
+  const genre = category?.subCategories.find((sc) => sc.id === value.genreId);
+  if (!category || !genre) return null;
+  return `${category.name} > ${genre.name}`;
+};
+
+/**
  * カテゴリ（大カテゴリでグループ化されたサブカテゴリ）の combobox コンポーネント。
  * paymentモードのカテゴリのみ対象。1つの Combobox 内でカテゴリごとにグループ表示する。
  */

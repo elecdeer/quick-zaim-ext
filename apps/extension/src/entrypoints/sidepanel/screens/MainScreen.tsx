@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
-import { Button, Input, InputGroup, Popover } from "@cloudflare/kumo";
+import { Button } from "@cloudflare/kumo";
 import { PencilSimpleIcon } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
 import { AccountCombobox } from "../../../components/AccountCombobox.tsx";
-import { CategoryCombobox, type CategorySelection } from "../../../components/CategoryCombobox.tsx";
+import {
+  type CategorySelection,
+  useCategoryDisplayName,
+} from "../../../components/CategoryCombobox.tsx";
 import { DateField } from "../../../components/DateField.tsx";
+import { ItemEditDialog, type ItemEditField } from "../../../components/ItemEditDialog.tsx";
 import { StoreCombobox, type StoreSelection } from "../../../components/StoreCombobox.tsx";
 import { collectFromActiveTab } from "../../../page-collector/collectFromActiveTab.ts";
 import { createClient } from "server/client";
@@ -37,6 +41,85 @@ const localDateString = () => Temporal.Now.plainDateISO().toString();
 const isItemReady = (item: Item): boolean =>
   parseInt(item.amount, 10) > 0 && item.category !== null && item.category.genreId > 0;
 
+interface ItemRowProps {
+  item: Item;
+  serverUrl: string;
+  onEdit: (field: ItemEditField) => void;
+  onRemove: () => void;
+}
+
+const ItemRow = ({ item, serverUrl, onEdit, onRemove }: ItemRowProps) => {
+  const categoryName = useCategoryDisplayName(serverUrl, item.category);
+  const amountNum = parseInt(item.amount, 10);
+  const amountLabel =
+    Number.isInteger(amountNum) && amountNum > 0 ? amountNum.toLocaleString("ja-JP") : "0";
+
+  return (
+    <div className="flex flex-col gap-1 rounded-md border border-gray-200 bg-white py-2 pl-2 pr-2">
+      <div className="flex items-center gap-1">
+        <Button
+          size="sm"
+          variant="ghost"
+          type="button"
+          className="min-w-0 flex-1 justify-start text-left font-normal"
+          onClick={() => onEdit("name")}
+          aria-label="品名を編集"
+        >
+          <span
+            className={`min-w-0 truncate text-sm ${item.name ? "text-gray-900" : "text-gray-400"}`}
+          >
+            {item.name || "品名"}
+          </span>
+        </Button>
+        <Button size="sm" variant="ghost" type="button" onClick={onRemove} aria-label="品目を削除">
+          ×
+        </Button>
+      </div>
+      <div className="flex items-center gap-1">
+        <Button
+          size="sm"
+          variant="ghost"
+          type="button"
+          className="min-w-0 flex-1 justify-start text-left font-normal"
+          onClick={() => onEdit("memo")}
+          aria-label="メモを編集"
+        >
+          <PencilSimpleIcon size={12} className="shrink-0 text-gray-400" aria-hidden="true" />
+          <span
+            className={`min-w-0 truncate text-[11px] ${item.comment ? "text-gray-900" : "text-gray-400"}`}
+          >
+            {item.comment || "メモ"}
+          </span>
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          type="button"
+          className="font-normal tabular-nums"
+          onClick={() => onEdit("amount")}
+          aria-label="金額を編集"
+        >
+          <span className={`text-sm ${item.amount ? "text-gray-900" : "text-gray-400"}`}>
+            ¥{amountLabel}
+          </span>
+        </Button>
+      </div>
+      <Button
+        size="sm"
+        variant="ghost"
+        type="button"
+        className="w-full justify-start text-left font-normal"
+        onClick={() => onEdit("category")}
+        aria-label="カテゴリを編集"
+      >
+        <span className={`text-[11px] ${categoryName ? "text-gray-900" : "text-gray-400"}`}>
+          {categoryName ?? "カテゴリを選択"}
+        </span>
+      </Button>
+    </div>
+  );
+};
+
 export default function MainScreen({ serverUrl }: Props) {
   const [items, setItems] = useState<Item[]>([newItem()]);
   const [date, setDate] = useState(localDateString);
@@ -44,6 +127,14 @@ export default function MainScreen({ serverUrl }: Props) {
   const [storeSelection, setStoreSelection] = useState<StoreSelection | null>(null);
   const [duplicateState, setDuplicateState] = useState<DuplicateState>("unchecked");
   const [duplicatesByItemId, setDuplicatesByItemId] = useState<Record<string, DuplicateInfo[]>>({});
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editFocus, setEditFocus] = useState<ItemEditField>("name");
+  const editingItem = items.find((item) => item.id === editingItemId) ?? null;
+
+  const openItemEditor = (id: string, field: ItemEditField) => {
+    setEditFocus(field);
+    setEditingItemId(id);
+  };
 
   const total = items.reduce((sum, item) => {
     const n = parseInt(item.amount, 10);
@@ -262,87 +353,13 @@ export default function MainScreen({ serverUrl }: Props) {
       <StoreCombobox serverUrl={serverUrl} value={storeSelection} onChange={setStoreSelection} />
       <section className="flex flex-col gap-3">
         {items.map((item) => (
-          <div
+          <ItemRow
             key={item.id}
-            className="flex flex-col gap-1 rounded-md border border-gray-200 bg-white py-2 pl-2"
-          >
-            <div className="flex items-center gap-1">
-              <Input
-                size="sm"
-                className="min-w-0 flex-1"
-                aria-label="品名"
-                placeholder="品名"
-                value={item.name}
-                onChange={(e) => updateItem(item.id, { name: e.target.value })}
-              />
-              <Button
-                size="sm"
-                variant="ghost"
-                type="button"
-                onClick={() => removeItem(item.id)}
-                aria-label="品目を削除"
-              >
-                ×
-              </Button>
-            </div>
-            <div className="flex items-center gap-1 pr-2">
-              <Popover>
-                <Popover.Trigger
-                  render={
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      type="button"
-                      className="min-w-0 flex-1 justify-start text-left font-normal"
-                      aria-label="メモを編集"
-                    >
-                      <PencilSimpleIcon
-                        size={14}
-                        className="shrink-0 text-gray-400"
-                        aria-hidden="true"
-                      />
-                      <span
-                        className={`min-w-0 truncate ${item.comment ? "text-gray-900" : "text-gray-400"}`}
-                      >
-                        {item.comment || "メモ"}
-                      </span>
-                    </Button>
-                  }
-                />
-                <Popover.Content align="start" sideOffset={4} className="w-64 p-2">
-                  <Input
-                    size="sm"
-                    aria-label="メモ"
-                    placeholder="メモ"
-                    value={item.comment}
-                    onChange={(e) => updateItem(item.id, { comment: e.target.value })}
-                  />
-                </Popover.Content>
-              </Popover>
-              <InputGroup size="sm" className="isolate w-24 min-w-0">
-                <InputGroup.Addon>¥</InputGroup.Addon>
-                <InputGroup.Input
-                  className="appearance-none text-right [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                  aria-label="金額"
-                  type="number"
-                  min={1}
-                  step={1}
-                  placeholder="0"
-                  value={item.amount}
-                  onChange={(e) => updateItem(item.id, { amount: e.target.value })}
-                />
-              </InputGroup>
-            </div>
-            <div className="pr-2">
-              <CategoryCombobox
-                serverUrl={serverUrl}
-                value={item.category}
-                onChange={(value) => updateItem(item.id, { category: value })}
-                size="sm"
-                label={null}
-              />
-            </div>
-          </div>
+            item={item}
+            serverUrl={serverUrl}
+            onEdit={(field) => openItemEditor(item.id, field)}
+            onRemove={() => removeItem(item.id)}
+          />
         ))}
 
         <Button
@@ -398,6 +415,19 @@ export default function MainScreen({ serverUrl }: Props) {
         <p role="alert" className="text-sm font-medium text-red-600">
           {mutation.error instanceof Error ? mutation.error.message : "登録に失敗しました"}
         </p>
+      )}
+
+      {editingItem && (
+        <ItemEditDialog
+          open={editingItemId !== null}
+          onOpenChange={(open) => {
+            if (!open) setEditingItemId(null);
+          }}
+          serverUrl={serverUrl}
+          item={editingItem}
+          initialFocus={editFocus}
+          onChange={(patch) => updateItem(editingItem.id, patch)}
+        />
       )}
     </form>
   );

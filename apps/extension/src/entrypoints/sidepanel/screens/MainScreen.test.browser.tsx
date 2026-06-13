@@ -72,11 +72,13 @@ const commonHandlers = [
   noDuplicateHandler,
 ];
 
-/** 1 行目のカテゴリ選択 → 金額入力まで行う共通セットアップ */
+/** 編集モーダルを開いて 金額・カテゴリを入力し閉じる共通セットアップ（1行目） */
 const fillMinimumForm = async () => {
+  await page.getByRole("button", { name: "品名を編集" }).click();
+  await page.getByRole("spinbutton", { name: "金額" }).fill("1000");
   await page.getByRole("combobox", { name: "カテゴリ" }).click();
   await page.getByRole("option", { name: "食料品" }).click();
-  await page.getByPlaceholder("0").fill("1000");
+  await page.getByRole("button", { name: "完了" }).click();
 };
 
 describe("MainScreen", () => {
@@ -93,9 +95,11 @@ describe("MainScreen", () => {
 
     await render(<Default.Component />);
 
-    await page.getByPlaceholder("0").fill("1000");
+    await page.getByRole("button", { name: "金額を編集" }).click();
+    await page.getByRole("spinbutton", { name: "金額" }).fill("1000");
+    await page.getByRole("button", { name: "完了" }).click();
 
-    await expect.element(page.getByText("¥1,000")).toBeVisible();
+    await expect.element(page.getByText("¥1,000").last()).toBeVisible();
   });
 
   test("品目を追加ボタンで入力行が増える", async ({ worker }) => {
@@ -117,8 +121,10 @@ describe("MainScreen", () => {
 
     await render(<Default.Component />);
 
-    await page.getByPlaceholder("0").fill("1000");
-    await expect.element(page.getByText("¥1,000")).toBeVisible();
+    await page.getByRole("button", { name: "金額を編集" }).click();
+    await page.getByRole("spinbutton", { name: "金額" }).fill("1000");
+    await page.getByRole("button", { name: "完了" }).click();
+    await expect.element(page.getByText("¥1,000").last()).toBeVisible();
 
     await page.getByRole("button", { name: "品目を削除" }).click();
 
@@ -241,7 +247,9 @@ describe("MainScreen", () => {
     await page.getByRole("button", { name: "登録" }).click();
     await expect.element(page.getByRole("button", { name: "重複があっても登録" })).toBeVisible();
 
-    await page.getByPlaceholder("0").fill("2000");
+    await page.getByRole("button", { name: "金額を編集" }).click();
+    await page.getByRole("spinbutton", { name: "金額" }).fill("2000");
+    await page.getByRole("button", { name: "完了" }).click();
 
     await expect.element(page.getByRole("button", { name: "登録" })).toBeVisible();
     await expect.element(page.getByRole("alert")).not.toBeInTheDocument();
@@ -264,18 +272,19 @@ describe("MainScreen", () => {
     await expect.element(page.getByRole("alert")).toHaveTextContent("登録に失敗しました（502）");
   });
 
-  test("品名は直接入力、メモはポップオーバー経由で入力できる", async ({ worker }) => {
+  test("品名・メモはモーダル経由で編集できる", async ({ worker }) => {
     worker.use(...commonHandlers);
 
     await render(<Default.Component />);
 
+    await page.getByRole("button", { name: "品名を編集" }).click();
     await page.getByRole("textbox", { name: "品名" }).fill("りんご");
-    await expect.element(page.getByRole("textbox", { name: "品名" })).toHaveValue("りんご");
-
-    await page.getByRole("button", { name: "メモを編集" }).click();
     await page.getByRole("textbox", { name: "メモ" }).fill("特売");
+    await page.getByRole("button", { name: "完了" }).click();
 
-    // ポップオーバーを閉じても表示に反映されている
+    await expect
+      .element(page.getByRole("button", { name: "品名を編集" }))
+      .toHaveTextContent("りんご");
     await expect
       .element(page.getByRole("button", { name: "メモを編集" }))
       .toHaveTextContent("特売");
@@ -294,17 +303,19 @@ describe("MainScreen", () => {
     await render(<Default.Component />);
 
     // 1 行目: カテゴリ=食料品, 金額=1000
-    const firstCategory = page.getByRole("combobox", { name: "カテゴリ" }).first();
-    await firstCategory.click();
+    await page.getByRole("button", { name: "品名を編集" }).first().click();
+    await page.getByRole("spinbutton", { name: "金額" }).fill("1000");
+    await page.getByRole("combobox", { name: "カテゴリ" }).click();
     await page.getByRole("option", { name: "食料品" }).click();
-    await page.getByPlaceholder("0").first().fill("1000");
+    await page.getByRole("button", { name: "完了" }).click();
 
     // 2 行目を追加し、カテゴリ=電車・バス, 金額=500
     await page.getByRole("button", { name: "+ 品目を追加" }).click();
-    const secondCategory = page.getByRole("combobox", { name: "カテゴリ" }).nth(1);
-    await secondCategory.click();
+    await page.getByRole("button", { name: "品名を編集" }).nth(1).click();
+    await page.getByRole("spinbutton", { name: "金額" }).fill("500");
+    await page.getByRole("combobox", { name: "カテゴリ" }).click();
     await page.getByRole("option", { name: "電車・バス" }).click();
-    await page.getByPlaceholder("0").nth(1).fill("500");
+    await page.getByRole("button", { name: "完了" }).click();
 
     await page.getByRole("button", { name: "登録" }).click();
 
@@ -333,7 +344,9 @@ describe("MainScreen visual regression", () => {
 
   baseTest("金額入力後", async () => {
     const screen = await render(<Default.Component />);
-    await userEvent.fill(screen.getByPlaceholder("0"), "1000");
+    await userEvent.click(screen.getByRole("button", { name: "金額を編集" }));
+    await userEvent.fill(screen.getByRole("spinbutton", { name: "金額" }), "1000");
+    await userEvent.click(screen.getByRole("button", { name: "完了" }));
     await expect(page.elementLocator(document.body)).toMatchScreenshot("main-screen-with-amount");
   });
 });
