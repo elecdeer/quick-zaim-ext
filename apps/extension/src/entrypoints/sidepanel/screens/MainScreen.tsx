@@ -319,7 +319,7 @@ export default function MainScreen({ serverUrl }: Props) {
                   />
                 </Popover.Content>
               </Popover>
-              <InputGroup size="sm" className="w-24 min-w-0">
+              <InputGroup size="sm" className="isolate w-24 min-w-0">
                 <InputGroup.Addon>¥</InputGroup.Addon>
                 <InputGroup.Input
                   className="appearance-none text-right [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
