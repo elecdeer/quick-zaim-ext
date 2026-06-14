@@ -148,6 +148,35 @@ describe("POST /api/zaim/payment", () => {
     expect(body.placeUid).toBe("uid_super_a");
   });
 
+  test("Zaim APIが失敗したとき502と上流のステータス・メッセージを返す", async () => {
+    server.use(
+      paymentOperationsCreateMockHandler(() =>
+        HttpResponse.json(
+          { error: true, message: "oauth_problem=token_rejected" },
+          { status: 401 },
+        ),
+      ),
+    );
+
+    const res = await createTestClient(paymentRoutes, makeEnv(), {
+      oidcAuth: MOCK_USER,
+      zaimClient: createZaimRealClient(),
+      zaimUserId: "zaim_user_999",
+    }).api.zaim.payment.$post({
+      json: { category_id: 101, genre_id: 201, amount: 1500, date: "2026-05-20" },
+    });
+
+    expect(res.status).toBe(502);
+    const body = (await res.json()) as {
+      error: string;
+      upstreamStatus?: number;
+      upstreamMessage?: string;
+    };
+    expect(body.upstreamStatus).toBe(401);
+    expect(body.upstreamMessage).toContain("401");
+    expect(body.upstreamMessage).toContain("oauth_problem=token_rejected");
+  });
+
   test("登録後に月別moneyキャッシュを削除する", async () => {
     const { kv, mockDelete } = createKVNamespaceMock();
 

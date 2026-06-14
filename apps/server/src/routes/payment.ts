@@ -16,7 +16,9 @@ import { sValidator } from "@hono/standard-validator";
 import { Hono } from "hono";
 import * as v from "valibot";
 import type { HonoEnv } from "../env.ts";
+import type { Logger } from "../loggerMiddleware.ts";
 import { requireOidcAuth, requireZaimClient } from "../middleware.ts";
+import { toZaimApiErrorContext } from "../zaimApiError.ts";
 import type { MoneyItem, MonthlyMoneyCache } from "./stores.ts";
 
 const CURRENT_MONTH_MONEY_TTL = 3600;
@@ -29,6 +31,9 @@ const PaymentBodySchema = v.object({
   from_account_id: v.optional(v.pipe(v.number(), v.integer())),
   comment: v.optional(v.string()),
   name: v.optional(v.string()),
+  // place と place_uid は排他。
+  // また place を指定すると Zaim API がエラーを返すため、実質 place_uid のみ使える可能性がある。
+  // （現時点では検証中。クライアント側は place_uid を渡す運用にすること）
   place: v.optional(v.string()),
   place_uid: v.optional(v.string()),
 });
@@ -63,6 +68,7 @@ const addDays = (dateStr: string, days: number): string => {
 const fetchMonthlyMoneyItems = async (
   client: ReturnType<typeof createClient>,
   yearMonth: string,
+  logger: Logger,
 ): Promise<MoneyItem[]> => {
   const { start, end } = monthStartEnd(yearMonth);
   const result = await moneyGetMoney({
@@ -71,7 +77,13 @@ const fetchMonthlyMoneyItems = async (
   });
 
   if (!result.data) {
-    throw new Error("Failed to fetch money items from Zaim API");
+    const errCtx = toZaimApiErrorContext(result);
+    logger
+      .with({ yearMonth, ...errCtx })
+      .error(
+        "Failed to fetch money items from Zaim API (yearMonth={yearMonth}): {upstreamMessage}",
+      );
+    throw new Error(`Failed to fetch money items from Zaim API: ${errCtx.upstreamMessage}`);
   }
 
   type ZaimMoneyApiItem = {
@@ -112,9 +124,7 @@ const createPaymentRoute = new Hono<HonoEnv>().post(
     const { zaimClient, zaimUserId } = c.var;
     const body = c.req.valid("json");
 
-    logger
-      .with({ zaimUserId, amount: body.amount, date: body.date })
-      .debug("Registering payment for Zaim user {zaimUserId}");
+    logger.with({ zaimUserId, body }).debug("Registering payment for Zaim {*}");
 
     const result = await paymentOperationsCreate({
       client: zaimClient,
@@ -127,14 +137,32 @@ const createPaymentRoute = new Hono<HonoEnv>().post(
         ...(body.from_account_id !== undefined && { from_account_id: body.from_account_id }),
         ...(body.comment !== undefined && { comment: body.comment }),
         ...(body.name !== undefined && { name: body.name }),
-        ...(body.place !== undefined && { place: body.place }),
         ...(body.place_uid !== undefined && { place_uid: body.place_uid }),
       },
     });
 
     if (!result.data) {
-      logger.error("Failed to create payment in Zaim API");
-      return c.json({ error: "Failed to create payment" }, 502);
+      const errCtx = toZaimApiErrorContext(result);
+      logger
+        .with({
+          zaimUserId,
+          categoryId: body.category_id,
+          genreId: body.genre_id,
+          amount: body.amount,
+          date: body.date,
+          ...errCtx,
+        })
+        .error(
+          "Failed to create payment in Zaim API (zaimUserId={zaimUserId}, amount={amount}, date={date}, categoryId={categoryId}, genreId={genreId}): {upstreamMessage}",
+        );
+      return c.json(
+        {
+          error: "Failed to create payment",
+          upstreamStatus: errCtx.upstreamStatus,
+          upstreamMessage: errCtx.upstreamMessage,
+        },
+        502,
+      );
     }
 
     const yearMonth = yearMonthOf(body.date);
@@ -189,7 +217,7 @@ const getDuplicateRoute = new Hono<HonoEnv>().get(
       logger
         .with({ zaimUserId, yearMonth })
         .debug("Monthly money cache miss for duplicate check ({yearMonth}), fetching from API");
-      items = await fetchMonthlyMoneyItems(zaimClient, yearMonth);
+      items = await fetchMonthlyMoneyItems(zaimClient, yearMonth, logger);
       const cache: MonthlyMoneyCache = { fetchedAt: new Date().toISOString(), items };
       await c.env.ZAIM_KV.put(cacheKey, JSON.stringify(cache), {
         expirationTtl: CURRENT_MONTH_MONEY_TTL,

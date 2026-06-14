@@ -3,7 +3,9 @@ import { createClient } from "@repo/zaim-api/client";
 import { createZaimAuthInterceptor } from "@repo/zaim-api/oauth/interceptor";
 import { createMiddleware } from "hono/factory";
 import type { Env } from "./env.ts";
+import type { Logger } from "./loggerMiddleware.ts";
 import { getStoredZaimToken } from "./routes/zaim.ts";
+import { createZaimLoggingInterceptors } from "./zaimLoggingInterceptor.ts";
 
 const ZAIM_API_BASE = "https://api.zaim.net";
 
@@ -49,6 +51,7 @@ export const requireZaimClient = createMiddleware<{
     oidcAuth: OidcAuth;
     zaimClient: ReturnType<typeof createClient>;
     zaimUserId: string;
+    logger: Logger;
   };
 }>(async (c, next) => {
   if (c.var.zaimClient) {
@@ -69,6 +72,14 @@ export const requireZaimClient = createMiddleware<{
       tokenSecret: token.oauthTokenSecret,
     }),
   );
+
+  // Zaim API のリクエスト・レスポンスを常にロギングする。
+  // auth interceptor の後に登録することで、署名済みの最終リクエストがログ対象になる。
+  const logging = createZaimLoggingInterceptors(c.var.logger);
+  client.interceptors.request.use(logging.request);
+  client.interceptors.response.use(logging.response);
+  client.interceptors.error.use(logging.error);
+
   c.set("zaimClient", client);
   c.set("zaimUserId", token.zaimUserId);
   await next();
