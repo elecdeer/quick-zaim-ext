@@ -3,10 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AccountCombobox } from "../../../components/AccountCombobox.tsx";
-import {
-  type CategorySelection,
-  useCategoryDisplayName,
-} from "../../../components/CategoryCombobox.tsx";
+import { CategoryCombobox, type CategorySelection } from "../../../components/CategoryCombobox.tsx";
 import { DateField } from "../../../components/DateField.tsx";
 import { ItemEditDialog, type ItemEditField } from "../../../components/ItemEditDialog.tsx";
 import { StoreCombobox, type StoreSelection } from "../../../components/StoreCombobox.tsx";
@@ -45,11 +42,11 @@ interface ItemRowProps {
   item: Item;
   serverUrl: string;
   onEdit: (field: ItemEditField) => void;
+  onCategoryChange: (category: CategorySelection | null) => void;
   onRemove: () => void;
 }
 
-const ItemRow = ({ item, serverUrl, onEdit, onRemove }: ItemRowProps) => {
-  const categoryName = useCategoryDisplayName(serverUrl, item.category);
+const ItemRow = ({ item, serverUrl, onEdit, onCategoryChange, onRemove }: ItemRowProps) => {
   const amountNum = parseInt(item.amount, 10);
   const amountLabel =
     Number.isInteger(amountNum) && amountNum > 0 ? amountNum.toLocaleString("ja-JP") : "0";
@@ -110,20 +107,13 @@ const ItemRow = ({ item, serverUrl, onEdit, onRemove }: ItemRowProps) => {
           </span>
         </Button>
       </div>
-      <Button
+      <CategoryCombobox
+        serverUrl={serverUrl}
+        value={item.category}
+        onChange={onCategoryChange}
         size="sm"
-        variant="ghost"
-        type="button"
-        className="w-full justify-start text-left font-normal"
-        onClick={() => onEdit("category")}
-        aria-label="カテゴリを編集"
-      >
-        <span
-          className={`text-[11px] ${categoryName ? "text-foreground" : "text-muted-foreground"}`}
-        >
-          {categoryName ?? "カテゴリを選択"}
-        </span>
-      </Button>
+        label={null}
+      />
     </div>
   );
 };
@@ -366,6 +356,7 @@ export default function MainScreen({ serverUrl }: Props) {
             item={item}
             serverUrl={serverUrl}
             onEdit={(field) => openItemEditor(item.id, field)}
+            onCategoryChange={(category) => updateItem(item.id, { category })}
             onRemove={() => removeItem(item.id)}
           />
         ))}

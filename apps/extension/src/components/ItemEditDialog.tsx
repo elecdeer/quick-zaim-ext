@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { CategoryCombobox, type CategorySelection } from "./CategoryCombobox.tsx";
 
-export type ItemEditField = "name" | "memo" | "amount" | "category";
+export type ItemEditField = "name" | "memo" | "amount";
 
 interface ItemDraft {
   name: string;
@@ -40,7 +40,6 @@ export const ItemEditDialog = ({
   const nameRef = useRef<HTMLInputElement>(null);
   const memoRef = useRef<HTMLInputElement>(null);
   const amountRef = useRef<HTMLInputElement>(null);
-  const categoryRef = useRef<HTMLDivElement>(null);
 
   const initialFocusFn = useMemo(
     () => () => {
@@ -51,8 +50,6 @@ export const ItemEditDialog = ({
           return memoRef.current;
         case "amount":
           return amountRef.current;
-        case "category":
-          return categoryRef.current?.querySelector<HTMLElement>("button, [role=combobox]") ?? null;
         default:
           return null;
       }
@@ -102,13 +99,11 @@ export const ItemEditDialog = ({
               />
             </InputGroup>
           </Field>
-          <div ref={categoryRef}>
-            <CategoryCombobox
-              serverUrl={serverUrl}
-              value={item.category}
-              onChange={(value) => onChange({ category: value })}
-            />
-          </div>
+          <CategoryCombobox
+            serverUrl={serverUrl}
+            value={item.category}
+            onChange={(value) => onChange({ category: value })}
+          />
           <DialogClose render={<Button type="button">完了</Button>} />
         </FieldGroup>
       </DialogContent>
