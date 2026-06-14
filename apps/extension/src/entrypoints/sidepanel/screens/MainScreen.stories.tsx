@@ -120,14 +120,12 @@ const categoriesHandler = http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, () 
 const extractPaymentHandler = http.post(`${MOCK_SERVER_URL}/api/llm/extract-payment`, () =>
   HttpResponse.json({
     date: "2026-06-13",
-    categoryId: 101,
-    genreId: 1001,
     accountId: 2,
     place: "スーパーA",
     items: [
-      { name: "牛乳 1L パック", amount: 250, comment: null },
-      { name: "食パン 6枚切り 国産小麦", amount: 198, comment: "朝食用" },
-      { name: "卵 10個入り 特売", amount: 298, comment: null },
+      { name: "牛乳 1L パック", amount: 250, comment: null, genreId: 1001 },
+      { name: "食パン 6枚切り 国産小麦", amount: 198, comment: "朝食用", genreId: 1001 },
+      { name: "卵 10個入り 特売", amount: 298, comment: null, genreId: 1001 },
     ],
   }),
 );

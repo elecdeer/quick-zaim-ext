@@ -83,11 +83,9 @@ describe("POST /api/llm/extract-payment", () => {
   test("リクエストボディが不正のとき400を返す", async () => {
     const ai = mockAiReturning({
       date: "2026-06-01",
-      categoryId: 101,
-      genreId: 201,
       accountId: 1,
       place: "スーパーA",
-      items: [{ name: null, amount: 1980, comment: null }],
+      items: [{ name: null, amount: 1980, comment: null, genreId: 201 }],
       confidence: "high",
       reasoning: "ok",
     });
@@ -103,13 +101,11 @@ describe("POST /api/llm/extract-payment", () => {
   test("正常系: LLM の抽出結果をそのまま返す", async () => {
     const expected: ExtractedPayment = {
       date: "2026-06-01",
-      categoryId: 101,
-      genreId: 201,
       accountId: 1,
       place: "スーパーA",
       items: [
-        { name: "りんご", amount: 980, comment: null },
-        { name: "牛乳", amount: 1000, comment: "1L" },
+        { name: "りんご", amount: 980, comment: null, genreId: 201 },
+        { name: "牛乳", amount: 1000, comment: "1L", genreId: 202 },
       ],
       confidence: "high",
       reasoning: "金額と日付が明確に記載されていた",

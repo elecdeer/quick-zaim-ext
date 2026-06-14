@@ -25,6 +25,25 @@ interface Props {
 type DuplicateInfo = { id: number; date: string; amount: number };
 type DuplicateState = "unchecked" | "checking" | "warned";
 
+/**
+ * categories 一覧から `genreId` が属する `categoryId` を逆引きして
+ * `CategorySelection` を組み立てる。該当しなければ null。
+ *
+ * LLM 推論レスポンスには `genreId` しか含まれないため、registration に必要な
+ * `categoryId` をここで補完する。
+ */
+const findCategorySelectionByGenreId = (
+  categories: ReadonlyArray<{ id: number; subCategories: ReadonlyArray<{ id: number }> }>,
+  genreId: number,
+): CategorySelection | null => {
+  for (const category of categories) {
+    if (category.subCategories.some((sub) => sub.id === genreId)) {
+      return { categoryId: category.id, genreId };
+    }
+  }
+  return null;
+};
+
 const newItem = (category: CategorySelection | null = null): Item => ({
   id: crypto.randomUUID(),
   name: "",
@@ -199,14 +218,14 @@ export default function MainScreen({ serverUrl }: Props) {
         throw new Error(`自動入力に失敗しました（${extractRes.status}）`);
       }
       const extracted = await extractRes.json();
-      return { extracted, recentStores: storesBody.stores };
+      return {
+        extracted,
+        recentStores: storesBody.stores,
+        categories: categoriesBody.categories,
+      };
     },
-    onSuccess: ({ extracted, recentStores }) => {
+    onSuccess: ({ extracted, recentStores, categories }) => {
       if (extracted.date !== null) setDate(extracted.date);
-      const extractedCategory: CategorySelection | null =
-        extracted.categoryId !== null && extracted.genreId !== null
-          ? { categoryId: extracted.categoryId, genreId: extracted.genreId }
-          : null;
       if (extracted.accountId !== null) setAccountId(extracted.accountId);
       if (extracted.place !== null) {
         const matched = recentStores.find((s) => s.place === extracted.place);
@@ -223,12 +242,12 @@ export default function MainScreen({ serverUrl }: Props) {
             name: item.name ?? "",
             amount: item.amount !== null ? String(item.amount) : "",
             comment: item.comment ?? "",
-            category: extractedCategory,
+            category:
+              item.genreId !== null
+                ? findCategorySelectionByGenreId(categories, item.genreId)
+                : null,
           })),
         );
-      } else if (extractedCategory) {
-        // items が空でもカテゴリだけは現在の各品目に反映
-        setItems((prev) => prev.map((item) => ({ ...item, category: extractedCategory })));
       }
     },
   });

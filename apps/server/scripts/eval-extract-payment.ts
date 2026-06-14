@@ -93,14 +93,9 @@ const loadFixtures = async (): Promise<Fixture[]> => {
   return fixtures;
 };
 
-const EVAL_FIELDS = [
-  "date",
-  "categoryId",
-  "genreId",
-  "accountId",
-  "place",
-  "items",
-] as const satisfies ReadonlyArray<keyof ExtractedPayment>;
+const EVAL_FIELDS = ["date", "accountId", "place", "items"] as const satisfies ReadonlyArray<
+  keyof ExtractedPayment
+>;
 
 interface CaseResult {
   fixture: string;

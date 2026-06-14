@@ -63,6 +63,8 @@ export type ExtractPaymentBody = v.InferOutput<typeof ExtractPaymentBodySchema>;
 /**
  * 抽出された 1 品目分のスキーマ。明細行 1 つに対応する。
  *
+ * `genreId` は品目ごとに推論する（同じ会計でも商品ごとにジャンルが変わり得るため）。
+ *
  * OpenAI Structured Outputs の strict モードは object に `additionalProperties: false`
  * を要求する。`v.strictObject` を使うと `@valibot/to-json-schema` が自動で付けてくれる。
  */
@@ -70,6 +72,7 @@ export const ExtractedPaymentItemSchema = v.strictObject({
   name: v.nullable(v.string()),
   amount: v.nullable(v.number()),
   comment: v.nullable(v.string()),
+  genreId: v.nullable(v.number()),
 });
 
 export type ExtractedPaymentItem = v.InferOutput<typeof ExtractedPaymentItemSchema>;
@@ -77,13 +80,15 @@ export type ExtractedPaymentItem = v.InferOutput<typeof ExtractedPaymentItemSche
 /**
  * LLM に強制させる出力スキーマ。不明な項目は `null` を返させる。
  *
- * 1 回の支払い全体に共通する属性（日付・カテゴリ・口座・店舗）はトップレベルに、
- * 個別の明細は `items` 配列に格納する。
+ * 1 回の支払い全体に共通する属性（日付・口座・店舗）はトップレベルに、
+ * 品目ごとに変わり得る属性（名称・金額・ジャンル等）は `items` 配列に格納する。
+ *
+ * `categoryId` は `genreId` から一意に決まるため LLM には推論させない（呼び出し側が
+ * categories 一覧から逆引きする）。プロンプトではカテゴリの階層情報を渡して
+ * `genreId` 選択の精度を上げる。
  */
 export const ExtractedPaymentSchema = v.strictObject({
   date: v.nullable(v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/))),
-  categoryId: v.nullable(v.number()),
-  genreId: v.nullable(v.number()),
   accountId: v.nullable(v.number()),
   place: v.nullable(v.string()),
   items: v.array(ExtractedPaymentItemSchema),
@@ -139,7 +144,7 @@ export const buildPrompt = (input: ExtractPaymentBody): { system: string; prompt
     "Extract payment info from a web page accessibility snapshot (receipt, order confirmation, invoice, transaction history, etc.) for Zaim registration.",
     "",
     "Rules:",
-    "- IDs must come from the provided categories/genres/accounts; otherwise null.",
+    "- `accountId` must be one of the provided account IDs; otherwise null.",
     '- `date`: "YYYY-MM-DD"; prefer the order/purchase date when several exist.',
     "- `place`: match a recent store when it clearly fits, else extract the merchant name from the page.",
     "- `confidence`: high/medium/low based on how clearly the page conveys the payment.",
@@ -149,6 +154,10 @@ export const buildPrompt = (input: ExtractPaymentBody): { system: string; prompt
     "- Split itemized receipts/orders into one entry per product; single payments → one item.",
     "- `amount` is the per-item subtotal in JPY (integer); items should sum to the page total when shown.",
     "- `name` is the product/service name; `comment` is a short note (e.g. quantity, variant) only when helpful.",
+    "- `genreId` is the per-item genre. Must be one of the provided sub-category IDs; otherwise null.",
+    "  Pick the genre by its parent category context — the listing shows `categoryId=name: genreId=name, ...` so you can see which genres belong to which category.",
+    "  Choose the most fitting genre for each item independently; different items in the same purchase may have different genres.",
+    "  Do NOT output a category ID; only the per-item `genreId` is required.",
     "- Use null for fields that cannot be determined.",
     "- `items` is never empty; include at least one entry even if every field is null.",
   ].join("\n");
