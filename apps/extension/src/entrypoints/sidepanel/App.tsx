@@ -11,7 +11,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const autoOpenedRef = useRef(false);
 
-  const { data: serverUrl = "" } = useQuery({
+  const { data: serverUrl = "", isFetched: serverUrlFetched } = useQuery({
     queryKey: ["serverUrl"],
     queryFn: async () => {
       const result = await browser.storage.local.get("serverUrl");
@@ -19,22 +19,28 @@ export default function App() {
     },
   });
 
-  const { data: auth = UNAUTHENTICATED, isFetched } = useQuery({
+  const { data: auth = UNAUTHENTICATED, isFetched: authFetched } = useQuery({
     queryKey: ["authStatus", serverUrl],
     queryFn: () => fetchAuthStatus(serverUrl),
     enabled: !!serverUrl,
     retry: false,
   });
 
-  // 初回起動時、未設定/未認証/Zaim未連携なら設定オーバーレイを自動オープン
+  // 初回起動時、未設定/未認証/Zaim未連携なら設定オーバーレイを自動オープンする。
+  //
+  // 両クエリが解決し終わるまで判定を保留する。`serverUrl` のデフォルト値（空文字）に
+  // 引きずられて初回レンダリングで開いてしまうと、その後 auth が確定しても
+  // autoOpenedRef のガードで閉じられず「ログイン済なのにダイアログが出たまま」になる。
   useEffect(() => {
     if (autoOpenedRef.current) return;
-    const needsSetup = !serverUrl || (isFetched && !auth.isZaimConnected);
-    if (needsSetup) {
+    if (!serverUrlFetched) return;
+    if (serverUrl && !authFetched) return;
+
+    if (!serverUrl || !auth.isZaimConnected) {
       setSettingsOpen(true);
-      autoOpenedRef.current = true;
     }
-  }, [serverUrl, isFetched, auth.isZaimConnected]);
+    autoOpenedRef.current = true;
+  }, [serverUrl, serverUrlFetched, authFetched, auth.isZaimConnected]);
 
   return (
     <div className="flex min-h-screen flex-col gap-4 bg-background p-4">
