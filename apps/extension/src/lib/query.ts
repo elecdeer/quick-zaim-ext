@@ -1,5 +1,5 @@
 import { atom, type Atom } from "jotai";
-import { useCallback, useEffect, useReducer } from "react";
+import { useCallback, useEffect, useReducer, useRef } from "react";
 
 interface QueryFnOpts {
   signal: AbortSignal;
@@ -333,21 +333,21 @@ export function useSuspenseQuery<TData>(
 ): SuspenseQueryResult<TData> {
   const internals = getInternals(query, params);
   const key = internals.getKey();
+  const internalsRef = useRef(internals);
+  internalsRef.current = internals;
   const [, forceUpdate] = useReducer((c: number) => c + 1, 0);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- internals is recreated each render; key is the stable identity
   useEffect(() => {
-    return internals.subscribe(forceUpdate);
+    return internalsRef.current.subscribe(forceUpdate);
   }, [key]);
 
-  const data = internals.getData();
+  const data = internalsRef.current.getData();
 
   if (data === undefined) {
-    throw internals.ensureFetch();
+    throw internalsRef.current.ensureFetch();
   }
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- same as above
-  const refetch = useCallback(async (): Promise<TData> => internals.forceFetch(), [key]);
+  const refetch = useCallback(async (): Promise<TData> => internalsRef.current.forceFetch(), []);
 
   return { data, refetch };
 }
