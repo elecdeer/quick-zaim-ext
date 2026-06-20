@@ -408,6 +408,41 @@ describe("gcTime", () => {
 
     vi.useRealTimers();
   });
+
+  it("manages gc timers independently per key", async () => {
+    vi.useFakeTimers();
+
+    const query = defineQuery({
+      queryFn: async (params: { id: string }) => `data-${params.id}`,
+      gcTime: 1000,
+    });
+
+    await query.prefetch({ id: "1" });
+    await query.prefetch({ id: "2" });
+
+    const store = createStore();
+    const a1 = query.atom({ id: "1" });
+    const a2 = query.atom({ id: "2" });
+    void store.get(a1);
+    void store.get(a2);
+
+    const unsub1 = store.sub(a1, () => {});
+    const unsub2 = store.sub(a2, () => {});
+
+    unsub1();
+    vi.advanceTimersByTime(500);
+
+    unsub2();
+    vi.advanceTimersByTime(500);
+
+    expect(query.getData({ id: "1" })).toBeUndefined();
+    expect(query.getData({ id: "2" })).toBe("data-2");
+
+    vi.advanceTimersByTime(500);
+    expect(query.getData({ id: "2" })).toBeUndefined();
+
+    vi.useRealTimers();
+  });
 });
 
 describe("useSuspenseQuery", () => {
