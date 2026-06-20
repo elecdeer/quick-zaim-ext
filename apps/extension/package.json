@@ -24,6 +24,7 @@
     "cmdk": "catalog:",
     "date-fns": "catalog:",
     "hono": "^4.12.14",
+    "jotai": "catalog:",
     "lucide-react": "catalog:",
     "react": "^19.2.5",
     "react-day-picker": "catalog:",
