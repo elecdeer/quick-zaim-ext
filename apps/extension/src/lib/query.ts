@@ -1,4 +1,5 @@
-import { atom, type Atom } from "jotai";
+import { atom, type Atom, createStore } from "jotai";
+import { atomFamily } from "jotai/utils";
 import { useCallback, useEffect, useReducer, useRef } from "react";
 
 interface QueryFnOpts {
@@ -70,15 +71,6 @@ interface HasInternals<TData> {
   [QUERY_INTERNALS]: QueryInternals<TData>;
 }
 
-// --- Cache entry ---
-
-interface CacheEntry<TData> {
-  data: TData;
-  fetchedAt: number;
-  gcTimer: ReturnType<typeof setTimeout> | null;
-  subscriberCount: number;
-}
-
 /**
  * クエリ定義を作成する。
  */
@@ -90,176 +82,133 @@ export const defineQuery = <TParams, TData>(
     getKey = (params) => JSON.stringify(params),
     gcTime = DEFAULT_GC_TIME,
   } = options;
-  const cache = new Map<string, CacheEntry<TData>>();
-  const jotaiAtoms = new Map<string, Atom<TData | Promise<TData>>>();
-  const pendingFetches = new Map<string, Promise<TData>>();
-  const listeners = new Map<string, Set<() => void>>();
 
-  const notify = (key: string): void => {
-    const set = listeners.get(key);
-    if (!set) return;
-    for (const cb of set) cb();
+  const jotaiStore = createStore();
+  const pendingFetches = new Map<string, Promise<TData>>();
+  const gcTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  const usedParams = new Map<string, TParams>();
+
+  /** キャッシュデータを保持する writable atom（キーごと） */
+  const cacheFamily = atomFamily(
+    (_params: TParams) => atom<TData | undefined>(undefined),
+    (a, b) => getKey(a) === getKey(b),
+  );
+
+  const cancelGcTimer = (key: string): void => {
+    const timer = gcTimers.get(key);
+    if (timer) {
+      clearTimeout(timer);
+      gcTimers.delete(key);
+    }
   };
 
-  const subscribe = (key: string, callback: () => void): (() => void) => {
-    let set = listeners.get(key);
-    if (!set) {
-      set = new Set();
-      listeners.set(key, set);
-    }
-    set.add(callback);
-
-    const entry = cache.get(key);
-    if (entry) {
-      entry.subscriberCount++;
-      cancelGcTimer(key);
-    }
-
-    return () => {
-      set.delete(callback);
-      if (set.size === 0) listeners.delete(key);
-
-      const e = cache.get(key);
-      if (e) {
-        e.subscriberCount--;
-        if (e.subscriberCount <= 0) {
-          startGcTimer(key);
-        }
-      }
-    };
+  const startGcTimer = (key: string, params: TParams): void => {
+    cancelGcTimer(key);
+    gcTimers.set(
+      key,
+      setTimeout(() => {
+        jotaiStore.set(cacheFamily(params), undefined);
+        cacheFamily.remove(params);
+        queryFamily.remove(params);
+        usedParams.delete(key);
+        gcTimers.delete(key);
+      }, gcTime),
+    );
   };
 
   const ensureFetch = (key: string, params: TParams): Promise<TData> => {
+    const cached = jotaiStore.get(cacheFamily(params));
+    if (cached !== undefined) return Promise.resolve(cached);
     const pending = pendingFetches.get(key);
     if (pending) return pending;
-
+    usedParams.set(key, params);
     const controller = new AbortController();
     const promise = queryFn(params, { signal: controller.signal }).then((data) => {
-      cache.set(key, {
-        data,
-        fetchedAt: Date.now(),
-        gcTimer: null,
-        subscriberCount: cache.get(key)?.subscriberCount ?? 0,
-      });
+      jotaiStore.set(cacheFamily(params), data);
       pendingFetches.delete(key);
-      notify(key);
       return data;
     });
     pendingFetches.set(key, promise);
     return promise;
   };
 
-  const forceFetch = (key: string, params: TParams): Promise<TData> => {
+  const forceFetchInternal = (key: string, params: TParams): Promise<TData> => {
     pendingFetches.delete(key);
+    usedParams.set(key, params);
     const controller = new AbortController();
     const promise = queryFn(params, { signal: controller.signal }).then((data) => {
-      cache.set(key, {
-        data,
-        fetchedAt: Date.now(),
-        gcTimer: null,
-        subscriberCount: cache.get(key)?.subscriberCount ?? 0,
-      });
+      jotaiStore.set(cacheFamily(params), data);
       pendingFetches.delete(key);
-      notify(key);
       return data;
     });
     pendingFetches.set(key, promise);
     return promise;
   };
+
+  /** クエリ atom（キーごと）。cacheFamily に依存し、キャッシュミス時に fetch を起動する。 */
+  const queryFamily = atomFamily(
+    (params: TParams) => {
+      const key = getKey(params);
+      let mountCount = 0;
+      const queryAtom = atom(
+        (get): TData | Promise<TData> => {
+          const cached = get(cacheFamily(params));
+          if (cached !== undefined) return cached;
+          // 外部 store からの読み取り用: 内部 store のキャッシュをフォールバック参照
+          const privateCached = jotaiStore.get(cacheFamily(params));
+          if (privateCached !== undefined) return privateCached;
+          return ensureFetch(key, params);
+        },
+        () => {},
+      );
+      queryAtom.onMount = () => {
+        mountCount++;
+        cancelGcTimer(key);
+        return () => {
+          mountCount--;
+          if (mountCount <= 0) startGcTimer(key, params);
+        };
+      };
+      return queryAtom;
+    },
+    (a, b) => getKey(a) === getKey(b),
+  );
 
   const prefetch = async (params: TParams): Promise<TData> => {
-    const key = getKey(params);
-    const existing = cache.get(key);
-    if (existing) return existing.data;
-    return ensureFetch(key, params);
+    const cached = jotaiStore.get(cacheFamily(params));
+    if (cached !== undefined) return cached;
+    return ensureFetch(getKey(params), params);
   };
 
   const getData = (params: TParams): TData | undefined => {
-    const key = getKey(params);
-    return cache.get(key)?.data;
-  };
-
-  const removeCacheEntry = (key: string): void => {
-    const entry = cache.get(key);
-    if (entry?.gcTimer) clearTimeout(entry.gcTimer);
-    cache.delete(key);
+    return jotaiStore.get(cacheFamily(params));
   };
 
   const invalidate = (params: TParams): void => {
-    const key = getKey(params);
-    removeCacheEntry(key);
-    notify(key);
+    cancelGcTimer(getKey(params));
+    jotaiStore.set(cacheFamily(params), undefined);
   };
 
   const invalidateAll = (): void => {
-    for (const [key, entry] of cache.entries()) {
-      if (entry.gcTimer) clearTimeout(entry.gcTimer);
-      notify(key);
+    for (const [key, params] of usedParams) {
+      cancelGcTimer(key);
+      jotaiStore.set(cacheFamily(params), undefined);
     }
-    cache.clear();
-  };
-
-  const startGcTimer = (key: string): void => {
-    const entry = cache.get(key);
-    if (!entry) return;
-    if (entry.gcTimer) clearTimeout(entry.gcTimer);
-    entry.gcTimer = setTimeout(() => {
-      removeCacheEntry(key);
-    }, gcTime);
-  };
-
-  const cancelGcTimer = (key: string): void => {
-    const entry = cache.get(key);
-    if (!entry?.gcTimer) return;
-    clearTimeout(entry.gcTimer);
-    entry.gcTimer = null;
-  };
-
-  const atomFn = (params: TParams): Atom<TData | Promise<TData>> => {
-    const key = getKey(params);
-    const existing = jotaiAtoms.get(key);
-    if (existing) return existing;
-
-    const subscriberAtom = atom(0);
-    subscriberAtom.onMount = (_set) => {
-      const entry = cache.get(key);
-      if (entry) {
-        entry.subscriberCount++;
-        cancelGcTimer(key);
-      }
-      return () => {
-        const e = cache.get(key);
-        if (e) {
-          e.subscriberCount--;
-          if (e.subscriberCount <= 0) {
-            startGcTimer(key);
-          }
-        }
-      };
-    };
-
-    const baseAtom = atom((get) => {
-      get(subscriberAtom);
-      const entry = cache.get(key);
-      if (entry) return entry.data;
-      return ensureFetch(key, params);
-    });
-
-    jotaiAtoms.set(key, baseAtom);
-    return baseAtom;
+    usedParams.clear();
   };
 
   const makeInternals = <S>(params: TParams, transform: (data: TData) => S): QueryInternals<S> => {
     const key = getKey(params);
+    const queryAtom = queryFamily(params);
     return {
       getKey: () => key,
       getData: () => {
-        const d = getData(params);
+        const d = jotaiStore.get(cacheFamily(params));
         return d !== undefined ? transform(d) : undefined;
       },
       ensureFetch: () => ensureFetch(key, params).then(transform),
-      forceFetch: () => forceFetch(key, params).then(transform),
-      subscribe: (callback) => subscribe(key, callback),
+      forceFetch: () => forceFetchInternal(key, params).then(transform),
+      subscribe: (callback) => jotaiStore.sub(queryAtom, callback),
     };
   };
 
@@ -272,7 +221,7 @@ export const defineQuery = <TParams, TData>(
       makeBoundQuery(params, (d) => selector(transform(d))),
     prefetch: async () => transform(await prefetch(params)),
     getData: () => {
-      const d = getData(params);
+      const d = jotaiStore.get(cacheFamily(params));
       return d !== undefined ? transform(d) : undefined;
     },
     invalidate: () => invalidate(params),
@@ -280,25 +229,23 @@ export const defineQuery = <TParams, TData>(
 
   const withParams = (params: TParams): BoundQuery<TData> => makeBoundQuery(params, (d) => d);
 
-  const selectFn = <S>(selector: (data: TData) => S): Queryable<TParams, S> => {
-    return {
-      with: (params: TParams) => makeBoundQuery(params, (d) => selector(d)),
-      select: <S2>(s2: (data: S) => S2) => selectFn((d) => s2(selector(d))),
-    };
-  };
+  const selectFn = <S>(selector: (data: TData) => S): Queryable<TParams, S> => ({
+    with: (params: TParams) => makeBoundQuery(params, (d) => selector(d)),
+    select: <S2>(s2: (data: S) => S2) => selectFn((d) => s2(selector(d))),
+  });
 
-  const store: QueryStore<TParams, TData> & HasInternals<TData> = {
-    [QUERY_INTERNALS]: null as never, // placeholder, set per-call in useSuspenseQuery
+  const result: QueryStore<TParams, TData> & HasInternals<TData> = {
+    [QUERY_INTERNALS]: null as never,
     prefetch,
     invalidate,
     invalidateAll,
     getData,
     with: withParams,
     select: selectFn,
-    atom: atomFn,
+    atom: (params: TParams): Atom<TData | Promise<TData>> => queryFamily(params),
   };
 
-  return store;
+  return result;
 };
 
 // --- Helpers ---
@@ -311,7 +258,6 @@ const getInternals = <TData>(
   if (obj[QUERY_INTERNALS] && (obj[QUERY_INTERNALS] as QueryInternals<TData>).getKey) {
     return obj[QUERY_INTERNALS] as QueryInternals<TData>;
   }
-  // QueryStore + params case: create a BoundQuery to get internals
   const q = queryOrBound as QueryStore<unknown, TData>;
   const bound = q.with(params) as BoundQuery<TData> & HasInternals<TData>;
   return bound[QUERY_INTERNALS];
@@ -332,9 +278,9 @@ export function useSuspenseQuery<TData>(
   params?: unknown,
 ): SuspenseQueryResult<TData> {
   const internals = getInternals(query, params);
-  const key = internals.getKey();
   const internalsRef = useRef(internals);
   internalsRef.current = internals;
+  const key = internals.getKey();
   const [, forceUpdate] = useReducer((c: number) => c + 1, 0);
 
   useEffect(() => {
