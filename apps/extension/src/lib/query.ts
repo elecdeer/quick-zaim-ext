@@ -1,6 +1,7 @@
 import { atom, type Atom, createStore } from "jotai";
+import { useAtomValue } from "jotai/react";
 import { atomFamily } from "jotai/utils";
-import { useCallback, useEffect, useReducer, useRef } from "react";
+import { useCallback, useRef } from "react";
 
 interface QueryFnOpts {
   signal: AbortSignal;
@@ -60,11 +61,10 @@ interface SuspenseQueryResult<TData> {
 const QUERY_INTERNALS = Symbol("queryInternals");
 
 interface QueryInternals<TData> {
-  getKey: () => string;
-  getData: () => TData | undefined;
-  ensureFetch: () => Promise<TData>;
+  /** useAtomValue + transform を呼び出す（hook 内でのみ使用可） */
+  useData: () => TData;
+  /** バックグラウンドで再取得する */
   forceFetch: () => Promise<TData>;
-  subscribe: (callback: () => void) => () => void;
 }
 
 interface HasInternals<TData> {
@@ -201,14 +201,8 @@ export const defineQuery = <TParams, TData>(
     const key = getKey(params);
     const queryAtom = queryFamily(params);
     return {
-      getKey: () => key,
-      getData: () => {
-        const d = jotaiStore.get(cacheFamily(params));
-        return d !== undefined ? transform(d) : undefined;
-      },
-      ensureFetch: () => ensureFetch(key, params).then(transform),
+      useData: () => transform(useAtomValue(queryAtom, { store: jotaiStore })),
       forceFetch: () => forceFetchInternal(key, params).then(transform),
-      subscribe: (callback) => jotaiStore.sub(queryAtom, callback),
     };
   };
 
@@ -255,7 +249,7 @@ const getInternals = <TData>(
   params?: unknown,
 ): QueryInternals<TData> => {
   const obj = queryOrBound as Partial<HasInternals<TData>>;
-  if (obj[QUERY_INTERNALS] && (obj[QUERY_INTERNALS] as QueryInternals<TData>).getKey) {
+  if (obj[QUERY_INTERNALS]) {
     return obj[QUERY_INTERNALS] as QueryInternals<TData>;
   }
   const q = queryOrBound as QueryStore<unknown, TData>;
@@ -280,19 +274,8 @@ export function useSuspenseQuery<TData>(
   const internals = getInternals(query, params);
   const internalsRef = useRef(internals);
   internalsRef.current = internals;
-  const key = internals.getKey();
-  const [, forceUpdate] = useReducer((c: number) => c + 1, 0);
 
-  useEffect(() => {
-    return internalsRef.current.subscribe(forceUpdate);
-  }, [key]);
-
-  const data = internalsRef.current.getData();
-
-  if (data === undefined) {
-    throw internalsRef.current.ensureFetch();
-  }
-
+  const data = internalsRef.current.useData();
   const refetch = useCallback(async (): Promise<TData> => internalsRef.current.forceFetch(), []);
 
   return { data, refetch };
