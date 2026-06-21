@@ -1,6 +1,5 @@
 import { http, HttpResponse } from "msw";
 import { useState } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import preview from "#storybook/preview";
 import { AccountCombobox } from "./AccountCombobox.tsx";
 
@@ -73,16 +72,11 @@ const meta = preview.meta({
     onChange: () => {},
   },
   decorators: [
-    () => {
-      const [queryClient] = useState(() => new QueryClient());
-      return (
-        <QueryClientProvider client={queryClient}>
-          <div className="p-4">
-            <ControlledWrapper serverUrl={MOCK_SERVER_URL} />
-          </div>
-        </QueryClientProvider>
-      );
-    },
+    () => (
+      <div className="p-4">
+        <ControlledWrapper serverUrl={MOCK_SERVER_URL} />
+      </div>
+    ),
   ],
 });
 

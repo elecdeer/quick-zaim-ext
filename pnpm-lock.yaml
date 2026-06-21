@@ -156,9 +156,6 @@ importers:
       '@phosphor-icons/react':
         specifier: ^2.1.10
         version: 2.1.10(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
-      '@tanstack/react-query':
-        specifier: 'catalog:'
-        version: 5.100.5(react@19.2.5)
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1

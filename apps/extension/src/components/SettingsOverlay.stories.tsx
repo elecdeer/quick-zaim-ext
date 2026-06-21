@@ -1,6 +1,5 @@
 import { http, HttpResponse } from "msw";
 import { useState } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import preview from "#storybook/preview";
 import { setupBrowserMock } from "../test-utils/browser-mock.ts";
 import { SettingsOverlay } from "./SettingsOverlay.tsx";
@@ -30,16 +29,7 @@ const meta = preview.meta({
     open: true,
     onOpenChange: () => {},
   },
-  decorators: [
-    () => {
-      const [queryClient] = useState(() => new QueryClient());
-      return (
-        <QueryClientProvider client={queryClient}>
-          <ControlledWrapper />
-        </QueryClientProvider>
-      );
-    },
-  ],
+  decorators: [() => <ControlledWrapper />],
   loaders: [
     async (ctx) => {
       const serverUrl = (ctx.parameters.serverUrl as string | undefined) ?? MOCK_SERVER_URL;

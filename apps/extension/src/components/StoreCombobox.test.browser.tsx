@@ -1,6 +1,5 @@
 import { http, HttpResponse } from "msw";
 import { useState } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, vi } from "vitest";
 import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
@@ -24,18 +23,15 @@ const ControlledStoreCombobox = ({
   onChange?: (v: StoreSelection | null) => void;
 }) => {
   const [value, setValue] = useState<StoreSelection | null>(null);
-  const [queryClient] = useState(() => new QueryClient());
   return (
-    <QueryClientProvider client={queryClient}>
-      <StoreCombobox
-        serverUrl={MOCK_SERVER_URL}
-        value={value}
-        onChange={(v) => {
-          setValue(v);
-          onChange?.(v);
-        }}
-      />
-    </QueryClientProvider>
+    <StoreCombobox
+      serverUrl={MOCK_SERVER_URL}
+      value={value}
+      onChange={(v) => {
+        setValue(v);
+        onChange?.(v);
+      }}
+    />
   );
 };
 
@@ -102,12 +98,7 @@ describe("StoreCombobox", () => {
       http.get(`${MOCK_SERVER_URL}/api/zaim/stores`, () => new HttpResponse(null, { status: 500 })),
     );
 
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    await render(
-      <QueryClientProvider client={queryClient}>
-        <StoreCombobox serverUrl={MOCK_SERVER_URL} value={null} onChange={() => {}} />
-      </QueryClientProvider>,
-    );
+    await render(<StoreCombobox serverUrl={MOCK_SERVER_URL} value={null} onChange={() => {}} />);
 
     await expect.element(page.getByText("店舗の取得に失敗しました")).toBeVisible();
   });

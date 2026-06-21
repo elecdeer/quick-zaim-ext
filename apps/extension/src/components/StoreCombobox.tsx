@@ -1,8 +1,6 @@
 import { StorefrontIcon } from "@phosphor-icons/react";
-import { useQuery } from "@tanstack/react-query";
 import { ChevronsUpDownIcon, XIcon } from "lucide-react";
-import { useState } from "react";
-import { createClient } from "server/client";
+import { Suspense, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -13,16 +11,10 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ErrorBoundary } from "@/lib/ErrorBoundary";
+import { useSuspenseQuery } from "@/lib/query";
 import { cn } from "@/lib/utils";
-
-type Store = {
-  place: string;
-  placeUid: string;
-  latestDate: string;
-  count: number;
-};
-
-type StoresResponse = { fetchedAt: string; stores: Store[] };
+import { storesQuery } from "../queries";
 
 export type StoreSelection = {
   place: string;
@@ -35,51 +27,53 @@ interface Props {
   onChange: (value: StoreSelection | null) => void;
 }
 
-const fetchStores = async (serverUrl: string): Promise<StoresResponse> => {
-  const client = createClient(serverUrl);
-  const res = await client.api.zaim.stores.$get(
-    { query: {} },
-    { init: { credentials: "include" } },
-  );
-  if (!res.ok) throw new Error("店舗の取得に失敗しました");
-  return res.json();
-};
-
 /**
  * 店舗選択の combobox コンポーネント。
  * 過去の支払い履歴から店舗候補を表示し、一覧から選択する。
  */
 export const StoreCombobox = ({ serverUrl, value, onChange }: Props) => {
+  if (!serverUrl) return null;
+
+  return (
+    <ErrorBoundary
+      fallback={
+        <div className="flex items-center gap-2">
+          <StorefrontIcon size={20} className="shrink-0 text-muted-foreground" aria-hidden="true" />
+          <p className="text-sm text-destructive">店舗の取得に失敗しました</p>
+        </div>
+      }
+    >
+      <Suspense
+        fallback={
+          <div className="flex items-center gap-2">
+            <StorefrontIcon
+              size={20}
+              className="shrink-0 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <output
+              className="block h-8 flex-1 animate-pulse rounded-lg bg-muted"
+              aria-label="店舗を読み込み中"
+            />
+          </div>
+        }
+      >
+        <StoreComboboxContent serverUrl={serverUrl} value={value} onChange={onChange} />
+      </Suspense>
+    </ErrorBoundary>
+  );
+};
+
+const StoreComboboxContent = ({
+  serverUrl,
+  value,
+  onChange,
+}: { serverUrl: string } & Pick<Props, "value" | "onChange">) => {
   const [open, setOpen] = useState(false);
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["stores", serverUrl],
-    queryFn: () => fetchStores(serverUrl),
-    enabled: !!serverUrl,
-  });
+  const { data } = useSuspenseQuery(storesQuery, serverUrl);
 
   const stores = data?.stores ?? [];
   const selectedStore = stores.find((s) => s.placeUid === value?.placeUid) ?? null;
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center gap-2">
-        <StorefrontIcon size={20} className="shrink-0 text-muted-foreground" aria-hidden="true" />
-        <output
-          className="block h-8 flex-1 animate-pulse rounded-lg bg-muted"
-          aria-label="店舗を読み込み中"
-        />
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <div className="flex items-center gap-2">
-        <StorefrontIcon size={20} className="shrink-0 text-muted-foreground" aria-hidden="true" />
-        <p className="text-sm text-destructive">店舗の取得に失敗しました</p>
-      </div>
-    );
-  }
 
   return (
     <div className="flex items-center gap-2">

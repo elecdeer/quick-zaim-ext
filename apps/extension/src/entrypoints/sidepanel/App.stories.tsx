@@ -1,6 +1,4 @@
 import { http, HttpResponse } from "msw";
-import { useState } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import preview from "#storybook/preview";
 import { setupBrowserMock } from "../../test-utils/browser-mock.ts";
 import App from "./App.tsx";
@@ -10,16 +8,7 @@ const MOCK_SERVER_URL = "http://mock-server.test";
 const meta = preview.meta({
   title: "Sidebar/App",
   component: App,
-  decorators: [
-    (Story) => {
-      const [queryClient] = useState(() => new QueryClient());
-      return (
-        <QueryClientProvider client={queryClient}>
-          <Story />
-        </QueryClientProvider>
-      );
-    },
-  ],
+  decorators: [],
   loaders: [
     async (ctx) => {
       const serverUrl = (ctx.parameters.serverUrl as string | undefined) ?? MOCK_SERVER_URL;

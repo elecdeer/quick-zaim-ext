@@ -1,5 +1,4 @@
 import { PencilSimpleIcon } from "@phosphor-icons/react";
-import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AccountCombobox } from "../../../components/AccountCombobox.tsx";
@@ -7,6 +6,7 @@ import { CategoryCombobox, type CategorySelection } from "../../../components/Ca
 import { DateField } from "../../../components/DateField.tsx";
 import { ItemEditDialog, type ItemEditField } from "../../../components/ItemEditDialog.tsx";
 import { StoreCombobox, type StoreSelection } from "../../../components/StoreCombobox.tsx";
+import { useMutation } from "../../../lib/useMutation.ts";
 import { collectFromActiveTab } from "../../../page-collector/collectFromActiveTab.ts";
 import { createClient } from "server/client";
 
@@ -166,7 +166,6 @@ export default function MainScreen({ serverUrl }: Props) {
     setItems((prev) => prev.filter((item) => item.id !== id));
   };
 
-  // 入力（カテゴリ・日付・各品目金額）が変わったら重複チェック結果をリセット
   const itemsSignature = items
     .map((i) => `${i.id}:${i.amount}:${i.category?.genreId ?? ""}`)
     .join(",");

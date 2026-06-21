@@ -34,6 +34,12 @@ export interface QueryStore<TParams, TData> extends Queryable<TParams, TData> {
   invalidateAll: () => void;
   /** キャッシュ済みデータを同期的に取得 */
   getData: (params: TParams) => TData | undefined;
+  /** キャッシュにデータを直接書き込む */
+  setData: (params: TParams, data: TData) => void;
+  /** キャッシュを保持したままバックグラウンドで再取得する */
+  refetch: (params: TParams) => Promise<TData>;
+  /** 全キャッシュ・atomFamily・タイマーを完全リセットする（テスト用） */
+  resetAll: () => void;
   /** Jotai atom としてアクセス（合成用）。キャッシュ未取得時は Promise を返す。 */
   atom: (params: TParams) => Atom<TData | Promise<TData>>;
 }
@@ -45,6 +51,8 @@ export interface BoundQuery<TData> {
   prefetch: () => Promise<TData>;
   /** キャッシュ済みデータを同期的に取得 */
   getData: () => TData | undefined;
+  /** キャッシュを保持したままバックグラウンドで再取得する */
+  refetch: () => Promise<TData>;
   /** キャッシュを無効化する */
   invalidate: () => void;
 }
@@ -200,6 +208,28 @@ export const defineQuery = <TParams, TData>(
     usedParams.clear();
   };
 
+  const setData = (params: TParams, data: TData): void => {
+    const key = getKey(params);
+    pendingFetches.delete(key);
+    usedParams.set(key, params);
+    queryJotaiStore.set(cacheFamily(params), data);
+  };
+
+  const refetch = (params: TParams): Promise<TData> => {
+    return forceFetchInternal(getKey(params), params);
+  };
+
+  const resetAll = (): void => {
+    for (const [key, params] of usedParams) {
+      cancelGcTimer(key);
+      queryJotaiStore.set(cacheFamily(params), undefined);
+      cacheFamily.remove(params);
+      queryFamily.remove(params);
+    }
+    usedParams.clear();
+    pendingFetches.clear();
+  };
+
   const makeInternals = <S>(params: TParams, transform: (data: TData) => S): QueryInternals<S> => {
     const key = getKey(params);
     const queryAtom = queryFamily(params);
@@ -221,6 +251,7 @@ export const defineQuery = <TParams, TData>(
       const d = queryJotaiStore.get(cacheFamily(params));
       return d !== undefined ? transform(d) : undefined;
     },
+    refetch: async () => transform(await refetch(params)),
     invalidate: () => invalidate(params),
   });
 
@@ -237,6 +268,9 @@ export const defineQuery = <TParams, TData>(
     invalidate,
     invalidateAll,
     getData,
+    setData,
+    refetch,
+    resetAll,
     with: withParams,
     select: selectFn,
     atom: (params: TParams): Atom<TData | Promise<TData>> => queryFamily(params),

@@ -1,6 +1,5 @@
 import { http, HttpResponse } from "msw";
 import { useState } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, vi } from "vitest";
 import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
@@ -47,18 +46,15 @@ const mockAccountsResponse = {
 
 const ControlledAccountCombobox = ({ onChange }: { onChange?: (v: number | null) => void }) => {
   const [value, setValue] = useState<number | null>(null);
-  const [queryClient] = useState(() => new QueryClient());
   return (
-    <QueryClientProvider client={queryClient}>
-      <AccountCombobox
-        serverUrl={MOCK_SERVER_URL}
-        value={value}
-        onChange={(v) => {
-          setValue(v);
-          onChange?.(v);
-        }}
-      />
-    </QueryClientProvider>
+    <AccountCombobox
+      serverUrl={MOCK_SERVER_URL}
+      value={value}
+      onChange={(v) => {
+        setValue(v);
+        onChange?.(v);
+      }}
+    />
   );
 };
 
@@ -140,12 +136,7 @@ describe("AccountCombobox", () => {
       ),
     );
 
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    await render(
-      <QueryClientProvider client={queryClient}>
-        <AccountCombobox serverUrl={MOCK_SERVER_URL} value={null} onChange={() => {}} />
-      </QueryClientProvider>,
-    );
+    await render(<AccountCombobox serverUrl={MOCK_SERVER_URL} value={null} onChange={() => {}} />);
 
     await expect.element(page.getByText("口座の取得に失敗しました")).toBeVisible();
   });

@@ -1,6 +1,5 @@
 import { http, HttpResponse } from "msw";
 import { useState } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect } from "vitest";
 import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
@@ -12,12 +11,7 @@ const MOCK_SERVER_URL = "http://mock-server.test";
 
 const ControlledOverlay = ({ initialOpen = true }: { initialOpen?: boolean }) => {
   const [open, setOpen] = useState(initialOpen);
-  const [queryClient] = useState(() => new QueryClient());
-  return (
-    <QueryClientProvider client={queryClient}>
-      <SettingsOverlay open={open} onOpenChange={setOpen} />
-    </QueryClientProvider>
-  );
+  return <SettingsOverlay open={open} onOpenChange={setOpen} />;
 };
 
 describe("SettingsOverlay", () => {

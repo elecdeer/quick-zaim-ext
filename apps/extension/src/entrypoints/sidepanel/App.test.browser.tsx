@@ -3,7 +3,8 @@ import { describe, expect } from "vitest";
 import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { test } from "../../test-utils/browser-test.ts";
-import { MainState, UnauthedState } from "./App.stories";
+import { setupBrowserMock } from "../../test-utils/browser-mock.ts";
+import App from "./App.tsx";
 
 const MOCK_SERVER_URL = "http://mock-server.test";
 
@@ -21,21 +22,31 @@ const noopZaimDataHandlers = [
 
 describe("App: 設定オーバーレイの自動オープン", () => {
   test("Zaim 連携済みのとき設定ダイアログは開かない", async ({ worker }) => {
-    worker.use(...noopZaimDataHandlers);
+    await setupBrowserMock({ serverUrl: MOCK_SERVER_URL });
+    worker.use(
+      ...noopZaimDataHandlers,
+      http.get(`${MOCK_SERVER_URL}/me`, () =>
+        HttpResponse.json({ email: "user@example.com", sub: "auth0|abc123" }),
+      ),
+      http.get(`${MOCK_SERVER_URL}/zaim/auth/status`, () =>
+        HttpResponse.json({ connected: true, zaimUserId: "zaim_user_123456" }),
+      ),
+    );
 
-    await render(<MainState.Component />);
+    await render(<App />);
 
-    // ヘッダーが描画されるまで待つ（auth クエリの解決待ち）
     await expect.element(page.getByRole("heading", { name: "Quick Zaim" })).toBeVisible();
-
-    // 設定ダイアログのタイトルが表示されないこと
     await expect.element(page.getByRole("dialog", { name: "設定" })).not.toBeInTheDocument();
   });
 
   test("未認証のとき設定ダイアログが自動で開く", async ({ worker }) => {
-    worker.use(...noopZaimDataHandlers);
+    await setupBrowserMock({ serverUrl: MOCK_SERVER_URL });
+    worker.use(
+      ...noopZaimDataHandlers,
+      http.get(`${MOCK_SERVER_URL}/me`, () => new HttpResponse(null, { status: 401 })),
+    );
 
-    await render(<UnauthedState.Component />);
+    await render(<App />);
 
     await expect.element(page.getByRole("dialog", { name: "設定" })).toBeVisible();
   });

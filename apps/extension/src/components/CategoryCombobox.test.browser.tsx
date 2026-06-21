@@ -1,6 +1,5 @@
 import { http, HttpResponse } from "msw";
 import { useState } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, vi } from "vitest";
 import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
@@ -42,18 +41,15 @@ const ControlledCategoryCombobox = ({
   onChange?: (v: CategorySelection | null) => void;
 }) => {
   const [value, setValue] = useState<CategorySelection | null>(null);
-  const [queryClient] = useState(() => new QueryClient());
   return (
-    <QueryClientProvider client={queryClient}>
-      <CategoryCombobox
-        serverUrl={MOCK_SERVER_URL}
-        value={value}
-        onChange={(v) => {
-          setValue(v);
-          onChange?.(v);
-        }}
-      />
-    </QueryClientProvider>
+    <CategoryCombobox
+      serverUrl={MOCK_SERVER_URL}
+      value={value}
+      onChange={(v) => {
+        setValue(v);
+        onChange?.(v);
+      }}
+    />
   );
 };
 
@@ -119,12 +115,7 @@ describe("CategoryCombobox", () => {
       ),
     );
 
-    const [queryClient] = [new QueryClient({ defaultOptions: { queries: { retry: false } } })];
-    await render(
-      <QueryClientProvider client={queryClient}>
-        <CategoryCombobox serverUrl={MOCK_SERVER_URL} value={null} onChange={() => {}} />
-      </QueryClientProvider>,
-    );
+    await render(<CategoryCombobox serverUrl={MOCK_SERVER_URL} value={null} onChange={() => {}} />);
 
     await expect.element(page.getByText("カテゴリの取得に失敗しました")).toBeVisible();
   });

@@ -41,5 +41,11 @@ export default definePreview({
   initialGlobals: {
     viewport: "chromeSidebar",
   },
-  loaders: [mswLoader],
+  loaders: [
+    async () => {
+      const { resetAllQueries } = await import("../src/queries.ts");
+      resetAllQueries();
+    },
+    mswLoader,
+  ],
 });

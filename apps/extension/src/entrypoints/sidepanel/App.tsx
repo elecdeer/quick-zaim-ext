@@ -1,63 +1,115 @@
 import { GearIcon } from "@phosphor-icons/react";
-import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
-import { browser } from "wxt/browser";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { SettingsOverlay } from "../../components/SettingsOverlay.tsx";
 import { Button } from "@/components/ui/button";
-import { UNAUTHENTICATED, fetchAuthStatus } from "./authQueries.ts";
+import { ErrorBoundary } from "@/lib/ErrorBoundary";
+import { useSuspenseQuery } from "@/lib/query";
+import { authStatusQuery, serverUrlQuery } from "../../queries.ts";
 import MainScreen from "./screens/MainScreen.tsx";
 
+/**
+ * アプリケーションのルートコンポーネント。
+ */
 export default function App() {
+  return (
+    <Suspense fallback={<AppShell />}>
+      <AppContent />
+    </Suspense>
+  );
+}
+
+const AppShell = () => (
+  <div className="flex min-h-screen flex-col gap-4 bg-background p-4">
+    <header className="flex items-center justify-between">
+      <h1 className="text-lg font-bold">Quick Zaim</h1>
+    </header>
+  </div>
+);
+
+const AppContent = () => {
+  const { data: serverUrl } = useSuspenseQuery(serverUrlQuery, undefined);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const autoOpenedRef = useRef(false);
 
-  const { data: serverUrl = "", isFetched: serverUrlFetched } = useQuery({
-    queryKey: ["serverUrl"],
-    queryFn: async () => {
-      const result = await browser.storage.local.get("serverUrl");
-      return (result.serverUrl as string) || "";
-    },
-  });
+  if (!serverUrl) {
+    return (
+      <AppLayout settingsOpen={true} onSettingsOpenChange={() => {}}>
+        <MainScreen serverUrl="" />
+      </AppLayout>
+    );
+  }
 
-  const { data: auth = UNAUTHENTICATED, isFetched: authFetched } = useQuery({
-    queryKey: ["authStatus", serverUrl],
-    queryFn: () => fetchAuthStatus(serverUrl),
-    enabled: !!serverUrl,
-    retry: false,
-  });
+  return (
+    <ErrorBoundary
+      fallback={
+        <AppLayout settingsOpen={!autoOpenedRef.current} onSettingsOpenChange={() => {}}>
+          <MainScreen serverUrl={serverUrl} />
+        </AppLayout>
+      }
+    >
+      <Suspense fallback={<AppShell />}>
+        <AppWithAuth
+          serverUrl={serverUrl}
+          settingsOpen={settingsOpen}
+          setSettingsOpen={setSettingsOpen}
+          autoOpenedRef={autoOpenedRef}
+        />
+      </Suspense>
+    </ErrorBoundary>
+  );
+};
 
-  // 初回起動時、未設定/未認証/Zaim未連携なら設定オーバーレイを自動オープンする。
-  //
-  // 両クエリが解決し終わるまで判定を保留する。`serverUrl` のデフォルト値（空文字）に
-  // 引きずられて初回レンダリングで開いてしまうと、その後 auth が確定しても
-  // autoOpenedRef のガードで閉じられず「ログイン済なのにダイアログが出たまま」になる。
+interface AppWithAuthProps {
+  serverUrl: string;
+  settingsOpen: boolean;
+  setSettingsOpen: (open: boolean) => void;
+  autoOpenedRef: React.RefObject<boolean>;
+}
+
+const AppWithAuth = ({
+  serverUrl,
+  settingsOpen,
+  setSettingsOpen,
+  autoOpenedRef,
+}: AppWithAuthProps) => {
+  const { data: auth } = useSuspenseQuery(authStatusQuery, serverUrl);
+
   useEffect(() => {
     if (autoOpenedRef.current) return;
-    if (!serverUrlFetched) return;
-    if (serverUrl && !authFetched) return;
-
-    if (!serverUrl || !auth.isZaimConnected) {
+    if (!auth.isZaimConnected) {
       setSettingsOpen(true);
     }
     autoOpenedRef.current = true;
-  }, [serverUrl, serverUrlFetched, authFetched, auth.isZaimConnected]);
+  }, [auth.isZaimConnected, setSettingsOpen, autoOpenedRef]);
 
   return (
-    <div className="flex min-h-screen flex-col gap-4 bg-background p-4">
-      <header className="flex items-center justify-between">
-        <h1 className="text-lg font-bold">Quick Zaim</h1>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          aria-label="設定"
-          onClick={() => setSettingsOpen(true)}
-        >
-          <GearIcon size={20} weight="regular" />
-        </Button>
-      </header>
+    <AppLayout settingsOpen={settingsOpen} onSettingsOpenChange={setSettingsOpen}>
       <MainScreen serverUrl={serverUrl} />
-      <SettingsOverlay open={settingsOpen} onOpenChange={setSettingsOpen} />
-    </div>
+    </AppLayout>
   );
+};
+
+interface AppLayoutProps {
+  settingsOpen: boolean;
+  onSettingsOpenChange: (open: boolean) => void;
+  children: React.ReactNode;
 }
+
+const AppLayout = ({ settingsOpen, onSettingsOpenChange, children }: AppLayoutProps) => (
+  <div className="flex min-h-screen flex-col gap-4 bg-background p-4">
+    <header className="flex items-center justify-between">
+      <h1 className="text-lg font-bold">Quick Zaim</h1>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        aria-label="設定"
+        onClick={() => onSettingsOpenChange(true)}
+      >
+        <GearIcon size={20} weight="regular" />
+      </Button>
+    </header>
+    {children}
+    <SettingsOverlay open={settingsOpen} onOpenChange={onSettingsOpenChange} />
+  </div>
+);
