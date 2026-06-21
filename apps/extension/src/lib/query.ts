@@ -273,5 +273,5 @@ export function useSuspenseQuery<TData>(
   const internals = getInternals(query, params);
   const data = internals.useData();
 
-  return { data, refetch: async (): Promise<TData> => internals.forceFetch() };
+  return { data, refetch: internals.forceFetch };
 }
