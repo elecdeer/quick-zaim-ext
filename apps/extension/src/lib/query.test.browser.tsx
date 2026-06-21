@@ -1,5 +1,5 @@
 import { createStore } from "jotai";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
@@ -594,6 +594,99 @@ describe("useSuspenseQuery", () => {
     );
 
     await expect.element(page.getByTestId("result")).toHaveTextContent("user-1");
+  });
+
+  it("data and refetch are referentially stable across re-renders (BoundQuery)", async () => {
+    const query = defineQuery({
+      queryFn: async () => ({ name: "Alice" }),
+    });
+
+    await query.prefetch(undefined);
+    const bound = query.with(undefined);
+
+    const dataRefs: Array<{ name: string }> = [];
+    const refetchRefs: Array<() => Promise<{ name: string }>> = [];
+
+    const Inner = () => {
+      const { data, refetch } = useSuspenseQuery(bound);
+      dataRefs.push(data);
+      refetchRefs.push(refetch);
+      const [count, setCount] = useState(0);
+      return (
+        <div>
+          <div data-testid="result">{data.name}</div>
+          <div data-testid="count">{count}</div>
+          <button data-testid="rerender" onClick={() => setCount((n) => n + 1)} type="button">
+            rerender
+          </button>
+        </div>
+      );
+    };
+
+    await render(
+      <Suspense fallback={<div>loading</div>}>
+        <Inner />
+      </Suspense>,
+    );
+
+    await expect.element(page.getByTestId("result")).toHaveTextContent("Alice");
+
+    await page.getByTestId("rerender").click();
+    await expect.element(page.getByTestId("count")).toHaveTextContent("1");
+
+    expect(dataRefs.length).toBeGreaterThanOrEqual(2);
+    for (let i = 1; i < dataRefs.length; i++) {
+      expect(dataRefs[i]).toBe(dataRefs[0]);
+    }
+    for (let i = 1; i < refetchRefs.length; i++) {
+      expect(refetchRefs[i]).toBe(refetchRefs[0]);
+    }
+  });
+
+  it("data and refetch are referentially stable across re-renders (QueryStore + params)", async () => {
+    const query = defineQuery({
+      queryFn: async (id: string) => ({ name: `user-${id}` }),
+    });
+
+    await query.prefetch("1");
+
+    const dataRefs: Array<{ name: string }> = [];
+    const refetchRefs: Array<() => Promise<{ name: string }>> = [];
+
+    const Inner = () => {
+      const { data, refetch } = useSuspenseQuery(query, "1");
+      dataRefs.push(data);
+      refetchRefs.push(refetch);
+      const [count, setCount] = useState(0);
+      return (
+        <div>
+          <div data-testid="result">{data.name}</div>
+          <div data-testid="count">{count}</div>
+          <button data-testid="rerender" onClick={() => setCount((n) => n + 1)} type="button">
+            rerender
+          </button>
+        </div>
+      );
+    };
+
+    await render(
+      <Suspense fallback={<div>loading</div>}>
+        <Inner />
+      </Suspense>,
+    );
+
+    await expect.element(page.getByTestId("result")).toHaveTextContent("user-1");
+
+    await page.getByTestId("rerender").click();
+    await expect.element(page.getByTestId("count")).toHaveTextContent("1");
+
+    expect(dataRefs.length).toBeGreaterThanOrEqual(2);
+    for (let i = 1; i < dataRefs.length; i++) {
+      expect(dataRefs[i]).toBe(dataRefs[0]);
+    }
+    for (let i = 1; i < refetchRefs.length; i++) {
+      expect(refetchRefs[i]).toBe(refetchRefs[0]);
+    }
   });
 
   it("multiple components share cache and both update on refetch", async () => {
