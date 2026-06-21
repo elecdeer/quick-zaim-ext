@@ -1,7 +1,6 @@
 import { atom, type Atom, createStore } from "jotai";
 import { useAtomValue } from "jotai/react";
 import { atomFamily } from "jotai/utils";
-import { useCallback, useRef } from "react";
 
 interface QueryFnOpts {
   signal: AbortSignal;
@@ -272,11 +271,7 @@ export function useSuspenseQuery<TData>(
   params?: unknown,
 ): SuspenseQueryResult<TData> {
   const internals = getInternals(query, params);
-  const internalsRef = useRef(internals);
-  internalsRef.current = internals;
+  const data = internals.useData();
 
-  const data = internalsRef.current.useData();
-  const refetch = useCallback(async (): Promise<TData> => internalsRef.current.forceFetch(), []);
-
-  return { data, refetch };
+  return { data, refetch: async (): Promise<TData> => internals.forceFetch() };
 }
