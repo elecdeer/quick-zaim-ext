@@ -56,6 +56,10 @@ interface SuspenseQueryResult<TData> {
   refetch: () => Promise<TData>;
 }
 
+// --- Shared store ---
+
+const queryJotaiStore = createStore();
+
 // --- Internal symbols ---
 
 const QUERY_INTERNALS = Symbol("queryInternals");
@@ -83,7 +87,6 @@ export const defineQuery = <TParams, TData>(
     gcTime = DEFAULT_GC_TIME,
   } = options;
 
-  const jotaiStore = createStore();
   const pendingFetches = new Map<string, Promise<TData>>();
   const gcTimers = new Map<string, ReturnType<typeof setTimeout>>();
   const usedParams = new Map<string, TParams>();
@@ -107,7 +110,7 @@ export const defineQuery = <TParams, TData>(
     gcTimers.set(
       key,
       setTimeout(() => {
-        jotaiStore.set(cacheFamily(params), undefined);
+        queryJotaiStore.set(cacheFamily(params), undefined);
         cacheFamily.remove(params);
         queryFamily.remove(params);
         usedParams.delete(key);
@@ -117,14 +120,14 @@ export const defineQuery = <TParams, TData>(
   };
 
   const ensureFetch = (key: string, params: TParams): Promise<TData> => {
-    const cached = jotaiStore.get(cacheFamily(params));
+    const cached = queryJotaiStore.get(cacheFamily(params));
     if (cached !== undefined) return Promise.resolve(cached);
     const pending = pendingFetches.get(key);
     if (pending) return pending;
     usedParams.set(key, params);
     const controller = new AbortController();
     const promise = queryFn(params, { signal: controller.signal }).then((data) => {
-      jotaiStore.set(cacheFamily(params), data);
+      queryJotaiStore.set(cacheFamily(params), data);
       pendingFetches.delete(key);
       return data;
     });
@@ -137,7 +140,7 @@ export const defineQuery = <TParams, TData>(
     usedParams.set(key, params);
     const controller = new AbortController();
     const promise = queryFn(params, { signal: controller.signal }).then((data) => {
-      jotaiStore.set(cacheFamily(params), data);
+      queryJotaiStore.set(cacheFamily(params), data);
       pendingFetches.delete(key);
       return data;
     });
@@ -154,8 +157,8 @@ export const defineQuery = <TParams, TData>(
         (get): TData | Promise<TData> => {
           const cached = get(cacheFamily(params));
           if (cached !== undefined) return cached;
-          // 外部 store からの読み取り用: 内部 store のキャッシュをフォールバック参照
-          const privateCached = jotaiStore.get(cacheFamily(params));
+          // 外部 store からの読み取り用: 共有 store のキャッシュをフォールバック参照
+          const privateCached = queryJotaiStore.get(cacheFamily(params));
           if (privateCached !== undefined) return privateCached;
           return ensureFetch(key, params);
         },
@@ -175,24 +178,24 @@ export const defineQuery = <TParams, TData>(
   );
 
   const prefetch = async (params: TParams): Promise<TData> => {
-    const cached = jotaiStore.get(cacheFamily(params));
+    const cached = queryJotaiStore.get(cacheFamily(params));
     if (cached !== undefined) return cached;
     return ensureFetch(getKey(params), params);
   };
 
   const getData = (params: TParams): TData | undefined => {
-    return jotaiStore.get(cacheFamily(params));
+    return queryJotaiStore.get(cacheFamily(params));
   };
 
   const invalidate = (params: TParams): void => {
     cancelGcTimer(getKey(params));
-    jotaiStore.set(cacheFamily(params), undefined);
+    queryJotaiStore.set(cacheFamily(params), undefined);
   };
 
   const invalidateAll = (): void => {
     for (const [key, params] of usedParams) {
       cancelGcTimer(key);
-      jotaiStore.set(cacheFamily(params), undefined);
+      queryJotaiStore.set(cacheFamily(params), undefined);
     }
     usedParams.clear();
   };
@@ -201,7 +204,7 @@ export const defineQuery = <TParams, TData>(
     const key = getKey(params);
     const queryAtom = queryFamily(params);
     return {
-      useData: () => transform(useAtomValue(queryAtom, { store: jotaiStore })),
+      useData: () => transform(useAtomValue(queryAtom, { store: queryJotaiStore })),
       forceFetch: () => forceFetchInternal(key, params).then(transform),
     };
   };
@@ -215,7 +218,7 @@ export const defineQuery = <TParams, TData>(
       makeBoundQuery(params, (d) => selector(transform(d))),
     prefetch: async () => transform(await prefetch(params)),
     getData: () => {
-      const d = jotaiStore.get(cacheFamily(params));
+      const d = queryJotaiStore.get(cacheFamily(params));
       return d !== undefined ? transform(d) : undefined;
     },
     invalidate: () => invalidate(params),
