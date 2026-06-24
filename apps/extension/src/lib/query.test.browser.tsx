@@ -3,6 +3,7 @@ import { Suspense, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { page } from "vitest/browser";
 import { render } from "vitest-browser-react";
+import { ErrorBoundary } from "./ErrorBoundary";
 import { type BoundQuery, defineQuery, useSuspenseQuery } from "./query";
 
 describe("defineQuery", () => {
@@ -725,5 +726,446 @@ describe("useSuspenseQuery", () => {
 
     await expect.element(page.getByTestId("result-a")).toHaveTextContent("data-2");
     await expect.element(page.getByTestId("result-b")).toHaveTextContent("data-2");
+  });
+});
+
+describe("error handling", () => {
+  it("queryFn error propagates to ErrorBoundary via Suspense", async () => {
+    const query = defineQuery({
+      queryFn: async () => {
+        throw new Error("fetch failed");
+      },
+    });
+
+    const Inner = () => {
+      const { data } = useSuspenseQuery(query, undefined);
+      return <div data-testid="result">{data}</div>;
+    };
+
+    await render(
+      <ErrorBoundary fallback={(error) => <div data-testid="error">{error.message}</div>}>
+        <Suspense fallback={<div data-testid="loading">loading</div>}>
+          <Inner />
+        </Suspense>
+      </ErrorBoundary>,
+    );
+
+    await expect.element(page.getByTestId("error")).toHaveTextContent("fetch failed");
+  });
+
+  it("recovers from error via refetch and ErrorBoundary reset", async () => {
+    const deferreds: Array<{ resolve: (v: string) => void; reject: (e: Error) => void }> = [];
+
+    const query = defineQuery({
+      queryFn: async () =>
+        new Promise<string>((resolve, reject) => {
+          deferreds.push({ resolve, reject });
+        }),
+    });
+
+    const Inner = () => {
+      const { data } = useSuspenseQuery(query, undefined);
+      return <div data-testid="result">{data}</div>;
+    };
+
+    await render(
+      <ErrorBoundary
+        fallback={(_error, reset) => (
+          <button
+            data-testid="retry"
+            onClick={() => {
+              void query.refetch(undefined);
+              reset();
+            }}
+            type="button"
+          >
+            retry
+          </button>
+        )}
+      >
+        <Suspense fallback={<div data-testid="loading">loading</div>}>
+          <Inner />
+        </Suspense>
+      </ErrorBoundary>,
+    );
+
+    await expect.element(page.getByTestId("loading")).toBeVisible();
+
+    deferreds[0].reject(new Error("network error"));
+    await expect.element(page.getByTestId("retry")).toBeVisible();
+
+    await page.getByTestId("retry").click();
+    await expect.element(page.getByTestId("loading")).toBeVisible();
+
+    deferreds[1].resolve("recovered");
+    await expect.element(page.getByTestId("result")).toHaveTextContent("recovered");
+  });
+
+  it("prefetch rejects when queryFn throws, getData returns undefined", async () => {
+    const query = defineQuery({
+      queryFn: async () => {
+        throw new Error("prefetch error");
+      },
+    });
+
+    await expect(query.prefetch(undefined)).rejects.toThrow("prefetch error");
+    expect(query.getData(undefined)).toBeUndefined();
+  });
+});
+
+describe("race conditions", () => {
+  it("stale response for old params does not affect component with new params", async () => {
+    const deferreds = new Map<string, { resolve: (v: string) => void }>();
+
+    const query = defineQuery({
+      queryFn: async (id: string) =>
+        new Promise<string>((resolve) => {
+          deferreds.set(id, { resolve });
+        }),
+    });
+
+    const Inner = ({ id }: { id: string }) => {
+      const { data } = useSuspenseQuery(query, id);
+      return <div data-testid="result">{data}</div>;
+    };
+
+    const Wrapper = () => {
+      const [id, setId] = useState("1");
+      return (
+        <>
+          <button data-testid="switch" onClick={() => setId("2")} type="button">
+            switch
+          </button>
+          <Suspense fallback={<div data-testid="loading">loading</div>}>
+            <Inner id={id} />
+          </Suspense>
+        </>
+      );
+    };
+
+    await render(<Wrapper />);
+    await expect.element(page.getByTestId("loading")).toBeVisible();
+
+    await page.getByTestId("switch").click();
+
+    deferreds.get("1")?.resolve("stale-data");
+    deferreds.get("2")?.resolve("current-data");
+
+    await expect.element(page.getByTestId("result")).toHaveTextContent("current-data");
+  });
+
+  it("invalidate during in-flight refetch — refetch still populates cache", async () => {
+    const deferreds: Array<{ resolve: (v: string) => void }> = [];
+
+    const query = defineQuery({
+      queryFn: async () =>
+        new Promise<string>((resolve) => {
+          deferreds.push({ resolve });
+        }),
+    });
+
+    const initial = query.prefetch(undefined);
+    deferreds[0].resolve("initial");
+    await initial;
+    expect(query.getData(undefined)).toBe("initial");
+
+    const refetchPromise = query.refetch(undefined);
+
+    query.invalidate(undefined);
+    expect(query.getData(undefined)).toBeUndefined();
+
+    deferreds[1].resolve("refreshed");
+    await refetchPromise;
+
+    expect(query.getData(undefined)).toBe("refreshed");
+  });
+});
+
+describe("refetch behavior", () => {
+  it("does not re-suspend while refetching", async () => {
+    const deferreds: Array<{ resolve: (v: string) => void }> = [];
+
+    const query = defineQuery({
+      queryFn: async () =>
+        new Promise<string>((resolve) => {
+          deferreds.push({ resolve });
+        }),
+    });
+
+    let refetchFn!: () => Promise<string>;
+
+    const Inner = () => {
+      const { data, refetch } = useSuspenseQuery(query, undefined);
+      refetchFn = refetch;
+      return <div data-testid="result">{data}</div>;
+    };
+
+    await render(
+      <Suspense fallback={<div data-testid="loading">loading</div>}>
+        <Inner />
+      </Suspense>,
+    );
+
+    await expect.element(page.getByTestId("loading")).toBeVisible();
+
+    deferreds[0].resolve("initial");
+    await expect.element(page.getByTestId("result")).toHaveTextContent("initial");
+
+    const refetchPromise = refetchFn();
+
+    await expect.element(page.getByTestId("result")).toHaveTextContent("initial");
+    await expect.element(page.getByTestId("loading")).not.toBeInTheDocument();
+
+    deferreds[1].resolve("updated");
+    await refetchPromise;
+
+    await expect.element(page.getByTestId("result")).toHaveTextContent("updated");
+  });
+
+  it("preserves existing cache on refetch failure", async () => {
+    let callCount = 0;
+    const query = defineQuery({
+      queryFn: async () => {
+        callCount++;
+        if (callCount === 1) return "initial";
+        throw new Error("refetch failed");
+      },
+    });
+
+    let refetchFn!: () => Promise<string>;
+
+    const Inner = () => {
+      const { data, refetch } = useSuspenseQuery(query, undefined);
+      refetchFn = refetch;
+      return <div data-testid="result">{data}</div>;
+    };
+
+    await render(
+      <Suspense fallback={<div data-testid="loading">loading</div>}>
+        <Inner />
+      </Suspense>,
+    );
+
+    await expect.element(page.getByTestId("result")).toHaveTextContent("initial");
+
+    await expect(refetchFn()).rejects.toThrow("refetch failed");
+
+    await expect.element(page.getByTestId("result")).toHaveTextContent("initial");
+    expect(query.getData(undefined)).toBe("initial");
+  });
+});
+
+describe("setData", () => {
+  it("triggers immediate re-render of mounted component", async () => {
+    const query = defineQuery({
+      queryFn: async () => "initial",
+    });
+
+    const Inner = () => {
+      const { data } = useSuspenseQuery(query, undefined);
+      return <div data-testid="result">{data}</div>;
+    };
+
+    await render(
+      <Suspense fallback={<div>loading</div>}>
+        <Inner />
+      </Suspense>,
+    );
+
+    await expect.element(page.getByTestId("result")).toHaveTextContent("initial");
+
+    query.setData(undefined, "updated-via-setData");
+
+    await expect.element(page.getByTestId("result")).toHaveTextContent("updated-via-setData");
+  });
+
+  it("refetch after setData returns server data", async () => {
+    let callCount = 0;
+    const query = defineQuery({
+      queryFn: async () => {
+        callCount++;
+        return `server-${callCount}`;
+      },
+    });
+
+    let refetchFn!: () => Promise<string>;
+
+    const Inner = () => {
+      const { data, refetch } = useSuspenseQuery(query, undefined);
+      refetchFn = refetch;
+      return <div data-testid="result">{data}</div>;
+    };
+
+    await render(
+      <Suspense fallback={<div>loading</div>}>
+        <Inner />
+      </Suspense>,
+    );
+
+    await expect.element(page.getByTestId("result")).toHaveTextContent("server-1");
+
+    query.setData(undefined, "optimistic");
+    await expect.element(page.getByTestId("result")).toHaveTextContent("optimistic");
+
+    await refetchFn();
+    await expect.element(page.getByTestId("result")).toHaveTextContent("server-2");
+  });
+});
+
+describe("params change", () => {
+  it("re-suspends when params change to uncached value", async () => {
+    const deferreds = new Map<string, { resolve: (v: string) => void }>();
+
+    const query = defineQuery({
+      queryFn: async (id: string) =>
+        new Promise<string>((resolve) => {
+          deferreds.set(id, { resolve });
+        }),
+    });
+
+    const Inner = ({ id }: { id: string }) => {
+      const { data } = useSuspenseQuery(query, id);
+      return <div data-testid="result">{data}</div>;
+    };
+
+    const Wrapper = () => {
+      const [id, setId] = useState("1");
+      return (
+        <>
+          <button data-testid="switch" onClick={() => setId("2")} type="button">
+            switch
+          </button>
+          <Suspense fallback={<div data-testid="loading">loading</div>}>
+            <Inner id={id} />
+          </Suspense>
+        </>
+      );
+    };
+
+    await render(<Wrapper />);
+    await expect.element(page.getByTestId("loading")).toBeVisible();
+
+    deferreds.get("1")?.resolve("data-1");
+    await expect.element(page.getByTestId("result")).toHaveTextContent("data-1");
+
+    await page.getByTestId("switch").click();
+    await expect.element(page.getByTestId("loading")).toBeVisible();
+
+    deferreds.get("2")?.resolve("data-2");
+    await expect.element(page.getByTestId("result")).toHaveTextContent("data-2");
+  });
+
+  it("does not re-suspend when params change to already-cached value", async () => {
+    const queryFn = vi.fn<(id: string) => Promise<string>>(async (id) => `data-${id}`);
+    const query = defineQuery({ queryFn });
+
+    await query.prefetch("1");
+    await query.prefetch("2");
+
+    const Inner = ({ id }: { id: string }) => {
+      const { data } = useSuspenseQuery(query, id);
+      return <div data-testid="result">{data}</div>;
+    };
+
+    const Wrapper = () => {
+      const [id, setId] = useState("1");
+      return (
+        <>
+          <button data-testid="switch" onClick={() => setId("2")} type="button">
+            switch
+          </button>
+          <Suspense fallback={<div data-testid="loading">loading</div>}>
+            <Inner id={id} />
+          </Suspense>
+        </>
+      );
+    };
+
+    await render(<Wrapper />);
+    await expect.element(page.getByTestId("result")).toHaveTextContent("data-1");
+
+    await page.getByTestId("switch").click();
+
+    await expect.element(page.getByTestId("result")).toHaveTextContent("data-2");
+    expect(queryFn).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("mount/unmount", () => {
+  it("fetch completes after component unmount and populates cache", async () => {
+    const { promise, resolve } = Promise.withResolvers<string>();
+    const query = defineQuery({
+      queryFn: async () => promise,
+    });
+
+    const Inner = () => {
+      const { data } = useSuspenseQuery(query, undefined);
+      return <div data-testid="result">{data}</div>;
+    };
+
+    const Wrapper = () => {
+      const [show, setShow] = useState(true);
+      return (
+        <>
+          <button data-testid="hide" onClick={() => setShow(false)} type="button">
+            hide
+          </button>
+          {show && (
+            <Suspense fallback={<div data-testid="loading">loading</div>}>
+              <Inner />
+            </Suspense>
+          )}
+        </>
+      );
+    };
+
+    await render(<Wrapper />);
+    await expect.element(page.getByTestId("loading")).toBeVisible();
+
+    await page.getByTestId("hide").click();
+    await expect.element(page.getByTestId("loading")).not.toBeInTheDocument();
+
+    resolve("data-after-unmount");
+    // ensureFetch の .then() チェーンがキャッシュを更新するまで待つ
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(query.getData(undefined)).toBe("data-after-unmount");
+  });
+
+  it("remount within gcTime uses cached data without refetch", async () => {
+    const queryFn = vi.fn<() => Promise<string>>(async () => "cached-data");
+    const query = defineQuery({ queryFn, gcTime: 60000 });
+
+    const Inner = () => {
+      const { data } = useSuspenseQuery(query, undefined);
+      return <div data-testid="result">{data}</div>;
+    };
+
+    const Wrapper = () => {
+      const [show, setShow] = useState(true);
+      return (
+        <>
+          <button data-testid="toggle" onClick={() => setShow((s) => !s)} type="button">
+            toggle
+          </button>
+          {show && (
+            <Suspense fallback={<div data-testid="loading">loading</div>}>
+              <Inner />
+            </Suspense>
+          )}
+        </>
+      );
+    };
+
+    await render(<Wrapper />);
+    await expect.element(page.getByTestId("result")).toHaveTextContent("cached-data");
+    expect(queryFn).toHaveBeenCalledOnce();
+
+    await page.getByTestId("toggle").click();
+    await expect.element(page.getByTestId("result")).not.toBeInTheDocument();
+
+    await page.getByTestId("toggle").click();
+    await expect.element(page.getByTestId("result")).toHaveTextContent("cached-data");
+    expect(queryFn).toHaveBeenCalledOnce();
   });
 });

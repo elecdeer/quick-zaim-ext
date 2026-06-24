@@ -105,6 +105,12 @@ export const defineQuery = <TParams, TData>(
     (a, b) => getKey(a) === getKey(b),
   );
 
+  /** refetch 時に atom の再評価を強制するためのエポックカウンター */
+  const epochFamily = atomFamily(
+    (_params: TParams) => atom(0),
+    (a, b) => getKey(a) === getKey(b),
+  );
+
   const cancelGcTimer = (key: string): void => {
     const timer = gcTimers.get(key);
     if (timer) {
@@ -134,11 +140,17 @@ export const defineQuery = <TParams, TData>(
     if (pending) return pending;
     usedParams.set(key, params);
     const controller = new AbortController();
-    const promise = queryFn(params, { signal: controller.signal }).then((data) => {
-      queryJotaiStore.set(cacheFamily(params), data);
-      pendingFetches.delete(key);
-      return data;
-    });
+    const promise = queryFn(params, { signal: controller.signal }).then(
+      (data) => {
+        queryJotaiStore.set(cacheFamily(params), data);
+        pendingFetches.delete(key);
+        return data;
+      },
+      (error) => {
+        pendingFetches.delete(key);
+        throw error;
+      },
+    );
     pendingFetches.set(key, promise);
     return promise;
   };
@@ -146,6 +158,8 @@ export const defineQuery = <TParams, TData>(
   const forceFetchInternal = (key: string, params: TParams): Promise<TData> => {
     pendingFetches.delete(key);
     usedParams.set(key, params);
+    const currentEpoch = queryJotaiStore.get(epochFamily(params));
+    queryJotaiStore.set(epochFamily(params), currentEpoch + 1);
     const controller = new AbortController();
     const promise = queryFn(params, { signal: controller.signal }).then((data) => {
       queryJotaiStore.set(cacheFamily(params), data);
@@ -163,6 +177,7 @@ export const defineQuery = <TParams, TData>(
       let mountCount = 0;
       const queryAtom = atom(
         (get): TData | Promise<TData> => {
+          get(epochFamily(params));
           const cached = get(cacheFamily(params));
           if (cached !== undefined) return cached;
           // 外部 store からの読み取り用: 共有 store のキャッシュをフォールバック参照
@@ -224,6 +239,8 @@ export const defineQuery = <TParams, TData>(
       cancelGcTimer(key);
       queryJotaiStore.set(cacheFamily(params), undefined);
       cacheFamily.remove(params);
+      queryJotaiStore.set(epochFamily(params), 0);
+      epochFamily.remove(params);
       queryFamily.remove(params);
     }
     usedParams.clear();
