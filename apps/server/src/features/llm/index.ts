@@ -3,21 +3,16 @@
  *
  * エンドポイント:
  *   POST /api/llm/extract-payment - ページ内容と候補リストから支払い情報を抽出する
- *
- * 注意:
- *   - 既存の `/api/*` 共通ミドルウェア（`oidcAuthMiddleware()` + `requireOidcAuth`）で
- *     OIDC 認証は済んでいる前提だが、テスト用にもう一度 `requireOidcAuth` を付ける。
- *   - Zaim API は呼ばないので `requireZaimClient` は不要。
- *   - LLM 呼び出しは `env.AI.run` を直接叩く（テストでは `env.AI` をモックで差し替える）。
  */
 
 import { sValidator } from "@hono/standard-validator";
 import { Hono } from "hono";
-import type { HonoEnv } from "../env.ts";
-import { ExtractPaymentBodySchema, runExtractPayment } from "../llm/extractPayment.ts";
-import { requireOidcAuth } from "../middleware.ts";
+import type { HonoEnv } from "../../env.ts";
+import { requireOidcAuth } from "../../middleware.ts";
+import { ExtractPaymentBodySchema } from "./schema.ts";
+import { runExtractPayment } from "./service.ts";
 
-const extractPaymentRoute = new Hono<HonoEnv>().post(
+export const llmExtractPaymentRoutes = new Hono<HonoEnv>().post(
   "/api/llm/extract-payment",
   requireOidcAuth,
   sValidator("json", ExtractPaymentBodySchema, (result, c) => {
@@ -52,5 +47,3 @@ const extractPaymentRoute = new Hono<HonoEnv>().post(
     }
   },
 );
-
-export const llmExtractPaymentRoutes = new Hono<HonoEnv>().route("/", extractPaymentRoute);

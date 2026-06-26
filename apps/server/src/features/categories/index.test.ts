@@ -10,14 +10,12 @@ import {
   createTestClient,
   createTestEnv,
   createZaimClientStub,
-} from "../test-fixtures.ts";
-import { categoriesRoutes } from "./categories.ts";
-import type { Env } from "../env.ts";
+} from "../../test-fixtures.ts";
+import { categoriesRoutes } from "./index.ts";
+import type { Env } from "../../env.ts";
 import type { KVNamespace } from "@cloudflare/workers-types";
 import type { OidcAuth } from "@hono/oidc-auth";
 
-// vi.hoisted を使って @repo/zaim-api を import せずにモック関数を定義する
-// (@repo/zaim-api は型生成が必要なため直接 import すると TypeScript エラーになる)
 const { mockGetCategories, mockGetGenres } = vi.hoisted(() => ({
   mockGetCategories: vi.fn(),
   mockGetGenres: vi.fn(),

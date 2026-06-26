@@ -2,7 +2,7 @@ import { sValidator } from "@hono/standard-validator";
 import { revokeSession } from "@hono/oidc-auth";
 import { Hono } from "hono";
 import * as v from "valibot";
-import type { HonoEnv } from "../env.ts";
+import type { HonoEnv } from "../../env.ts";
 
 const isValidExtensionRedirectUri = (uri: string): boolean => {
   try {
@@ -15,9 +15,6 @@ const isValidExtensionRedirectUri = (uri: string): boolean => {
 
 /**
  * ログアウトエンドポイント
- * アプリのセッションを破棄し、Auth0側のセッションもクリアする。
- * Auth0のログアウトエンドポイントにリダイレクトすることで、
- * 次回アクセス時に別アカウントを選択できるようになる。
  */
 const logoutRoute = new Hono<HonoEnv>().get("/logout", async (c) => {
   const logger = c.var.logger;
@@ -36,8 +33,6 @@ const logoutRoute = new Hono<HonoEnv>().get("/logout", async (c) => {
 
 /**
  * ログインユーザー情報取得エンドポイント
- * 認証済みユーザーの情報をJSONで返す
- * oidcAuthMiddleware() によって認証が保証されているため auth は非 null
  */
 const meRoute = new Hono<HonoEnv>().get("/me", async (c) => {
   const auth = c.var.oidcAuth;
@@ -52,9 +47,6 @@ const LaunchQuerySchema = v.object({ redirect_uri: v.string() });
 
 /**
  * 拡張機能向け認証起動エンドポイント
- * chrome.identity.launchWebAuthFlow からアクセスされる。
- * OIDC 認証完了後、redirect_uri（chromiumapp.org）にリダイレクトして
- * launchWebAuthFlow にフロー完了を通知する。
  */
 const launchRoute = new Hono<HonoEnv>().get(
   "/auth/launch",

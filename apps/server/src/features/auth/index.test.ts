@@ -7,9 +7,9 @@
  */
 
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { createTestClient, createTestEnv } from "../test-fixtures.ts";
-import { authRoutes } from "./auth.ts";
-import type { Env } from "../env.ts";
+import { createTestClient, createTestEnv } from "../../test-fixtures.ts";
+import { authRoutes } from "./index.ts";
+import type { Env } from "../../env.ts";
 import type { OidcAuth } from "@hono/oidc-auth";
 
 vi.mock("@hono/oidc-auth", () => ({

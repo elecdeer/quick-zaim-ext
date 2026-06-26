@@ -5,8 +5,6 @@
  * GET  /api/zaim/payment/duplicate - 重複チェック
  *
  * Zaim API のモックは vi.mock ではなく MSW を使用する。
- * テスト用クライアントには実際の @hey-api/client-fetch クライアントを注入し、
- * setupServer() が HTTP リクエストをインターセプトする。
  */
 
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest";
@@ -14,12 +12,12 @@ import { HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { moneyGetMoneyMockHandler, paymentOperationsCreateMockHandler } from "@repo/zaim-api";
 import { createClient } from "@repo/zaim-api/client";
-import { createKVNamespaceMock, createTestClient, createTestEnv } from "../test-fixtures.ts";
-import { paymentRoutes } from "./payment.ts";
-import type { Env } from "../env.ts";
+import { createKVNamespaceMock, createTestClient, createTestEnv } from "../../test-fixtures.ts";
+import { paymentRoutes } from "./index.ts";
+import type { Env } from "../../env.ts";
 import type { KVNamespace } from "@cloudflare/workers-types";
 import type { OidcAuth } from "@hono/oidc-auth";
-import type { MonthlyMoneyCache } from "./stores.ts";
+import type { MonthlyMoneyCache } from "../stores/schema.ts";
 
 // ── MSW セットアップ ────────────────────────────────────────────────────────
 
@@ -265,7 +263,6 @@ describe("GET /api/zaim/payment/duplicate", () => {
     };
     mockGet.mockResolvedValueOnce(JSON.stringify(cachedItems));
 
-    // MSW ハンドラを外してキャッシュヒット時に API が呼ばれないことを確認
     server.resetHandlers();
     const res = await createTestClient(paymentRoutes, makeEnv(kv), {
       oidcAuth: MOCK_USER,
@@ -325,7 +322,6 @@ describe("GET /api/zaim/payment/duplicate", () => {
       zaimClient: createZaimRealClient(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.payment.duplicate.$get({
-      // MOCK_MONEY_ITEMS[1] は genre_id=202, amount=800
       query: { date: "2026-05-18", amount: "1500", genre_id: "202" },
     });
 
@@ -351,7 +347,6 @@ describe("GET /api/zaim/payment/duplicate", () => {
 
   test("日付が±1日以内のアイテムが重複として返る", async () => {
     const { kv, mockGet } = createKVNamespaceMock();
-    // 2026-05-18 のアイテム (id=1) を 2026-05-19 付近でチェック
     const cachedItems: MonthlyMoneyCache = {
       fetchedAt: "2026-05-01T00:00:00.000Z",
       items: [

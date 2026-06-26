@@ -4,7 +4,7 @@ import { createZaimAuthInterceptor } from "@repo/zaim-api/oauth/interceptor";
 import { createMiddleware } from "hono/factory";
 import type { Env } from "./env.ts";
 import type { Logger } from "./loggerMiddleware.ts";
-import { getStoredZaimToken } from "./routes/zaim.ts";
+import { getStoredZaimToken } from "./features/zaim-auth/repository.ts";
 import { createZaimLoggingInterceptors } from "./zaimLoggingInterceptor.ts";
 
 const ZAIM_API_BASE = "https://api.zaim.net";

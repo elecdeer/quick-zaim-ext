@@ -2,12 +2,12 @@
  * buildPrompt のフォーマット回帰テスト。
  *
  * LLM の品質はモデル次第なので動作確認はできないが、プロンプト中に渡している
- * カテゴリ/口座/店舗の表現が崩れていないこと（= ID と名称が揃って出ていること、
- * 余計なトークンが増えていないこと）を以下で確認する。
+ * カテゴリ/口座/店舗の表現が崩れていないことを確認する。
  */
 
 import { describe, expect, test } from "vitest";
-import { buildPrompt, type ExtractPaymentBody } from "./extractPayment.ts";
+import { buildPrompt } from "./service.ts";
+import type { ExtractPaymentBody } from "./schema.ts";
 
 const baseInput = (overrides: Partial<ExtractPaymentBody> = {}): ExtractPaymentBody => ({
   pageContent: {
@@ -48,7 +48,6 @@ describe("buildPrompt", () => {
   test("カテゴリは payment のみを 1 行 1 カテゴリで列挙する", () => {
     const { prompt } = buildPrompt(baseInput());
     expect(prompt).toContain("101=食費: 10101=食料品, 10102=カフェ");
-    // income カテゴリ（給与所得）は含めない
     expect(prompt).not.toContain("給与所得");
     expect(prompt).not.toContain("11=");
   });

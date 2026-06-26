@@ -2,10 +2,6 @@
  * stores ルートのテスト
  *
  * GET /api/zaim/stores - 店舗一覧（KVキャッシュ付き）
- *
- * KV キー:
- *   zaim:cache:stores:{zaim_user_id}           - 店舗リストキャッシュ
- *   zaim:cache:money:{zaim_user_id}:{yyyy-mm}  - 月別支払いアイテムキャッシュ
  */
 
 import { beforeEach, describe, expect, test, vi } from "vitest";
@@ -14,9 +10,9 @@ import {
   createTestClient,
   createTestEnv,
   createZaimClientStub,
-} from "../test-fixtures.ts";
-import { storesRoutes } from "./stores.ts";
-import type { Env } from "../env.ts";
+} from "../../test-fixtures.ts";
+import { storesRoutes } from "./index.ts";
+import type { Env } from "../../env.ts";
 import type { KVNamespace } from "@cloudflare/workers-types";
 import type { OidcAuth } from "@hono/oidc-auth";
 

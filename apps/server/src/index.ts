@@ -5,13 +5,13 @@ import type { HonoEnv, Env } from "./env.ts";
 import "./logger.ts";
 import { loggerMiddleware } from "./loggerMiddleware.ts";
 import { requireOidcAuth } from "./middleware.ts";
-import { authRoutes } from "./routes/auth.ts";
-import { accountsRoutes } from "./routes/accounts.ts";
-import { categoriesRoutes } from "./routes/categories.ts";
-import { llmExtractPaymentRoutes } from "./routes/llmExtractPayment.ts";
-import { storesRoutes } from "./routes/stores.ts";
-import { paymentRoutes } from "./routes/payment.ts";
-import { zaimRoutes } from "./routes/zaim.ts";
+import { authRoutes } from "./features/auth/index.ts";
+import { accountsRoutes } from "./features/accounts/index.ts";
+import { categoriesRoutes } from "./features/categories/index.ts";
+import { llmExtractPaymentRoutes } from "./features/llm/index.ts";
+import { storesRoutes } from "./features/stores/index.ts";
+import { paymentRoutes } from "./features/payment/index.ts";
+import { zaimRoutes } from "./features/zaim-auth/index.ts";
 
 const base = new Hono<HonoEnv>();
 

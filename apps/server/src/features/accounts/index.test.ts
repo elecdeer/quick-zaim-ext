@@ -10,9 +10,9 @@ import {
   createTestClient,
   createTestEnv,
   createZaimClientStub,
-} from "../test-fixtures.ts";
-import { accountsRoutes } from "./accounts.ts";
-import type { Env } from "../env.ts";
+} from "../../test-fixtures.ts";
+import { accountsRoutes } from "./index.ts";
+import type { Env } from "../../env.ts";
 import type { KVNamespace } from "@cloudflare/workers-types";
 import type { OidcAuth } from "@hono/oidc-auth";
 

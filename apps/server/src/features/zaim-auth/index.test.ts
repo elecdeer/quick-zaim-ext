@@ -1,5 +1,5 @@
 /**
- * zaim ルートのテスト
+ * zaim-auth ルートのテスト
  *
  * GET  /zaim/auth/start    - Zaim OAuth 開始
  * GET  /zaim/auth/callback - Zaim からのコールバック
@@ -8,13 +8,13 @@
  */
 
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { createKVNamespaceMock, createTestClient, createTestEnv } from "../test-fixtures.ts";
-import { zaimRoutes } from "./zaim.ts";
-import type { Env } from "../env.ts";
+import { createKVNamespaceMock, createTestClient, createTestEnv } from "../../test-fixtures.ts";
+import { zaimRoutes } from "./index.ts";
+import type { Env } from "../../env.ts";
 import type { KVNamespace } from "@cloudflare/workers-types";
 import type { OidcAuth } from "@hono/oidc-auth";
 
-vi.mock("../zaim-oauth.ts", () => ({
+vi.mock("../../zaim-oauth.ts", () => ({
   fetchZaimRequestToken: vi.fn(),
   fetchZaimAccessToken: vi.fn(),
   fetchZaimUserId: vi.fn(),
@@ -23,7 +23,7 @@ vi.mock("../zaim-oauth.ts", () => ({
   ),
 }));
 
-import { fetchZaimRequestToken, fetchZaimAccessToken, fetchZaimUserId } from "../zaim-oauth.ts";
+import { fetchZaimRequestToken, fetchZaimAccessToken, fetchZaimUserId } from "../../zaim-oauth.ts";
 
 const mockFetchRequestToken = vi.mocked(fetchZaimRequestToken);
 const mockFetchAccessToken = vi.mocked(fetchZaimAccessToken);

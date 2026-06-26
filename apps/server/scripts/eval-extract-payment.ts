@@ -27,10 +27,10 @@ import { getPlatformProxy } from "wrangler";
 import {
   ExtractPaymentBodySchema,
   ExtractedPaymentSchema,
-  runExtractPayment,
   type ExtractPaymentBody,
   type ExtractedPayment,
-} from "../src/llm/extractPayment.ts";
+} from "../src/features/llm/schema.ts";
+import { runExtractPayment } from "../src/features/llm/service.ts";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const FIXTURES_DIR = join(SCRIPT_DIR, "eval-fixtures");
