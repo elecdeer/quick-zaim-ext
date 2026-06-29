@@ -2,14 +2,14 @@ import type { createClient as createZaimClient } from "@repo/zaim-api/client";
 import type { KVNamespace } from "@cloudflare/workers-types";
 import type { Logger } from "../../loggerMiddleware.ts";
 import type { MoneyItem, MonthlyMoneyCache } from "../stores/schema.ts";
+import { fetchMonthlyMoneyItems } from "../stores/external.ts";
 import {
-  fetchMonthlyMoneyItems,
   getCachedMonthlyMoney,
   cacheMonthlyMoney,
   deleteMonthlyMoneyCache,
   deleteStoresCache,
 } from "../stores/repository.ts";
-import { createPayment } from "./repository.ts";
+import { createPayment } from "./external.ts";
 
 const CURRENT_MONTH_MONEY_TTL = 3600;
 

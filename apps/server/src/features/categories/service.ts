@@ -2,7 +2,8 @@ import type { createClient } from "@repo/zaim-api/client";
 import type { KVNamespace } from "@cloudflare/workers-types";
 import type { Logger } from "../../loggerMiddleware.ts";
 import type { CategoriesResponse } from "./schema.ts";
-import { fetchCategoriesFromZaim, getCachedCategories, cacheCategories } from "./repository.ts";
+import { fetchCategoriesFromZaim } from "./external.ts";
+import { getCachedCategories, cacheCategories } from "./repository.ts";
 
 const CACHE_TTL = 86400;
 
