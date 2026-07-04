@@ -19,6 +19,7 @@
     "build:types": "tsdown",
     "test": "vitest run",
     "deploy": "wrangler deploy",
+    "version:upload": "wrangler versions upload",
     "eval:extract-payment": "node --env-file-if-exists=.env --experimental-strip-types scripts/eval-extract-payment.ts"
   },
   "dependencies": {

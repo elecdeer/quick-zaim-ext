@@ -6,6 +6,8 @@
   "scripts": {
     "ready": "pnpm exec oxfmt . && pnpm exec turbo run generate && pnpm exec oxlint . && pnpm exec turbo run test && pnpm exec turbo run build",
     "dev": "pnpm exec turbo run dev --filter=server --filter=extension",
+    "build:server": "pnpm exec turbo run build --filter=server",
+    "version:upload": "pnpm --filter=server run version:upload",
     "test": "vitest run",
     "test:browser": "docker compose -f docker-compose.vrt.yml run --build --rm vrt",
     "test:browser:update": "docker compose -f docker-compose.vrt.yml run --build --rm vrt pnpm run test:browser -- --update",
