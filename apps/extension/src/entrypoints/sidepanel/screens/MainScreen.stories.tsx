@@ -1,6 +1,7 @@
 import { http, HttpResponse } from "msw";
 import { userEvent, within } from "storybook/test";
 import preview from "#storybook/preview";
+import { Toaster, ToastProvider } from "@/components/ui/toast";
 import MainScreen from "./MainScreen.tsx";
 
 const MOCK_SERVER_URL = "http://mock-server.test";
@@ -76,10 +77,13 @@ const meta = preview.meta({
   },
   decorators: [
     (Story) => (
-      <div className="flex min-h-screen flex-col gap-4 bg-gray-50 p-4">
-        <h1 className="text-lg font-bold text-gray-900">Quick Zaim</h1>
-        <Story />
-      </div>
+      <ToastProvider>
+        <div className="flex min-h-screen flex-col gap-4 bg-gray-50 p-4">
+          <h1 className="text-lg font-bold text-gray-900">Quick Zaim</h1>
+          <Story />
+          <Toaster />
+        </div>
+      </ToastProvider>
     ),
   ],
 });

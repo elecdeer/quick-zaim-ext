@@ -99,7 +99,7 @@ const AccountComboboxContent = ({
             <ChevronsUpDownIcon className="ml-2 opacity-50" />
           </PopoverTrigger>
           <PopoverContent className="w-[var(--anchor-width)] p-0" align="start">
-            <Command>
+            <Command defaultValue={selectedAccount?.name}>
               <CommandInput placeholder="口座を検索" />
               <CommandList>
                 <CommandEmpty>口座が見つかりません</CommandEmpty>

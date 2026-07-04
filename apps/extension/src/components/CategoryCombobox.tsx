@@ -141,7 +141,11 @@ const CategoryComboboxContent = ({
         <ChevronsUpDownIcon className="ml-2 opacity-50" />
       </PopoverTrigger>
       <PopoverContent className="w-[var(--anchor-width)] p-0" align="start">
-        <Command>
+        <Command
+          defaultValue={
+            selectedItem ? `${selectedItem.categoryName} ${selectedItem.genreName}` : undefined
+          }
+        >
           <CommandInput placeholder="カテゴリを検索" />
           <CommandList>
             <CommandEmpty>カテゴリが見つかりません</CommandEmpty>

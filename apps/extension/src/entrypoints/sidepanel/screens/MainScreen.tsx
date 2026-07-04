@@ -6,6 +6,7 @@ import { CategoryCombobox, type CategorySelection } from "../../../components/Ca
 import { DateField } from "../../../components/DateField.tsx";
 import { ItemEditDialog, type ItemEditField } from "../../../components/ItemEditDialog.tsx";
 import { StoreCombobox, type StoreSelection } from "../../../components/StoreCombobox.tsx";
+import { useToastManager } from "@/components/ui/toast";
 import { useMutation } from "../../../lib/useMutation.ts";
 import { collectFromActiveTab } from "../../../page-collector/collectFromActiveTab.ts";
 import { createClient } from "server/client";
@@ -138,6 +139,7 @@ const ItemRow = ({ item, serverUrl, onEdit, onCategoryChange, onRemove }: ItemRo
 };
 
 export default function MainScreen({ serverUrl }: Props) {
+  const toastManager = useToastManager();
   const [items, setItems] = useState<Item[]>([newItem()]);
   const [date, setDate] = useState(localDateString);
   const [accountId, setAccountId] = useState<number | null>(null);
@@ -284,6 +286,7 @@ export default function MainScreen({ serverUrl }: Props) {
       setStoreSelection(null);
       setDuplicateState("unchecked");
       setDuplicatesByItemId({});
+      toastManager.add({ description: "登録しました" });
     },
   });
 
@@ -427,9 +430,6 @@ export default function MainScreen({ serverUrl }: Props) {
         {buttonLabel}
       </Button>
 
-      {mutation.isSuccess && (
-        <output className="text-sm font-medium text-foreground">登録しました</output>
-      )}
       {mutation.isError && (
         <p role="alert" className="text-sm font-medium text-destructive">
           {mutation.error instanceof Error ? mutation.error.message : "登録に失敗しました"}

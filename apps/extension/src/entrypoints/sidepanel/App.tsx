@@ -2,6 +2,7 @@ import { GearIcon } from "@phosphor-icons/react";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { SettingsOverlay } from "../../components/SettingsOverlay.tsx";
 import { Button } from "@/components/ui/button";
+import { Toaster, ToastProvider } from "@/components/ui/toast";
 import { ErrorBoundary } from "@/lib/ErrorBoundary";
 import { useSuspenseQuery } from "@/lib/query";
 import { authStatusQuery, serverUrlQuery } from "../../queries.ts";
@@ -12,9 +13,11 @@ import MainScreen from "./screens/MainScreen.tsx";
  */
 export default function App() {
   return (
-    <Suspense fallback={<AppShell />}>
-      <AppContent />
-    </Suspense>
+    <ToastProvider>
+      <Suspense fallback={<AppShell />}>
+        <AppContent />
+      </Suspense>
+    </ToastProvider>
   );
 }
 
@@ -111,5 +114,6 @@ const AppLayout = ({ settingsOpen, onSettingsOpenChange, children }: AppLayoutPr
     </header>
     {children}
     <SettingsOverlay open={settingsOpen} onOpenChange={onSettingsOpenChange} />
+    <Toaster />
   </div>
 );
