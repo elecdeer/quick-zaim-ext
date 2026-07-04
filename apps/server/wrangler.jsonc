@@ -7,6 +7,10 @@
   // 自動で span 化し、Workers ダッシュボードで確認できる。デバッグ目的なので head
   // サンプリング率は 100% に固定。本番投入時にコスト都合で下げる場合は 0.05 等へ。
   "observability": {
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true,
+    },
     "traces": {
       "enabled": true,
       "head_sampling_rate": 1,
@@ -27,9 +31,9 @@
   "kv_namespaces": [
     {
       "binding": "ZAIM_KV",
-      "id": "REPLACE_WITH_KV_NAMESPACE_ID",
+      "id": "c1d27951ac224c628ed6a43b216dd6f3",
       // ローカル開発用プレビュー ID（wrangler dev では自動的にローカル KV を使用）
-      "preview_id": "REPLACE_WITH_PREVIEW_KV_NAMESPACE_ID",
+      "preview_id": "5ab6407251a04dda90faad8f95a9f76f",
     },
   ],
 }
