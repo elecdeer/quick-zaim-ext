@@ -1,16 +1,18 @@
 import { WalletIcon } from "@phosphor-icons/react";
 import { ChevronsUpDownIcon, XIcon } from "lucide-react";
-import { Suspense, useState } from "react";
+import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+  Combobox,
+  ComboboxClear,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxTrigger,
+  ComboboxValue,
+} from "@/components/ui/combobox";
 import { ErrorBoundary } from "@/lib/ErrorBoundary";
 import { useSuspenseQuery } from "@/lib/query";
 import { cn } from "@/lib/utils";
@@ -67,7 +69,6 @@ const AccountComboboxContent = ({
   value,
   onChange,
 }: { serverUrl: string } & Pick<Props, "value" | "onChange">) => {
-  const [open, setOpen] = useState(false);
   const { data } = useSuspenseQuery(accountsQuery, serverUrl);
 
   const accounts = (data?.accounts ?? [])
@@ -80,59 +81,51 @@ const AccountComboboxContent = ({
     <div className="flex items-center gap-2">
       <WalletIcon size={20} className="shrink-0 text-muted-foreground" aria-hidden="true" />
       <div className="flex min-w-0 flex-1 items-center gap-1">
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger
+        <Combobox
+          items={accounts}
+          value={selectedAccount}
+          onValueChange={(next: Account | null) =>
+            onChange(next && next.id === value ? null : (next?.id ?? null))
+          }
+          isItemEqualToValue={(a: Account | null, b: Account | null) => a?.id === b?.id}
+          itemToStringLabel={(a: Account | null) => a?.name ?? ""}
+        >
+          <ComboboxTrigger
             render={
               <Button
                 type="button"
                 variant="outline"
-                role="combobox"
                 aria-label="口座"
-                aria-expanded={open}
                 className="min-w-0 flex-1 justify-between font-normal"
               />
             }
           >
-            <span className={cn("truncate", !selectedAccount && "text-muted-foreground")}>
-              {selectedAccount?.name ?? "口座を選択（任意）"}
-            </span>
+            <ComboboxValue>
+              {(v: Account | null) => (
+                <span className={cn("truncate", !v && "text-muted-foreground")}>
+                  {v?.name ?? "口座を選択（任意）"}
+                </span>
+              )}
+            </ComboboxValue>
             <ChevronsUpDownIcon className="ml-2 opacity-50" />
-          </PopoverTrigger>
-          <PopoverContent className="w-[var(--anchor-width)] p-0" align="start">
-            <Command defaultValue={selectedAccount?.name}>
-              <CommandInput placeholder="口座を検索" />
-              <CommandList>
-                <CommandEmpty>口座が見つかりません</CommandEmpty>
-                <CommandGroup>
-                  {accounts.map((item: Account) => (
-                    <CommandItem
-                      key={item.id}
-                      value={item.name}
-                      data-checked={item.id === value}
-                      onSelect={() => {
-                        onChange(item.id === value ? null : item.id);
-                        setOpen(false);
-                      }}
-                    >
-                      {item.name}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-        {selectedAccount && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            aria-label="クリア"
-            onClick={() => onChange(null)}
+          </ComboboxTrigger>
+          <ComboboxClear
+            render={<Button type="button" variant="ghost" size="icon-sm" aria-label="クリア" />}
           >
             <XIcon />
-          </Button>
-        )}
+          </ComboboxClear>
+          <ComboboxContent>
+            <ComboboxInput placeholder="口座を検索" />
+            <ComboboxEmpty>口座が見つかりません</ComboboxEmpty>
+            <ComboboxList>
+              {(item: Account) => (
+                <ComboboxItem key={item.id} value={item}>
+                  {item.name}
+                </ComboboxItem>
+              )}
+            </ComboboxList>
+          </ComboboxContent>
+        </Combobox>
       </div>
     </div>
   );
