@@ -1,3 +1,4 @@
+import { defineContentScript } from "#imports";
 import { generateAriaTree, renderAriaTree } from "../page-collector/ariaSnapshot.ts";
 import {
   type CollectPageContentResponse,
