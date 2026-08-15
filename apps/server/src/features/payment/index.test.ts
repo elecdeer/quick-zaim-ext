@@ -7,7 +7,7 @@
  * Zaim API のモックは vi.mock ではなく MSW を使用する。
  */
 
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "vite-plus/test";
 import { HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { moneyGetMoneyMockHandler, paymentOperationsCreateMockHandler } from "@repo/zaim-api";

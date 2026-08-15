@@ -6,7 +6,7 @@
  * /auth/launch - 拡張機能向け認証起動（redirect_uri バリデーション）
  */
 
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import { createTestClient, createTestEnv } from "../../test-fixtures.ts";
 import { authRoutes } from "./index.ts";
 import type { Env } from "../../env.ts";

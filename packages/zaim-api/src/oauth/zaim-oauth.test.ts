@@ -2,7 +2,7 @@
  * Zaim OAuth エンドポイント定義 (zaim-oauth.ts) のテスト
  */
 
-import { describe, expect, test } from "vitest";
+import { describe, expect, test } from "vite-plus/test";
 import { buildZaimApiAuthHeader, buildZaimAuthorizeUrl } from "./zaim-oauth.ts";
 import { oauthTest, parseOAuthHeader, RFC } from "./test-fixtures.ts";
 

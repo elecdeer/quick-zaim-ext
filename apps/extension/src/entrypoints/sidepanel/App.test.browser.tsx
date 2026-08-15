@@ -1,6 +1,6 @@
 import { http, HttpResponse } from "msw";
-import { describe, expect } from "vitest";
-import { page } from "vitest/browser";
+import { describe, expect } from "vite-plus/test";
+import { page } from "vite-plus/test/browser";
 import { render } from "vitest-browser-react";
 import { test } from "../../test-utils/browser-test.ts";
 import { setupBrowserMock } from "../../test-utils/browser-mock.ts";

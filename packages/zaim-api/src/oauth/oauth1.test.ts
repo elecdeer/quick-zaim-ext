@@ -5,7 +5,7 @@
  *   Expected sig: tR3+Ty81lMeYAr/Fid0kMTYa/WM=
  */
 
-import { describe, expect } from "vitest";
+import { describe, expect } from "vite-plus/test";
 import { buildOAuth1AuthorizationHeader } from "./oauth1.ts";
 import { oauthTest, parseOAuthHeader, RFC } from "./test-fixtures.ts";
 

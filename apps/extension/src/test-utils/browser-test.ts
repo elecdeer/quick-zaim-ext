@@ -1,4 +1,4 @@
-import { test as testBase } from "vitest";
+import { test as testBase } from "vite-plus/test";
 import { getWorker } from "msw-storybook-addon";
 import { resetAllQueries } from "../queries";
 

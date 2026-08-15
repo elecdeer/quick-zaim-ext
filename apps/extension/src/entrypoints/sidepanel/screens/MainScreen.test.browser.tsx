@@ -1,6 +1,6 @@
 import { http, HttpResponse } from "msw";
-import { describe, expect, test as baseTest, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { describe, expect, test as baseTest, vi } from "vite-plus/test";
+import { page, userEvent } from "vite-plus/test/browser";
 import { render } from "vitest-browser-react";
 import { test } from "../../../test-utils/browser-test.ts";
 import { Default } from "./MainScreen.stories";

@@ -1,8 +1,8 @@
 import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { playwright } from "@vitest/browser-playwright";
-import { defineProject } from "vitest/config";
+import { playwright } from "vite-plus/test/browser-playwright";
+import { defineProject } from "vite-plus";
 
 export default defineProject({
   plugins: [react(), tailwindcss()],

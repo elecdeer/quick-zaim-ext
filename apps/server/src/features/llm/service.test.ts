@@ -5,7 +5,7 @@
  * カテゴリ/口座/店舗の表現が崩れていないことを確認する。
  */
 
-import { describe, expect, test } from "vitest";
+import { describe, expect, test } from "vite-plus/test";
 import { buildPrompt } from "./service.ts";
 import type { ExtractPaymentBody } from "./schema.ts";
 

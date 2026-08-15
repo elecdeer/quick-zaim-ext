@@ -1,7 +1,7 @@
 import { createStore } from "jotai";
 import { Suspense, useState } from "react";
-import { describe, expect, it, vi } from "vitest";
-import { page } from "vitest/browser";
+import { describe, expect, it, vi } from "vite-plus/test";
+import { page } from "vite-plus/test/browser";
 import { render } from "vitest-browser-react";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { type BoundQuery, defineQuery, useSuspenseQuery } from "./query";

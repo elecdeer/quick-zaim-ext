@@ -1,4 +1,4 @@
-import { afterEach, describe, expect } from "vitest";
+import { afterEach, describe, expect } from "vite-plus/test";
 import { test } from "../test-utils/browser-test.ts";
 import { generateAriaTree, renderAriaTree } from "./ariaSnapshot.ts";
 

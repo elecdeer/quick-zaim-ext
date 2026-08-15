@@ -1,7 +1,7 @@
 import { http, HttpResponse } from "msw";
 import { useState } from "react";
-import { describe, expect, vi } from "vitest";
-import { page } from "vitest/browser";
+import { describe, expect, vi } from "vite-plus/test";
+import { page } from "vite-plus/test/browser";
 import { render } from "vitest-browser-react";
 import { test } from "../test-utils/browser-test.ts";
 import { CategoryCombobox, type CategorySelection } from "./CategoryCombobox.tsx";

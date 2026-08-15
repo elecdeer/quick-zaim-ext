@@ -5,7 +5,7 @@
  * @repo/zaim-api 側でテスト済みのため、ここでは SDK 呼び出しを伴う関数のみテストする。
  */
 
-import { beforeEach, describe, expect, vi } from "vitest";
+import { beforeEach, describe, expect, vi } from "vite-plus/test";
 import { getLogger } from "@logtape/logtape";
 import { fetchZaimAccessToken, fetchZaimRequestToken } from "./zaim-oauth.ts";
 import { oauthTest, parseOAuthHeader } from "./test-fixtures.ts";

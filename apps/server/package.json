@@ -14,10 +14,6 @@
     }
   },
   "scripts": {
-    "dev": "wrangler dev",
-    "build": "wrangler deploy --dry-run --outdir dist",
-    "build:types": "tsdown",
-    "test": "vitest run",
     "deploy": "wrangler deploy",
     "version:upload": "wrangler versions upload",
     "eval:extract-payment": "node --env-file-if-exists=.env --experimental-strip-types scripts/eval-extract-payment.ts"
@@ -35,9 +31,9 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260423.1",
     "msw": "catalog:",
-    "tsdown": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:",
+    "vite": "catalog:",
+    "vite-plus": "catalog:",
     "wrangler": "^4.84.1"
   }
 }

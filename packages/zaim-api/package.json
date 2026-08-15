@@ -9,12 +9,10 @@
     "./oauth/*": "./src/oauth/*.ts"
   },
   "scripts": {
-    "dev": "tsdown --watch",
+    "dev": "pnpm exec vp pack --watch",
     "test": "vitest run",
-    "generate": "pnpm run generate:openapi3 && pnpm run generate:ts-client",
     "generate:openapi3": "tsp compile ./typespec",
-    "generate:ts-client": "openapi-ts",
-    "build": "tsdown"
+    "generate:ts-client": "openapi-ts"
   },
   "dependencies": {
     "@tanstack/react-query": "catalog:"
@@ -25,8 +23,8 @@
     "@typespec/http": "catalog:",
     "@typespec/openapi3": "catalog:",
     "msw": "catalog:",
-    "tsdown": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
   }
 }

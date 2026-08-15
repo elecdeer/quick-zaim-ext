@@ -4,7 +4,7 @@
  * GET /api/zaim/accounts - 支払い方法（口座）一覧（KVキャッシュ付き）
  */
 
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import {
   createKVNamespaceMock,
   createTestClient,
