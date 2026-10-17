@@ -21,7 +21,7 @@ export default defineConfig({
         dependsOn: ["@repo/zaim-api#generate"],
       },
       test: {
-        command: "vitest run",
+        command: "vp test run",
         dependsOn: ["@repo/zaim-api#generate"],
       },
     },

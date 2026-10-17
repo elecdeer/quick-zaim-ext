@@ -11,7 +11,9 @@ export default defineConfig({
     tasks: {
       generate: {
         command: "pnpm run generate:openapi3 && pnpm run generate:ts-client",
-        output: ["src/generated/**", "tsp-output/**"],
+        cache: {
+          output: ["src/generated/**", "tsp-output/**"],
+        },
       },
       build: {
         // グローバル vp だと dts 生成時に typescript の解決に失敗するため、ローカルの vp を明示的に使う
