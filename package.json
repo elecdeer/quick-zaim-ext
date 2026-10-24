@@ -8,6 +8,7 @@
     "dev": "vp run --filter=server --filter=extension --parallel dev",
     "build:server": "vp run --filter=server build",
     "version:upload": "vp run server#version:upload",
+    "deploy:preview": "vp run server#deploy:preview",
     "test": "vitest run",
     "test:browser": "docker compose -f docker-compose.vrt.yml run --build --rm vrt",
     "test:browser:update": "docker compose -f docker-compose.vrt.yml run --build --rm vrt pnpm run test:browser -- --update",

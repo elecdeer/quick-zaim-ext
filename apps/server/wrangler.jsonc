@@ -36,4 +36,34 @@
       "preview_id": "5ab6407251a04dda90faad8f95a9f76f",
     },
   ],
+  // `wrangler preview` で作るブランチごとの Preview 用設定。
+  // Preview は本番の vars / bindings / observability を引き継がないため、必要なものはここで再定義する。
+  // シークレットは本番とは別に `wrangler preview base-config secret put <NAME>` で登録する
+  // （Auth0 は Preview 専用アプリの値を使う）。
+  "previews": {
+    "observability": {
+      "logs": {
+        "enabled": true,
+        "invocation_logs": true,
+      },
+      "traces": {
+        "enabled": true,
+        "head_sampling_rate": 1,
+      },
+    },
+    "vars": {
+      "LLM_MODEL": "openai/gpt-5.4-mini",
+      // Preview ごとにホスト名が変わるため相対パスにし、@hono/oidc-auth にリクエスト URL 基準で解決させる。
+      "OIDC_REDIRECT_URI": "/callback",
+    },
+    "ai": { "binding": "AI" },
+    // 本番 KV を汚さないよう、全 Preview で共有する Preview 専用ネームスペースを使う。
+    // 共有にしているのは、Zaim 連携（KV 上のアクセストークン）を Preview ごとにやり直さずに済ませるため。
+    "kv_namespaces": [
+      {
+        "binding": "ZAIM_KV",
+        "id": "5ab6407251a04dda90faad8f95a9f76f",
+      },
+    ],
+  },
 }

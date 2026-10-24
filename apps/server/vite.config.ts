@@ -15,6 +15,12 @@ export default defineConfig({
         command: "wrangler deploy --dry-run --outdir dist",
         dependsOn: ["@repo/zaim-api#generate"],
       },
+      "deploy:preview": {
+        // --name 省略時は現在の git ブランチ名が Preview 名になる（CI と同じ Preview を更新する）
+        command: "wrangler preview",
+        dependsOn: ["@repo/zaim-api#generate"],
+        cache: false,
+      },
       "build:types": {
         // グローバル vp だと dts 生成時に typescript の解決に失敗するため、ローカルの vp を明示的に使う
         command: "pnpm exec vp pack",
