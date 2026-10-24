@@ -181,7 +181,7 @@ describe("POST /api/zaim/payment", () => {
       json: { category_id: 101, genre_id: 201, amount: 1500, date: "2026-05-20" },
     });
 
-    expect(mockDelete).toHaveBeenCalledWith("zaim:cache:money:zaim_user_999:2026-05");
+    expect(mockDelete).toHaveBeenCalledWith("zaim:cache:money:v2:zaim_user_999:2026-05");
   });
 
   test("登録後にstoresキャッシュを削除する", async () => {
@@ -428,7 +428,7 @@ describe("GET /api/zaim/payment/duplicate", () => {
     });
 
     expect(mockPut).toHaveBeenCalledWith(
-      "zaim:cache:money:zaim_user_999:2026-05",
+      "zaim:cache:money:v2:zaim_user_999:2026-05",
       expect.any(String),
       { expirationTtl: 3600 },
     );
@@ -510,7 +510,7 @@ describe("POST /api/zaim/payment/duplicate/bulk", () => {
       json: { entries: [{ date: "2026-05-31", amount: 1500 }] },
     });
 
-    expect(mockGet).toHaveBeenCalledWith("zaim:cache:money:zaim_user_999:2026-05");
-    expect(mockGet).toHaveBeenCalledWith("zaim:cache:money:zaim_user_999:2026-06");
+    expect(mockGet).toHaveBeenCalledWith("zaim:cache:money:v2:zaim_user_999:2026-05");
+    expect(mockGet).toHaveBeenCalledWith("zaim:cache:money:v2:zaim_user_999:2026-06");
   });
 });
