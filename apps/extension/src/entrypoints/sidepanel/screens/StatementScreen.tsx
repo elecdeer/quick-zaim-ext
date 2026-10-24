@@ -1,0 +1,287 @@
+import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useToastManager } from "@/components/ui/toast";
+import { AccountCombobox } from "../../../components/AccountCombobox.tsx";
+import { CategoryCombobox, type CategorySelection } from "../../../components/CategoryCombobox.tsx";
+import { collectExtractionInput } from "../../../lib/extraction.ts";
+import { createServerClient } from "../../../lib/serverClient";
+import {
+  buildStatementRows,
+  selectReadableRows,
+  type RegisteredMatch,
+  type StatementRow,
+} from "../../../lib/statementRows.ts";
+import { useMutation } from "../../../lib/useMutation.ts";
+
+interface Props {
+  serverUrl: string;
+}
+
+/** 読み取り結果の概要。読み取る前は null */
+interface ExtractSummary {
+  rowCount: number;
+  registeredCount: number;
+  skippedCount: number;
+}
+
+/** "2026-05-19" を明細の表記に近い "5/19" にする */
+const formatShortDate = (date: string): string => {
+  const [, month, day] = date.split("-");
+  return `${Number(month)}/${Number(day)}`;
+};
+
+const formatYen = (amount: number): string => `¥${amount.toLocaleString("ja-JP")}`;
+
+interface StatementRowItemProps {
+  row: StatementRow;
+  serverUrl: string;
+  disabled: boolean;
+  onSelectedChange: (selected: boolean) => void;
+  onCategoryChange: (category: CategorySelection | null) => void;
+}
+
+const StatementRowItem = ({
+  row,
+  serverUrl,
+  disabled,
+  onSelectedChange,
+  onCategoryChange,
+}: StatementRowItemProps) => {
+  const placeLabel = row.place || "(利用先不明)";
+  return (
+    <li
+      className={`flex flex-col gap-1 rounded-md border bg-card p-2 ${row.selected ? "" : "opacity-70"}`}
+    >
+      <div className="flex items-center gap-2">
+        <Checkbox
+          checked={row.selected}
+          onCheckedChange={onSelectedChange}
+          disabled={disabled || row.submitted}
+          aria-label={`${placeLabel}（${formatShortDate(row.date)}）を登録する`}
+        />
+        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+          {formatShortDate(row.date)}
+        </span>
+        <span className="min-w-0 flex-1 truncate text-sm" title={placeLabel}>
+          {placeLabel}
+        </span>
+        <span className="shrink-0 text-sm tabular-nums">{formatYen(row.amount)}</span>
+      </div>
+      <div className="flex items-center gap-1 pl-6">
+        <div className="min-w-0 flex-1">
+          <CategoryCombobox
+            serverUrl={serverUrl}
+            value={row.category}
+            onChange={onCategoryChange}
+            size="sm"
+            label={null}
+          />
+        </div>
+        {row.submitted ? (
+          <Badge variant="secondary">登録しました</Badge>
+        ) : row.registered ? (
+          <Badge variant="outline">登録済み {formatShortDate(row.registered.date)}</Badge>
+        ) : null}
+      </div>
+    </li>
+  );
+};
+
+/**
+ * クレジットカードの月別明細などのページから利用行をまとめて読み取り、
+ * 利用先・金額・カテゴリだけの概要で一括登録する画面。
+ *
+ * 既に登録済みと判定した行は選択を外した状態で表示する。
+ */
+export default function StatementScreen({ serverUrl }: Props) {
+  const toastManager = useToastManager();
+  const [rows, setRows] = useState<StatementRow[]>([]);
+  const [accountId, setAccountId] = useState<number | null>(null);
+  const [summary, setSummary] = useState<ExtractSummary | null>(null);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+
+  const updateRow = (id: string, patch: Partial<Omit<StatementRow, "id">>) => {
+    setRows((prev) => prev.map((row) => (row.id === id ? { ...row, ...patch } : row)));
+  };
+
+  const extractMutation = useMutation({
+    mutationFn: async () => {
+      const client = createServerClient(serverUrl);
+      const input = await collectExtractionInput(client);
+
+      const extractRes = await client.api.llm["extract-statement"].$post({ json: input });
+      if (!extractRes.ok) throw new Error(`明細の読み取りに失敗しました（${extractRes.status}）`);
+      const extracted = await extractRes.json();
+
+      const readableRows = selectReadableRows(extracted.rows);
+      let matches: Array<RegisteredMatch | null> = readableRows.map(() => null);
+      if (readableRows.length > 0) {
+        const duplicateRes = await client.api.zaim.payment.duplicate.bulk.$post({
+          json: { entries: readableRows.map((row) => ({ date: row.date, amount: row.amount })) },
+        });
+        if (!duplicateRes.ok) {
+          throw new Error(`登録済みの確認に失敗しました（${duplicateRes.status}）`);
+        }
+        const duplicateBody = await duplicateRes.json();
+        matches = duplicateBody.results.map((result) => result.match);
+      }
+
+      return {
+        rows: buildStatementRows({
+          rows: readableRows,
+          matches,
+          recentStores: input.recentStores,
+          categories: input.categories,
+        }),
+        accountId: extracted.accountId,
+        skippedCount: extracted.rows.length - readableRows.length,
+      };
+    },
+    onSuccess: ({ rows: newRows, accountId: extractedAccountId, skippedCount }) => {
+      setRows(newRows);
+      if (extractedAccountId !== null) setAccountId(extractedAccountId);
+      setSummary({
+        rowCount: newRows.length,
+        registeredCount: newRows.filter((row) => row.registered !== null).length,
+        skippedCount,
+      });
+    },
+  });
+
+  const selectedRows = rows.filter((row) => row.selected);
+  const total = selectedRows.reduce((sum, row) => sum + row.amount, 0);
+
+  const registerMutation = useMutation({
+    mutationFn: async () => {
+      const client = createServerClient(serverUrl);
+      const targets = rows.filter((row) => row.selected);
+      setProgress({ done: 0, total: targets.length });
+      try {
+        // 途中で失敗したとき登録済みの行がわかるよう、1 件ずつ登録して行の状態を更新する
+        for (const [index, row] of targets.entries()) {
+          if (!row.category) throw new Error("カテゴリが選択されていない行があります");
+          const res = await client.api.zaim.payment.$post({
+            json: {
+              category_id: row.category.categoryId,
+              genre_id: row.category.genreId,
+              amount: row.amount,
+              date: row.date,
+              ...(accountId !== null && { from_account_id: accountId }),
+              // Zaim API は店舗名（place）での指定を受け付けず、既存店舗の place_uid しか使えない。
+              // 最近の店舗に一致しない利用先は名前が残るよう品名に入れる
+              ...(row.placeUid
+                ? { place_uid: row.placeUid }
+                : row.place
+                  ? { name: row.place }
+                  : {}),
+            },
+          });
+          if (!res.ok) {
+            throw new Error(
+              `「${row.place || "(利用先不明)"}」の登録に失敗しました（${res.status}）`,
+            );
+          }
+          updateRow(row.id, { selected: false, submitted: true });
+          setProgress({ done: index + 1, total: targets.length });
+        }
+        return targets.length;
+      } finally {
+        setProgress(null);
+      }
+    },
+    onSuccess: (count) => {
+      toastManager.add({ description: `${count}件登録しました` });
+    },
+  });
+
+  const isBusy = extractMutation.isPending || registerMutation.isPending;
+  const canSubmit =
+    selectedRows.length > 0 && selectedRows.every((row) => row.category !== null) && !isBusy;
+
+  const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!canSubmit) return;
+    registerMutation.mutate();
+  };
+
+  const submitLabel = progress
+    ? `登録中…（${progress.done}/${progress.total}）`
+    : `${selectedRows.length}件を登録`;
+
+  return (
+    <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+      <div className="flex flex-col gap-1">
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={isBusy}
+          onClick={() => extractMutation.mutate()}
+        >
+          {extractMutation.isPending ? "読み取り中…" : "このページの明細を読み取る"}
+        </Button>
+        {extractMutation.isError && (
+          <p role="alert" className="text-sm font-medium text-destructive">
+            {extractMutation.error instanceof Error
+              ? extractMutation.error.message
+              : "明細の読み取りに失敗しました"}
+          </p>
+        )}
+        {summary === null ? (
+          <p className="text-xs text-muted-foreground">
+            カードの利用明細ページを開いて読み取ると、利用先と金額だけでまとめて登録できます。
+          </p>
+        ) : (
+          <output className="text-xs text-muted-foreground">
+            {summary.rowCount}件読み取りました
+            {summary.registeredCount > 0 &&
+              `（うち${summary.registeredCount}件は登録済みのため選択を外しました）`}
+            {summary.skippedCount > 0 &&
+              `。日付・金額を読み取れなかった${summary.skippedCount}件は除外しました`}
+          </output>
+        )}
+      </div>
+
+      <AccountCombobox serverUrl={serverUrl} value={accountId} onChange={setAccountId} />
+
+      {rows.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <ul className="flex flex-col gap-2" aria-label="明細">
+            {rows.map((row) => (
+              <StatementRowItem
+                key={row.id}
+                row={row}
+                serverUrl={serverUrl}
+                disabled={isBusy}
+                onSelectedChange={(selected) => updateRow(row.id, { selected })}
+                onCategoryChange={(category) => updateRow(row.id, { category })}
+              />
+            ))}
+          </ul>
+
+          <div className="flex items-center justify-between border-t pt-2 pr-2">
+            <span className="text-sm font-semibold text-foreground">
+              合計（{selectedRows.length}件）
+            </span>
+            <span className="text-lg font-bold text-foreground">{formatYen(total)}</span>
+          </div>
+        </section>
+      )}
+
+      {rows.length > 0 && (
+        <Button type="submit" disabled={!canSubmit}>
+          {submitLabel}
+        </Button>
+      )}
+
+      {registerMutation.isError && (
+        <p role="alert" className="text-sm font-medium text-destructive">
+          {registerMutation.error instanceof Error
+            ? registerMutation.error.message
+            : "登録に失敗しました"}
+        </p>
+      )}
+    </form>
+  );
+}
