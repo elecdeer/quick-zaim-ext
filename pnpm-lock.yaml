@@ -396,9 +396,6 @@ importers:
 
   apps/server:
     dependencies:
-      '@hono/oidc-auth':
-        specifier: ^1.8.1
-        version: 1.8.1(hono@4.12.14)
       '@hono/standard-validator':
         specifier: 'catalog:'
         version: 0.2.2(@standard-schema/spec@1.1.0)(hono@4.12.14)
@@ -1312,12 +1309,6 @@ packages:
     engines: {node: '>=18.14.1'}
     peerDependencies:
       hono: ^4
-
-  '@hono/oidc-auth@1.8.1':
-    resolution: {integrity: sha512-EK95ilPVeX4O+oWIOe/DyhdodA7ckUiH9uP0mMpLLXnpv1b364QRX01EJFNl4QRn5kjcl2OZ+jgb6vde5kBV6A==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      hono: '>=3.0.0'
 
   '@hono/standard-validator@0.2.2':
     resolution: {integrity: sha512-mJ7W84Bt/rSvoIl63Ynew+UZOHAzzRAoAXb3JaWuxAkM/Lzg+ZHTCUiz77KOtn2e623WNN8LkD57Dk0szqUrIw==}
@@ -4602,9 +4593,6 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  oauth4webapi@2.17.0:
-    resolution: {integrity: sha512-lbC0Z7uzAFNFyzEYRIC+pkSVvDHJTbEW+dYlSBAlCYDe6RxUkJ26bClhk8ocBZip1wfI9uKTe0fm4Ib4RHn6uQ==}
-
   object-assign@4.1.1:
     resolution: {integrity: sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg==}
     engines: {node: '>=0.10.0'}
@@ -6510,11 +6498,6 @@ snapshots:
   '@hono/node-server@1.19.14(hono@4.12.14)':
     dependencies:
       hono: 4.12.14
-
-  '@hono/oidc-auth@1.8.1(hono@4.12.14)':
-    dependencies:
-      hono: 4.12.14
-      oauth4webapi: 2.17.0
 
   '@hono/standard-validator@0.2.2(@standard-schema/spec@1.1.0)(hono@4.12.14)':
     dependencies:
@@ -9283,8 +9266,6 @@ snapshots:
       citty: 0.2.2
       pathe: 2.0.3
       tinyexec: 1.1.1
-
-  oauth4webapi@2.17.0: {}
 
   object-assign@4.1.1: {}
 

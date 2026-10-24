@@ -1,5 +1,4 @@
 import { sValidator } from "@hono/standard-validator";
-import { revokeSession } from "@hono/oidc-auth";
 import { Hono } from "hono";
 import * as v from "valibot";
 import type { HonoEnv } from "../../env.ts";
@@ -15,31 +14,26 @@ const isValidExtensionRedirectUri = (uri: string): boolean => {
 
 /**
  * ログアウトエンドポイント
+ *
+ * セッションは Cloudflare Access が CF_Authorization Cookie で管理しているため、
+ * Access のログアウトエンドポイントへリダイレクトして破棄させる。
  */
 const logoutRoute = new Hono<HonoEnv>().get("/logout", async (c) => {
-  const logger = c.var.logger;
-  logger.info("Logout requested");
-
-  await revokeSession(c);
-
-  const issuer = c.env.OIDC_ISSUER.replace(/\/$/, "");
-  const clientId = c.env.OIDC_CLIENT_ID;
-  const returnTo = new URL("/", c.req.url).toString();
-  const logoutUrl = `${issuer}/v2/logout?client_id=${clientId}&returnTo=${encodeURIComponent(returnTo)}`;
-
-  logger.info("Session revoked, redirecting to Auth0 logout");
-  return c.redirect(logoutUrl);
+  c.var.logger.info("Logout requested, redirecting to Cloudflare Access logout");
+  return c.redirect(new URL("/cdn-cgi/access/logout", c.req.url).toString());
 });
 
 /**
  * ログインユーザー情報取得エンドポイント
  */
 const meRoute = new Hono<HonoEnv>().get("/me", async (c) => {
-  const auth = c.var.oidcAuth;
-  c.var.logger.with({ email: auth?.email, sub: auth?.sub }).info("User info requested for {email}");
+  const user = c.var.user;
+  c.var.logger
+    .with({ email: user?.email, userId: user?.id })
+    .info("User info requested for {email}");
   return c.json({
-    email: auth?.email,
-    sub: auth?.sub,
+    email: user?.email,
+    id: user?.id,
   });
 });
 

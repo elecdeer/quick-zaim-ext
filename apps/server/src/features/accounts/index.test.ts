@@ -14,7 +14,7 @@ import {
 import { accountsRoutes } from "./index.ts";
 import type { Env } from "../../env.ts";
 import type { KVNamespace } from "@cloudflare/workers-types";
-import type { OidcAuth } from "@hono/oidc-auth";
+import type { AccessUser } from "../../access.ts";
 
 const { mockGetAccounts } = vi.hoisted(() => ({
   mockGetAccounts: vi.fn(),
@@ -24,13 +24,7 @@ vi.mock("@repo/zaim-api", () => ({
   accountGetAccounts: mockGetAccounts,
 }));
 
-const MOCK_USER = {
-  sub: "auth0|user123",
-  email: "user@example.com",
-  rtk: "",
-  rtkexp: 9999999999,
-  ssnexp: 9999999999,
-} as OidcAuth;
+const MOCK_USER: AccessUser = { id: "user@example.com", email: "user@example.com" };
 
 const MOCK_ACCOUNTS_RESPONSE = {
   accounts: [
@@ -68,9 +62,9 @@ describe("GET /api/zaim/accounts", () => {
     mockGetAccounts.mockResolvedValue({ data: MOCK_ACCOUNTS_RESPONSE });
   });
 
-  test("OIDC未認証のとき401を返す", async () => {
+  test("Access未認証のとき401を返す", async () => {
     const res = await createTestClient(accountsRoutes, makeEnv(), {
-      oidcAuth: null,
+      user: null,
     }).api.zaim.accounts.$get({
       query: {},
     });
@@ -79,7 +73,7 @@ describe("GET /api/zaim/accounts", () => {
 
   test("Zaimトークン未連携のとき403を返す", async () => {
     const res = await createTestClient(accountsRoutes, makeEnv(), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
     }).api.zaim.accounts.$get({
       query: {},
     });
@@ -97,7 +91,7 @@ describe("GET /api/zaim/accounts", () => {
     mockGet.mockResolvedValueOnce(JSON.stringify(cachedData));
 
     const res = await createTestClient(accountsRoutes, makeEnv(kv), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimClientStub(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.accounts.$get({ query: {} });
@@ -112,7 +106,7 @@ describe("GET /api/zaim/accounts", () => {
     mockGet.mockResolvedValueOnce(null);
 
     const res = await createTestClient(accountsRoutes, makeEnv(kv), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimClientStub(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.accounts.$get({ query: {} });
@@ -127,7 +121,7 @@ describe("GET /api/zaim/accounts", () => {
     mockGet.mockResolvedValueOnce(null);
 
     await createTestClient(accountsRoutes, makeEnv(kv), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimClientStub(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.accounts.$get({ query: {} });
@@ -143,7 +137,7 @@ describe("GET /api/zaim/accounts", () => {
     mockGet.mockResolvedValueOnce(JSON.stringify(cachedData));
 
     const res = await createTestClient(accountsRoutes, makeEnv(kv), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimClientStub(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.accounts.$get({ query: { no_cache: "1" } });
@@ -158,7 +152,7 @@ describe("GET /api/zaim/accounts", () => {
     mockGet.mockResolvedValueOnce(null);
 
     const res = await createTestClient(accountsRoutes, makeEnv(kv), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimClientStub(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.accounts.$get({ query: {} });
@@ -172,7 +166,7 @@ describe("GET /api/zaim/accounts", () => {
     mockGet.mockResolvedValueOnce(null);
 
     const res = await createTestClient(accountsRoutes, makeEnv(kv), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimClientStub(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.accounts.$get({ query: {} });

@@ -1,7 +1,8 @@
-import { getAuth, type OidcAuth } from "@hono/oidc-auth";
 import { createClient } from "@repo/zaim-api/client";
 import { createZaimAuthInterceptor } from "@repo/zaim-api/oauth/interceptor";
+import type { Context } from "hono";
 import { createMiddleware } from "hono/factory";
+import { getAccessUser, type AccessUser } from "./access.ts";
 import type { Env } from "./env.ts";
 import type { Logger } from "./loggerMiddleware.ts";
 import { getStoredZaimToken } from "./features/zaim-auth/repository.ts";
@@ -10,29 +11,41 @@ import { createZaimLoggingInterceptors } from "./zaimLoggingInterceptor.ts";
 const ZAIM_API_BASE = "https://api.zaim.net";
 
 /**
- * OIDC 認証済みでなければ 401 を返す。認証済みの場合は oidcAuth をコンテキストに設定する。
- * Hono の型推論により、このミドルウェアを .use()/.get() でチェーンすると
- * 後続ハンドラで oidcAuth が OidcAuth（非 null）として推論される。
- *
- * oidcAuth がすでに設定済みの場合（テスト時のコンテキスト注入など）は getAuth() 呼び出しをスキップする。
+ * Hono の `c.executionCtx` は ExecutionContext が渡されていないと例外を投げるため、
+ * その場合は undefined を返す（未認証として扱う）。
  */
-export const requireOidcAuth = createMiddleware<{
-  Variables: { oidcAuth: OidcAuth };
+const readExecutionCtx = (c: Context): unknown => {
+  try {
+    return c.executionCtx;
+  } catch {
+    return undefined;
+  }
+};
+
+/**
+ * Cloudflare Access で認証済みでなければ 401 を返す。認証済みの場合は user をコンテキストに設定する。
+ * Hono の型推論により、このミドルウェアを .use()/.get() でチェーンすると
+ * 後続ハンドラで user が AccessUser（非 null）として推論される。
+ *
+ * user がすでに設定済みの場合（テスト時のコンテキスト注入など）は ctx.access の参照をスキップする。
+ */
+export const requireAccessUser = createMiddleware<{
+  Variables: { user: AccessUser };
 }>(async (c, next) => {
-  // At runtime, oidcAuth may be undefined (not set yet) or null (injected as
-  // unauthenticated by the test context). Distinguish to avoid calling getAuth
+  // At runtime, user may be undefined (not set yet) or null (injected as
+  // unauthenticated by the test context). Distinguish to avoid reading ctx.access
   // when the value was already explicitly set.
-  const existing = c.var.oidcAuth as OidcAuth | null | undefined;
+  const existing = c.var.user as AccessUser | null | undefined;
   if (existing !== undefined) {
-    if (!existing?.sub) return c.json({ error: "Unauthorized" }, 401);
+    if (!existing) return c.json({ error: "Unauthorized" }, 401);
     await next();
     return;
   }
-  const auth = await getAuth(c);
-  if (!auth?.sub) {
+  const user = await getAccessUser(readExecutionCtx(c));
+  if (!user) {
     return c.json({ error: "Unauthorized" }, 401);
   }
-  c.set("oidcAuth", auth);
+  c.set("user", user);
   await next();
 });
 
@@ -48,7 +61,7 @@ export const requireOidcAuth = createMiddleware<{
 export const requireZaimClient = createMiddleware<{
   Bindings: Env;
   Variables: {
-    oidcAuth: OidcAuth;
+    user: AccessUser;
     zaimClient: ReturnType<typeof createClient>;
     zaimUserId: string;
     logger: Logger;
@@ -59,7 +72,7 @@ export const requireZaimClient = createMiddleware<{
     return;
   }
 
-  const token = await getStoredZaimToken(c.env.ZAIM_KV, c.var.oidcAuth.sub as string);
+  const token = await getStoredZaimToken(c.env.ZAIM_KV, c.var.user.id);
   if (!token) {
     return c.json({ error: "Zaim not connected" }, 403);
   }

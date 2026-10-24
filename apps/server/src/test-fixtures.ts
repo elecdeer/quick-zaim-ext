@@ -7,11 +7,11 @@
 
 import { type MockedFunction, test, vi } from "vite-plus/test";
 import type { Ai, KVNamespace } from "@cloudflare/workers-types";
-import type { OidcAuth } from "@hono/oidc-auth";
 import type { createClient } from "@repo/zaim-api/client";
 import { getLogger } from "@logtape/logtape";
 import { Hono } from "hono";
 import { testClient } from "hono/testing";
+import type { AccessUser } from "./access.ts";
 import type { Env, HonoEnv } from "./env.ts";
 import { createMiddleware } from "hono/factory";
 
@@ -101,11 +101,6 @@ export const createTestEnv = (overrides: Partial<Env> = {}): Env => {
   // 型を満たすためダミーを置く。
   const ai = {} as unknown as Ai;
   return {
-    OIDC_ISSUER: "https://example.auth0.com/",
-    OIDC_CLIENT_ID: "test_client_id",
-    OIDC_CLIENT_SECRET: "test_client_secret",
-    OIDC_REDIRECT_URI: "https://example.com/callback",
-    OIDC_AUTH_SECRET: "test_auth_secret_32chars_minimum!",
     ZAIM_CONSUMER_KEY: "zaim_consumer_key",
     ZAIM_CONSUMER_SECRET: "zaim_consumer_secret",
     ZAIM_KV: kv,
@@ -117,7 +112,7 @@ export const createTestEnv = (overrides: Partial<Env> = {}): Env => {
 
 /** テストで注入するコンテキスト変数 */
 export interface RouteTestContext {
-  oidcAuth?: OidcAuth | null;
+  user?: AccessUser | null;
   zaimClient?: ReturnType<typeof createClient>;
   zaimUserId?: string;
 }
@@ -126,7 +121,7 @@ export interface RouteTestContext {
  * ルートテスト用クライアントファクトリ
  *
  * コンテキスト変数を直接注入するミドルウェアを挟んでから testClient を返す。
- * これにより getAuth / createClient などのモジュールモックが不要になる。
+ * これにより ctx.access / createClient などのモックが不要になる。
  */
 export const createTestClient = <T extends Hono<HonoEnv, any, any>>(
   route: T,
@@ -138,7 +133,7 @@ export const createTestClient = <T extends Hono<HonoEnv, any, any>>(
     Variables: RouteTestContext & { logger: ReturnType<typeof getLogger> };
   }>(async (c, next) => {
     c.set("logger", getLogger(["quick-zaim", "server"]));
-    if ("oidcAuth" in context) c.set("oidcAuth", context.oidcAuth ?? null);
+    if ("user" in context) c.set("user", context.user ?? null);
     if ("zaimClient" in context && context.zaimClient) c.set("zaimClient", context.zaimClient);
     if ("zaimUserId" in context && context.zaimUserId) c.set("zaimUserId", context.zaimUserId);
     await next();

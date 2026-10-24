@@ -8,13 +8,13 @@
 import { sValidator } from "@hono/standard-validator";
 import { Hono } from "hono";
 import type { HonoEnv } from "../../env.ts";
-import { requireOidcAuth } from "../../middleware.ts";
+import { requireAccessUser } from "../../middleware.ts";
 import { ExtractPaymentBodySchema } from "./schema.ts";
 import { runExtractPayment } from "./service.ts";
 
 export const llmExtractPaymentRoutes = new Hono<HonoEnv>().post(
   "/api/llm/extract-payment",
-  requireOidcAuth,
+  requireAccessUser,
   sValidator("json", ExtractPaymentBodySchema, (result, c) => {
     if (!result.success) return c.json({ error: "Invalid request body" }, 400);
   }),

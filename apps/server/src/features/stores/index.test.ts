@@ -14,7 +14,7 @@ import {
 import { storesRoutes } from "./index.ts";
 import type { Env } from "../../env.ts";
 import type { KVNamespace } from "@cloudflare/workers-types";
-import type { OidcAuth } from "@hono/oidc-auth";
+import type { AccessUser } from "../../access.ts";
 
 const { mockMoneyGetMoney } = vi.hoisted(() => ({
   mockMoneyGetMoney: vi.fn(),
@@ -24,13 +24,7 @@ vi.mock("@repo/zaim-api", () => ({
   moneyGetMoney: mockMoneyGetMoney,
 }));
 
-const MOCK_USER = {
-  sub: "auth0|user123",
-  email: "user@example.com",
-  rtk: "",
-  rtkexp: 9999999999,
-  ssnexp: 9999999999,
-} as OidcAuth;
+const MOCK_USER: AccessUser = { id: "user@example.com", email: "user@example.com" };
 
 const MOCK_MONEY_RESPONSE = {
   money: [
@@ -124,9 +118,9 @@ describe("GET /api/zaim/stores", () => {
     mockMoneyGetMoney.mockResolvedValue({ data: MOCK_MONEY_RESPONSE });
   });
 
-  test("OIDC未認証のとき401を返す", async () => {
+  test("Access未認証のとき401を返す", async () => {
     const res = await createTestClient(storesRoutes, makeEnv(), {
-      oidcAuth: null,
+      user: null,
     }).api.zaim.stores.$get({
       query: {},
     });
@@ -135,7 +129,7 @@ describe("GET /api/zaim/stores", () => {
 
   test("Zaimトークン未連携のとき403を返す", async () => {
     const res = await createTestClient(storesRoutes, makeEnv(), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
     }).api.zaim.stores.$get({
       query: {},
     });
@@ -153,7 +147,7 @@ describe("GET /api/zaim/stores", () => {
     mockGet.mockResolvedValueOnce(JSON.stringify(cachedData));
 
     const res = await createTestClient(storesRoutes, makeEnv(kv), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimClientStub(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.stores.$get({ query: {} });
@@ -168,7 +162,7 @@ describe("GET /api/zaim/stores", () => {
     mockGet.mockResolvedValueOnce(null);
 
     const res = await createTestClient(storesRoutes, makeEnv(kv), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimClientStub(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.stores.$get({ query: {} });
@@ -183,7 +177,7 @@ describe("GET /api/zaim/stores", () => {
     mockGet.mockResolvedValueOnce(null);
 
     const res = await createTestClient(storesRoutes, makeEnv(kv), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimClientStub(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.stores.$get({ query: {} });
@@ -198,7 +192,7 @@ describe("GET /api/zaim/stores", () => {
     mockGet.mockResolvedValueOnce(null);
 
     const res = await createTestClient(storesRoutes, makeEnv(kv), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimClientStub(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.stores.$get({ query: {} });
@@ -217,7 +211,7 @@ describe("GET /api/zaim/stores", () => {
     mockGet.mockResolvedValueOnce(null);
 
     const res = await createTestClient(storesRoutes, makeEnv(kv), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimClientStub(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.stores.$get({ query: {} });
@@ -234,7 +228,7 @@ describe("GET /api/zaim/stores", () => {
     mockGet.mockResolvedValueOnce(null);
 
     await createTestClient(storesRoutes, makeEnv(kv), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimClientStub(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.stores.$get({ query: {} });
@@ -249,7 +243,7 @@ describe("GET /api/zaim/stores", () => {
     mockGet.mockResolvedValueOnce(null);
 
     await createTestClient(storesRoutes, makeEnv(kv), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimClientStub(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.stores.$get({ query: {} });
@@ -266,7 +260,7 @@ describe("GET /api/zaim/stores", () => {
     mockGet.mockResolvedValueOnce(JSON.stringify(cachedData));
 
     const res = await createTestClient(storesRoutes, makeEnv(kv), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimClientStub(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.stores.$get({ query: { no_cache: "1" } });
@@ -281,7 +275,7 @@ describe("GET /api/zaim/stores", () => {
     mockGet.mockResolvedValueOnce(null);
 
     const res = await createTestClient(storesRoutes, makeEnv(kv), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimClientStub(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.stores.$get({ query: {} });

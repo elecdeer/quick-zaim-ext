@@ -12,9 +12,9 @@ import {
  */
 export const getStoredZaimToken = async (
   kv: KVNamespace,
-  userSub: string,
+  userId: string,
 ): Promise<StoredAccessToken | null> => {
-  const stored = await kv.get(`zaim:token:${userSub}`);
+  const stored = await kv.get(`zaim:token:${userId}`);
   if (!stored) return null;
   return v.parse(StoredAccessTokenSchema, JSON.parse(stored));
 };
@@ -24,17 +24,17 @@ export const getStoredZaimToken = async (
  */
 export const saveAccessToken = async (
   kv: KVNamespace,
-  userSub: string,
+  userId: string,
   tokenData: StoredAccessToken,
 ): Promise<void> => {
-  await kv.put(`zaim:token:${userSub}`, JSON.stringify(tokenData));
+  await kv.put(`zaim:token:${userId}`, JSON.stringify(tokenData));
 };
 
 /**
  * Zaim アクセストークンを KV から削除する。
  */
-export const deleteAccessToken = async (kv: KVNamespace, userSub: string): Promise<void> => {
-  await kv.delete(`zaim:token:${userSub}`);
+export const deleteAccessToken = async (kv: KVNamespace, userId: string): Promise<void> => {
+  await kv.delete(`zaim:token:${userId}`);
 };
 
 /**

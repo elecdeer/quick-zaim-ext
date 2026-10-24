@@ -16,7 +16,7 @@ import { createKVNamespaceMock, createTestClient, createTestEnv } from "../../te
 import { paymentRoutes } from "./index.ts";
 import type { Env } from "../../env.ts";
 import type { KVNamespace } from "@cloudflare/workers-types";
-import type { OidcAuth } from "@hono/oidc-auth";
+import type { AccessUser } from "../../access.ts";
 import type { MonthlyMoneyCache } from "../stores/schema.ts";
 
 // ── MSW セットアップ ────────────────────────────────────────────────────────
@@ -28,13 +28,7 @@ afterAll(() => server.close());
 
 // ── テスト共通データ ────────────────────────────────────────────────────────
 
-const MOCK_USER = {
-  sub: "auth0|user123",
-  email: "user@example.com",
-  rtk: "",
-  rtkexp: 9999999999,
-  ssnexp: 9999999999,
-} as OidcAuth;
+const MOCK_USER: AccessUser = { id: "user@example.com", email: "user@example.com" };
 
 const MOCK_PAYMENT_BODY = {
   money: {
@@ -99,9 +93,9 @@ describe("POST /api/zaim/payment", () => {
     server.use(paymentOperationsCreateMockHandler(() => HttpResponse.json(MOCK_PAYMENT_BODY)));
   });
 
-  test("OIDC未認証のとき401を返す", async () => {
+  test("Access未認証のとき401を返す", async () => {
     const res = await createTestClient(paymentRoutes, makeEnv(), {
-      oidcAuth: null,
+      user: null,
     }).api.zaim.payment.$post({
       json: { category_id: 101, genre_id: 201, amount: 1500, date: "2026-05-20" },
     });
@@ -110,7 +104,7 @@ describe("POST /api/zaim/payment", () => {
 
   test("Zaimトークン未連携のとき403を返す", async () => {
     const res = await createTestClient(paymentRoutes, makeEnv(), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
     }).api.zaim.payment.$post({
       json: { category_id: 101, genre_id: 201, amount: 1500, date: "2026-05-20" },
     });
@@ -121,7 +115,7 @@ describe("POST /api/zaim/payment", () => {
 
   test("リクエストボディが不正のとき400を返す", async () => {
     const res = await createTestClient(paymentRoutes, makeEnv(), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimRealClient(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.payment.$post({
@@ -133,7 +127,7 @@ describe("POST /api/zaim/payment", () => {
 
   test("正常系: 支払いが登録され201とidを返す", async () => {
     const res = await createTestClient(paymentRoutes, makeEnv(), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimRealClient(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.payment.$post({
@@ -157,7 +151,7 @@ describe("POST /api/zaim/payment", () => {
     );
 
     const res = await createTestClient(paymentRoutes, makeEnv(), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimRealClient(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.payment.$post({
@@ -179,7 +173,7 @@ describe("POST /api/zaim/payment", () => {
     const { kv, mockDelete } = createKVNamespaceMock();
 
     await createTestClient(paymentRoutes, makeEnv(kv), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimRealClient(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.payment.$post({
@@ -193,7 +187,7 @@ describe("POST /api/zaim/payment", () => {
     const { kv, mockDelete } = createKVNamespaceMock();
 
     await createTestClient(paymentRoutes, makeEnv(kv), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimRealClient(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.payment.$post({
@@ -213,9 +207,9 @@ describe("GET /api/zaim/payment/duplicate", () => {
     );
   });
 
-  test("OIDC未認証のとき401を返す", async () => {
+  test("Access未認証のとき401を返す", async () => {
     const res = await createTestClient(paymentRoutes, makeEnv(), {
-      oidcAuth: null,
+      user: null,
     }).api.zaim.payment.duplicate.$get({
       query: { date: "2026-05-19", amount: "1500", genre_id: "201" },
     });
@@ -224,7 +218,7 @@ describe("GET /api/zaim/payment/duplicate", () => {
 
   test("Zaimトークン未連携のとき403を返す", async () => {
     const res = await createTestClient(paymentRoutes, makeEnv(), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
     }).api.zaim.payment.duplicate.$get({
       query: { date: "2026-05-19", amount: "1500", genre_id: "201" },
     });
@@ -235,7 +229,7 @@ describe("GET /api/zaim/payment/duplicate", () => {
 
   test("クエリパラメータが不正のとき400を返す", async () => {
     const res = await createTestClient(paymentRoutes, makeEnv(), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimRealClient(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.payment.duplicate.$get({
@@ -265,7 +259,7 @@ describe("GET /api/zaim/payment/duplicate", () => {
 
     server.resetHandlers();
     const res = await createTestClient(paymentRoutes, makeEnv(kv), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimRealClient(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.payment.duplicate.$get({
@@ -282,7 +276,7 @@ describe("GET /api/zaim/payment/duplicate", () => {
     mockGet.mockResolvedValueOnce(null);
 
     const res = await createTestClient(paymentRoutes, makeEnv(kv), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimRealClient(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.payment.duplicate.$get({
@@ -297,7 +291,7 @@ describe("GET /api/zaim/payment/duplicate", () => {
     mockGet.mockResolvedValueOnce(null);
 
     const res = await createTestClient(paymentRoutes, makeEnv(kv), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimRealClient(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.payment.duplicate.$get({
@@ -318,7 +312,7 @@ describe("GET /api/zaim/payment/duplicate", () => {
     mockGet.mockResolvedValueOnce(null);
 
     const res = await createTestClient(paymentRoutes, makeEnv(kv), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimRealClient(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.payment.duplicate.$get({
@@ -334,7 +328,7 @@ describe("GET /api/zaim/payment/duplicate", () => {
     mockGet.mockResolvedValueOnce(null);
 
     const res = await createTestClient(paymentRoutes, makeEnv(kv), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimRealClient(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.payment.duplicate.$get({
@@ -365,7 +359,7 @@ describe("GET /api/zaim/payment/duplicate", () => {
     mockGet.mockResolvedValueOnce(JSON.stringify(cachedItems));
 
     const res = await createTestClient(paymentRoutes, makeEnv(kv), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimRealClient(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.payment.duplicate.$get({
@@ -382,7 +376,7 @@ describe("GET /api/zaim/payment/duplicate", () => {
     mockGet.mockResolvedValueOnce(null);
 
     const res = await createTestClient(paymentRoutes, makeEnv(kv), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimRealClient(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.payment.duplicate.$get({
@@ -398,7 +392,7 @@ describe("GET /api/zaim/payment/duplicate", () => {
     mockGet.mockResolvedValueOnce(null);
 
     await createTestClient(paymentRoutes, makeEnv(kv), {
-      oidcAuth: MOCK_USER,
+      user: MOCK_USER,
       zaimClient: createZaimRealClient(),
       zaimUserId: "zaim_user_999",
     }).api.zaim.payment.duplicate.$get({
