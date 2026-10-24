@@ -114,10 +114,14 @@ export type ExtractStatementBody = ExtractPaymentBody;
  * クレジットカード明細などの 1 行（1 回の利用）分のスキーマ。
  *
  * 明細は「概要だけ」で登録するので、品目の内訳は持たず利用先と金額だけを抽出する。
+ * `place` は明細に書かれた利用先名、`placeUid` はそれと同じ店と推測した既存店舗の ID。
+ * Zaim は店舗を既存の place_uid でしか指定できないため、店舗名の表記ゆれ
+ * （半角カナ・ローマ字・略称など）の照合を LLM に任せる。
  */
 export const ExtractedStatementRowSchema = v.strictObject({
   date: v.nullable(v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/))),
   place: v.nullable(v.string()),
+  placeUid: v.nullable(v.string()),
   amount: v.nullable(v.number()),
   genreId: v.nullable(v.number()),
 });

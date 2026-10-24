@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToastManager } from "@/components/ui/toast";
 import { AccountCombobox } from "../../../components/AccountCombobox.tsx";
 import { CategoryCombobox, type CategorySelection } from "../../../components/CategoryCombobox.tsx";
+import { StoreCombobox, type StoreSelection } from "../../../components/StoreCombobox.tsx";
 import { collectExtractionInput } from "../../../lib/extraction.ts";
 import { createServerClient } from "../../../lib/serverClient";
 import {
@@ -39,6 +40,7 @@ interface StatementRowItemProps {
   serverUrl: string;
   disabled: boolean;
   onSelectedChange: (selected: boolean) => void;
+  onStoreChange: (store: StoreSelection | null) => void;
   onCategoryChange: (category: CategorySelection | null) => void;
 }
 
@@ -47,6 +49,7 @@ const StatementRowItem = ({
   serverUrl,
   disabled,
   onSelectedChange,
+  onStoreChange,
   onCategoryChange,
 }: StatementRowItemProps) => {
   const placeLabel = row.place || "(利用先不明)";
@@ -68,6 +71,15 @@ const StatementRowItem = ({
           {placeLabel}
         </span>
         <span className="shrink-0 text-sm tabular-nums">{formatYen(row.amount)}</span>
+      </div>
+      <div className="pl-6">
+        <StoreCombobox
+          serverUrl={serverUrl}
+          value={row.store}
+          onChange={onStoreChange}
+          size="sm"
+          showIcon={false}
+        />
       </div>
       <div className="flex items-center gap-1 pl-6">
         <div className="min-w-0 flex-1">
@@ -170,9 +182,9 @@ export default function StatementScreen({ serverUrl }: Props) {
               date: row.date,
               ...(accountId !== null && { from_account_id: accountId }),
               // Zaim API は店舗名（place）での指定を受け付けず、既存店舗の place_uid しか使えない。
-              // 最近の店舗に一致しない利用先は名前が残るよう品名に入れる
-              ...(row.placeUid
-                ? { place_uid: row.placeUid }
+              // 店舗に紐付かない利用先は名前が残るよう品名に入れる
+              ...(row.store
+                ? { place_uid: row.store.placeUid }
                 : row.place
                   ? { name: row.place }
                   : {}),
@@ -255,6 +267,7 @@ export default function StatementScreen({ serverUrl }: Props) {
                 serverUrl={serverUrl}
                 disabled={isBusy}
                 onSelectedChange={(selected) => updateRow(row.id, { selected })}
+                onStoreChange={(store) => updateRow(row.id, { store })}
                 onCategoryChange={(category) => updateRow(row.id, { category })}
               />
             ))}

@@ -114,6 +114,24 @@ describe("buildStatementPrompt", () => {
     expect(prompt).not.toContain("truncated");
   });
 
+  test("店舗は支払い抽出の上限（20 件）を超えて候補に渡す", () => {
+    const recentStores = Array.from({ length: 30 }, (_, i) => ({
+      place: `店${i}`,
+      placeUid: `uid_${i}`,
+      latestDate: "2026-05-01",
+      count: 1,
+    }));
+    const { prompt } = buildStatementPrompt(baseInput({ recentStores }));
+    expect(prompt).toContain("店29 [uid=uid_29, 1x, 2026-05-01]");
+    expect(buildPrompt(baseInput({ recentStores })).prompt).not.toContain("店29");
+  });
+
+  test("system プロンプトで既存店舗の uid を選ばせる", () => {
+    const { system } = buildStatementPrompt(baseInput());
+    expect(system).toContain("`placeUid`");
+    expect(system).toContain("never invent a uid");
+  });
+
   test("system プロンプトに明細抽出のルールが入っている", () => {
     const { system } = buildStatementPrompt(baseInput());
     expect(system).toContain("monthly statement");

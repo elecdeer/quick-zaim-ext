@@ -46,7 +46,10 @@ const mockAccountsResponse = {
 
 const mockStoresResponse = {
   fetchedAt: "2024-01-01T00:00:00Z",
-  stores: [{ place: "スーパーA", placeUid: "uid-001", latestDate: "2026-04-10", count: 5 }],
+  stores: [
+    { place: "スーパーA", placeUid: "uid-001", latestDate: "2026-04-10", count: 5 },
+    { place: "カフェC 駅前店", placeUid: "uid-003", latestDate: "2026-03-01", count: 2 },
+  ],
 };
 
 const commonHandlers = [
@@ -59,10 +62,16 @@ const commonHandlers = [
     HttpResponse.json({
       accountId: 2,
       rows: [
-        { date: "2026-05-01", place: "スーパーA", amount: 1200, genreId: 1001 },
-        { date: "2026-05-02", place: "JR東日本", amount: 300, genreId: 1003 },
-        { date: "2026-05-03", place: "カフェC", amount: 450, genreId: 1002 },
-        { date: null, place: "読み取れない行", amount: null, genreId: null },
+        {
+          date: "2026-05-01",
+          place: "ｽｰﾊﾟｰA",
+          placeUid: "uid-001",
+          amount: 1200,
+          genreId: 1001,
+        },
+        { date: "2026-05-02", place: "JR東日本", placeUid: null, amount: 300, genreId: 1003 },
+        { date: "2026-05-03", place: "カフェC", placeUid: null, amount: 450, genreId: 1002 },
+        { date: null, place: "読み取れない行", placeUid: null, amount: null, genreId: null },
       ],
       confidence: "high",
       reasoning: "",
@@ -111,6 +120,10 @@ const recordPaymentHandler = (failOnCall?: number) => {
   return { handler, bodies };
 };
 
+/** 利用先名で行を特定し、その行の店舗欄を返す */
+const storeOf = (place: string) =>
+  page.getByRole("listitem").filter({ hasText: place }).getByRole("combobox", { name: "店舗" });
+
 const extract = async () => {
   await page.getByRole("button", { name: "このページの明細を読み取る" }).click();
   await expect.element(page.getByText("JR東日本")).toBeVisible();
@@ -124,12 +137,15 @@ describe("StatementScreen", () => {
     await extract();
 
     await expect
-      .element(page.getByRole("checkbox", { name: "スーパーA（5/1）を登録する" }))
+      .element(page.getByRole("checkbox", { name: "ｽｰﾊﾟｰA（5/1）を登録する" }))
       .toBeChecked();
     await expect
       .element(page.getByRole("checkbox", { name: "JR東日本（5/2）を登録する" }))
       .not.toBeChecked();
     await expect.element(page.getByText("登録済み 5/2")).toBeVisible();
+    // AI が推測した既存店舗が選ばれ、推測できなかった行は未選択
+    await expect.element(storeOf("ｽｰﾊﾟｰA")).toHaveTextContent("スーパーA");
+    await expect.element(storeOf("カフェC")).toHaveTextContent("店舗を選択（任意）");
     await expect
       .element(page.getByRole("status").filter({ hasText: "件読み取りました" }))
       .toHaveTextContent(
@@ -138,7 +154,7 @@ describe("StatementScreen", () => {
     await expect.element(page.getByRole("button", { name: "2件を登録" })).toBeEnabled();
   });
 
-  test("選択した行だけを読み取った口座で登録し、最近の店舗に一致しない利用先は品名にする", async ({
+  test("選択した行だけを読み取った口座で登録し、店舗に紐付かない利用先は品名にする", async ({
     worker,
   }) => {
     const { handler, bodies } = recordPaymentHandler();
@@ -200,11 +216,35 @@ describe("StatementScreen", () => {
       .element(page.getByRole("alert"))
       .toHaveTextContent("「カフェC」の登録に失敗しました（500）");
     await expect
-      .element(page.getByRole("checkbox", { name: "スーパーA（5/1）を登録する" }))
+      .element(page.getByRole("checkbox", { name: "ｽｰﾊﾟｰA（5/1）を登録する" }))
       .not.toBeChecked();
     await expect
       .element(page.getByRole("checkbox", { name: "カフェC（5/3）を登録する" }))
       .toBeChecked();
     await expect.element(page.getByRole("button", { name: "1件を登録" })).toBeEnabled();
+  });
+
+  test("行ごとに店舗を選び直して登録できる", async ({ worker }) => {
+    const { handler, bodies } = recordPaymentHandler();
+    worker.use(...commonHandlers, handler);
+    await render(<Default.Component />);
+    await extract();
+
+    await page
+      .getByRole("listitem")
+      .filter({ hasText: "ｽｰﾊﾟｰA" })
+      .getByRole("button", { name: "クリア" })
+      .click();
+    await storeOf("カフェC").click();
+    await page.getByRole("option", { name: "カフェC 駅前店" }).click();
+    await page.getByRole("button", { name: "2件を登録" }).click();
+
+    await expect
+      .element(page.getByRole("status").filter({ hasText: "2件登録しました" }))
+      .toBeInTheDocument();
+    expect(bodies.map(({ name, place_uid }) => ({ name, place_uid }))).toEqual([
+      { name: "ｽｰﾊﾟｰA", place_uid: undefined },
+      { name: undefined, place_uid: "uid-003" },
+    ]);
   });
 });

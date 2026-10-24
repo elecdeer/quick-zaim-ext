@@ -1,10 +1,13 @@
 import type { CategorySelection } from "../components/CategoryCombobox.tsx";
+import type { StoreSelection } from "../components/StoreCombobox.tsx";
 import { findCategorySelectionByGenreId } from "./extraction.ts";
 
 /** LLM が明細ページから抽出した 1 行。読み取れなかった項目は null */
 export type ExtractedStatementRow = {
   date: string | null;
   place: string | null;
+  /** LLM が同じ店と推測した既存店舗の ID */
+  placeUid: string | null;
   amount: number | null;
   genreId: number | null;
 };
@@ -19,9 +22,10 @@ export type RegisteredMatch = { id: number; date: string };
 export interface StatementRow {
   id: string;
   date: string;
+  /** 明細に書かれた利用先名 */
   place: string;
-  /** 最近の店舗に一致したときの店舗 ID。一致しなければ空文字 */
-  placeUid: string;
+  /** 登録先の既存店舗。紐付かなければ null（利用先名は品名として登録する） */
+  store: StoreSelection | null;
   amount: number;
   category: CategorySelection | null;
   /** 登録対象として選択されているか */
@@ -45,6 +49,20 @@ export const selectReadableRows = (
   );
 
 /**
+ * LLM が推測した店舗 ID を既存店舗に解決する。実在しない ID は捨て、
+ * 推測がないときは利用先名が店舗名と完全に一致する店舗を使う。
+ */
+const resolveStore = (
+  row: ExtractedStatementRow,
+  stores: ReadonlyArray<{ place: string; placeUid: string }>,
+): StoreSelection | null => {
+  const guessed =
+    row.placeUid !== null ? stores.find((s) => s.placeUid === row.placeUid) : undefined;
+  const store = guessed ?? stores.find((s) => s.place === row.place);
+  return store ? { place: store.place, placeUid: store.placeUid } : null;
+};
+
+/**
  * 抽出した明細行と登録済み判定の結果から、一括登録画面の行を組み立てる。
  *
  * 登録済みと判定した行は選択を外しておく（誤判定のときはユーザーが選択し直せる）。
@@ -58,13 +76,12 @@ export const buildStatementRows = (params: {
   categories: ReadonlyArray<{ id: number; subCategories: ReadonlyArray<{ id: number }> }>;
 }): StatementRow[] =>
   params.rows.map((row, index) => {
-    const place = row.place ?? "";
     const registered = params.matches[index] ?? null;
     return {
       id: crypto.randomUUID(),
       date: row.date,
-      place,
-      placeUid: params.recentStores.find((store) => store.place === place)?.placeUid ?? "",
+      place: row.place ?? "",
+      store: resolveStore(row, params.recentStores),
       amount: row.amount,
       category:
         row.genreId !== null

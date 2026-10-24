@@ -55,7 +55,10 @@ const mockCategoriesResponse = {
 
 const mockStoresResponse = {
   fetchedAt: "2024-01-01T00:00:00Z",
-  stores: [{ place: "スーパーA", placeUid: "uid-001", latestDate: "2026-04-10", count: 5 }],
+  stores: [
+    { place: "スーパーA", placeUid: "uid-001", latestDate: "2026-04-10", count: 5 },
+    { place: "カフェC 駅前店", placeUid: "uid-003", latestDate: "2026-03-01", count: 2 },
+  ],
 };
 
 const categoriesHandler = http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, () =>
@@ -74,10 +77,16 @@ const extractStatementHandler = http.post(`${MOCK_SERVER_URL}/api/llm/extract-st
   HttpResponse.json({
     accountId: 2,
     rows: [
-      { date: "2026-05-01", place: "スーパーA", amount: 1200, genreId: 1001 },
-      { date: "2026-05-02", place: "JR東日本", amount: 300, genreId: 1003 },
-      { date: "2026-05-03", place: "カフェC", amount: 450, genreId: 1002 },
-      { date: null, place: "読み取れない行", amount: null, genreId: null },
+      {
+        date: "2026-05-01",
+        place: "ｽｰﾊﾟｰA",
+        placeUid: "uid-001",
+        amount: 1200,
+        genreId: 1001,
+      },
+      { date: "2026-05-02", place: "JR東日本", placeUid: null, amount: 300, genreId: 1003 },
+      { date: "2026-05-03", place: "カフェC", placeUid: null, amount: 450, genreId: 1002 },
+      { date: null, place: "読み取れない行", placeUid: null, amount: null, genreId: null },
     ],
     confidence: "high",
     reasoning: "",

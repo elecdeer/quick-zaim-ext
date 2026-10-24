@@ -25,6 +25,8 @@ const ARIA_SNAPSHOT_MAX_CHARS = 16000;
 /** 明細は行数が多いので、1 会計分のページより長く snapshot を渡す */
 const STATEMENT_ARIA_SNAPSHOT_MAX_CHARS = 48000;
 const RECENT_STORES_LIMIT = 20;
+/** 明細の各行を既存店舗に紐付けるので、1 会計分より多くの店舗を候補として渡す */
+const STATEMENT_STORES_LIMIT = 200;
 
 const truncate = (text: string, max: number): string =>
   text.length <= max ? text : `${text.slice(0, max)}\n…[truncated ${text.length - max} chars]`;
@@ -55,10 +57,13 @@ export const formatAccountsForPrompt = (accounts: ExtractPaymentBody["accounts"]
 /**
  * 最近の店舗一覧をプロンプト用にフォーマットする。
  */
-export const formatRecentStoresForPrompt = (stores: ExtractPaymentBody["recentStores"]): string => {
+export const formatRecentStoresForPrompt = (
+  stores: ExtractPaymentBody["recentStores"],
+  limit: number = RECENT_STORES_LIMIT,
+): string => {
   if (stores.length === 0) return "(none)";
   return stores
-    .slice(0, RECENT_STORES_LIMIT)
+    .slice(0, limit)
     .map((store) => `${store.place} [uid=${store.placeUid}, ${store.count}x, ${store.latestDate}]`)
     .join("\n");
 };
@@ -126,7 +131,8 @@ export const buildStatementPrompt = (
     "Rules:",
     "- One entry in `rows` per transaction row in the statement. Do not merge or split rows.",
     '- `date`: the usage/transaction date (利用日) as "YYYY-MM-DD", not the billing or payment date. When the year is omitted, infer it from the statement period.',
-    "- `place`: the merchant name (利用先). Use a recent store name exactly when it clearly refers to the same merchant; otherwise copy the merchant name from the page.",
+    "- `place`: the merchant name (利用先) as written on the page.",
+    "- `placeUid`: the uid of the store in `Stores` that is the same merchant as `place`. Statements often abbreviate names or use half-width katakana or romaji (e.g. ｱﾏｿﾞﾝ / AMAZON.CO.JP → Amazon.co.jp), so match by meaning, not by exact text. Use null when no store clearly matches; never invent a uid.",
     "- `amount`: the usage amount (利用金額) in JPY as a positive integer. For installment purchases use the original usage amount, not this month's installment. For foreign currency use the JPY amount.",
     "- Skip refunds, cancellations, credits and negative amounts, as well as totals, subtotals and rows that are not individual transactions.",
     "- `genreId`: the most fitting sub-category ID for each merchant. Must be one of the provided sub-category IDs; otherwise null.",
@@ -150,8 +156,8 @@ export const buildStatementPrompt = (
     "## Accounts (format: `accountId=name, ...`)",
     formatAccountsForPrompt(input.accounts),
     "",
-    "## Recent stores (format: `name [uid=placeUid, count, latestDate]`)",
-    formatRecentStoresForPrompt(input.recentStores),
+    "## Stores (format: `name [uid=placeUid, count, latestDate]`)",
+    formatRecentStoresForPrompt(input.recentStores, STATEMENT_STORES_LIMIT),
     "",
     "## Page accessibility snapshot",
     "```",

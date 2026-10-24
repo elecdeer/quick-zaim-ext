@@ -27,20 +27,34 @@ interface Props {
   serverUrl: string;
   value: StoreSelection | null;
   onChange: (value: StoreSelection | null) => void;
+  /** ボタンのサイズ。省略時は `default`。 */
+  size?: "sm" | "default";
+  /** 先頭の店舗アイコンを出すか。行内に並べるときは false にする。 */
+  showIcon?: boolean;
 }
 
 /**
  * 店舗選択の combobox コンポーネント。
  * 過去の支払い履歴から店舗候補を表示し、一覧から選択する。
  */
-export const StoreCombobox = ({ serverUrl, value, onChange }: Props) => {
+export const StoreCombobox = ({
+  serverUrl,
+  value,
+  onChange,
+  size = "default",
+  showIcon = true,
+}: Props) => {
   if (!serverUrl) return null;
+
+  const icon = showIcon && (
+    <StorefrontIcon size={20} className="shrink-0 text-muted-foreground" aria-hidden="true" />
+  );
 
   return (
     <ErrorBoundary
       fallback={
         <div className="flex items-center gap-2">
-          <StorefrontIcon size={20} className="shrink-0 text-muted-foreground" aria-hidden="true" />
+          {icon}
           <p className="text-sm text-destructive">店舗の取得に失敗しました</p>
         </div>
       }
@@ -48,11 +62,7 @@ export const StoreCombobox = ({ serverUrl, value, onChange }: Props) => {
       <Suspense
         fallback={
           <div className="flex items-center gap-2">
-            <StorefrontIcon
-              size={20}
-              className="shrink-0 text-muted-foreground"
-              aria-hidden="true"
-            />
+            {icon}
             <output
               className="block h-8 flex-1 animate-pulse rounded-lg bg-muted"
               aria-label="店舗を読み込み中"
@@ -60,7 +70,13 @@ export const StoreCombobox = ({ serverUrl, value, onChange }: Props) => {
           </div>
         }
       >
-        <StoreComboboxContent serverUrl={serverUrl} value={value} onChange={onChange} />
+        <StoreComboboxContent
+          serverUrl={serverUrl}
+          value={value}
+          onChange={onChange}
+          size={size}
+          icon={icon}
+        />
       </Suspense>
     </ErrorBoundary>
   );
@@ -75,7 +91,9 @@ const StoreComboboxContent = ({
   serverUrl,
   value,
   onChange,
-}: { serverUrl: string } & Pick<Props, "value" | "onChange">) => {
+  size,
+  icon,
+}: { serverUrl: string; icon: React.ReactNode } & Pick<Props, "value" | "onChange" | "size">) => {
   const { data } = useSuspenseQuery(storesQuery, serverUrl);
 
   const stores = data?.stores ?? [];
@@ -83,7 +101,7 @@ const StoreComboboxContent = ({
 
   return (
     <div className="flex items-center gap-2">
-      <StorefrontIcon size={20} className="shrink-0 text-muted-foreground" aria-hidden="true" />
+      {icon}
       <div className="flex min-w-0 flex-1 items-center gap-1">
         <Combobox
           items={stores}
@@ -103,6 +121,7 @@ const StoreComboboxContent = ({
               <Button
                 type="button"
                 variant="outline"
+                size={size}
                 aria-label="店舗"
                 className="min-w-0 flex-1 justify-between font-normal"
               />
