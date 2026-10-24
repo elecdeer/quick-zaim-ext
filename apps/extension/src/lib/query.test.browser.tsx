@@ -468,7 +468,7 @@ describe("useSuspenseQuery", () => {
 
     resolve("hello");
 
-    await expect.element(page.getByTestId("result")).toHaveTextContent("hello");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("hello");
   });
 
   it("renders immediately when data is prefetched (async sometimes)", async () => {
@@ -489,7 +489,7 @@ describe("useSuspenseQuery", () => {
       </Suspense>,
     );
 
-    await expect.element(page.getByTestId("result")).toHaveTextContent("prefetched");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("prefetched");
     expect(queryFn).toHaveBeenCalledOnce();
   });
 
@@ -516,12 +516,12 @@ describe("useSuspenseQuery", () => {
       </Suspense>,
     );
 
-    await expect.element(page.getByTestId("result")).toHaveTextContent("data-1");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("data-1");
 
     const newData = await refetchFn();
     expect(newData).toBe("data-2");
 
-    await expect.element(page.getByTestId("result")).toHaveTextContent("data-2");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("data-2");
   });
 
   it("works with BoundQuery via .with()", async () => {
@@ -545,7 +545,7 @@ describe("useSuspenseQuery", () => {
       </Suspense>,
     );
 
-    await expect.element(page.getByTestId("result")).toHaveTextContent("user-1");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("user-1");
   });
 
   it("works with BoundQuery.select()", async () => {
@@ -569,7 +569,7 @@ describe("useSuspenseQuery", () => {
       </Suspense>,
     );
 
-    await expect.element(page.getByTestId("result")).toHaveTextContent("user-1");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("user-1");
   });
 
   it("works with QueryStore.select().with()", async () => {
@@ -594,7 +594,7 @@ describe("useSuspenseQuery", () => {
       </Suspense>,
     );
 
-    await expect.element(page.getByTestId("result")).toHaveTextContent("user-1");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("user-1");
   });
 
   it("data and refetch are referentially stable across re-renders (BoundQuery)", async () => {
@@ -630,10 +630,10 @@ describe("useSuspenseQuery", () => {
       </Suspense>,
     );
 
-    await expect.element(page.getByTestId("result")).toHaveTextContent("Alice");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("Alice");
 
     await page.getByTestId("rerender").click();
-    await expect.element(page.getByTestId("count")).toHaveTextContent("1");
+    await expect.element(page.getByTestId("count")).toMatchTextContent("1");
 
     expect(dataRefs.length).toBeGreaterThanOrEqual(2);
     for (let i = 1; i < dataRefs.length; i++) {
@@ -676,10 +676,10 @@ describe("useSuspenseQuery", () => {
       </Suspense>,
     );
 
-    await expect.element(page.getByTestId("result")).toHaveTextContent("user-1");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("user-1");
 
     await page.getByTestId("rerender").click();
-    await expect.element(page.getByTestId("count")).toHaveTextContent("1");
+    await expect.element(page.getByTestId("count")).toMatchTextContent("1");
 
     expect(dataRefs.length).toBeGreaterThanOrEqual(2);
     for (let i = 1; i < dataRefs.length; i++) {
@@ -719,13 +719,13 @@ describe("useSuspenseQuery", () => {
       </Suspense>,
     );
 
-    await expect.element(page.getByTestId("result-a")).toHaveTextContent("data-1");
-    await expect.element(page.getByTestId("result-b")).toHaveTextContent("data-1");
+    await expect.element(page.getByTestId("result-a")).toMatchTextContent("data-1");
+    await expect.element(page.getByTestId("result-b")).toMatchTextContent("data-1");
 
     await refetchFn();
 
-    await expect.element(page.getByTestId("result-a")).toHaveTextContent("data-2");
-    await expect.element(page.getByTestId("result-b")).toHaveTextContent("data-2");
+    await expect.element(page.getByTestId("result-a")).toMatchTextContent("data-2");
+    await expect.element(page.getByTestId("result-b")).toMatchTextContent("data-2");
   });
 });
 
@@ -750,7 +750,7 @@ describe("error handling", () => {
       </ErrorBoundary>,
     );
 
-    await expect.element(page.getByTestId("error")).toHaveTextContent("fetch failed");
+    await expect.element(page.getByTestId("error")).toMatchTextContent("fetch failed");
   });
 
   it("recovers from error via refetch and ErrorBoundary reset", async () => {
@@ -798,7 +798,7 @@ describe("error handling", () => {
     await expect.element(page.getByTestId("loading")).toBeVisible();
 
     deferreds[1].resolve("recovered");
-    await expect.element(page.getByTestId("result")).toHaveTextContent("recovered");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("recovered");
   });
 
   it("prefetch rejects when queryFn throws, getData returns undefined", async () => {
@@ -851,7 +851,7 @@ describe("race conditions", () => {
     deferreds.get("1")?.resolve("stale-data");
     deferreds.get("2")?.resolve("current-data");
 
-    await expect.element(page.getByTestId("result")).toHaveTextContent("current-data");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("current-data");
   });
 
   it("invalidate during in-flight refetch — refetch still populates cache", async () => {
@@ -909,17 +909,17 @@ describe("refetch behavior", () => {
     await expect.element(page.getByTestId("loading")).toBeVisible();
 
     deferreds[0].resolve("initial");
-    await expect.element(page.getByTestId("result")).toHaveTextContent("initial");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("initial");
 
     const refetchPromise = refetchFn();
 
-    await expect.element(page.getByTestId("result")).toHaveTextContent("initial");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("initial");
     await expect.element(page.getByTestId("loading")).not.toBeInTheDocument();
 
     deferreds[1].resolve("updated");
     await refetchPromise;
 
-    await expect.element(page.getByTestId("result")).toHaveTextContent("updated");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("updated");
   });
 
   it("preserves existing cache on refetch failure", async () => {
@@ -946,11 +946,11 @@ describe("refetch behavior", () => {
       </Suspense>,
     );
 
-    await expect.element(page.getByTestId("result")).toHaveTextContent("initial");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("initial");
 
     await expect(refetchFn()).rejects.toThrow("refetch failed");
 
-    await expect.element(page.getByTestId("result")).toHaveTextContent("initial");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("initial");
     expect(query.getData(undefined)).toBe("initial");
   });
 });
@@ -972,11 +972,11 @@ describe("setData", () => {
       </Suspense>,
     );
 
-    await expect.element(page.getByTestId("result")).toHaveTextContent("initial");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("initial");
 
     query.setData(undefined, "updated-via-setData");
 
-    await expect.element(page.getByTestId("result")).toHaveTextContent("updated-via-setData");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("updated-via-setData");
   });
 
   it("refetch after setData returns server data", async () => {
@@ -1002,13 +1002,13 @@ describe("setData", () => {
       </Suspense>,
     );
 
-    await expect.element(page.getByTestId("result")).toHaveTextContent("server-1");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("server-1");
 
     query.setData(undefined, "optimistic");
-    await expect.element(page.getByTestId("result")).toHaveTextContent("optimistic");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("optimistic");
 
     await refetchFn();
-    await expect.element(page.getByTestId("result")).toHaveTextContent("server-2");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("server-2");
   });
 });
 
@@ -1046,13 +1046,13 @@ describe("params change", () => {
     await expect.element(page.getByTestId("loading")).toBeVisible();
 
     deferreds.get("1")?.resolve("data-1");
-    await expect.element(page.getByTestId("result")).toHaveTextContent("data-1");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("data-1");
 
     await page.getByTestId("switch").click();
     await expect.element(page.getByTestId("loading")).toBeVisible();
 
     deferreds.get("2")?.resolve("data-2");
-    await expect.element(page.getByTestId("result")).toHaveTextContent("data-2");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("data-2");
   });
 
   it("does not re-suspend when params change to already-cached value", async () => {
@@ -1082,11 +1082,11 @@ describe("params change", () => {
     };
 
     await render(<Wrapper />);
-    await expect.element(page.getByTestId("result")).toHaveTextContent("data-1");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("data-1");
 
     await page.getByTestId("switch").click();
 
-    await expect.element(page.getByTestId("result")).toHaveTextContent("data-2");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("data-2");
     expect(queryFn).toHaveBeenCalledTimes(2);
   });
 });
@@ -1158,14 +1158,14 @@ describe("mount/unmount", () => {
     };
 
     await render(<Wrapper />);
-    await expect.element(page.getByTestId("result")).toHaveTextContent("cached-data");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("cached-data");
     expect(queryFn).toHaveBeenCalledOnce();
 
     await page.getByTestId("toggle").click();
     await expect.element(page.getByTestId("result")).not.toBeInTheDocument();
 
     await page.getByTestId("toggle").click();
-    await expect.element(page.getByTestId("result")).toHaveTextContent("cached-data");
+    await expect.element(page.getByTestId("result")).toMatchTextContent("cached-data");
     expect(queryFn).toHaveBeenCalledOnce();
   });
 });

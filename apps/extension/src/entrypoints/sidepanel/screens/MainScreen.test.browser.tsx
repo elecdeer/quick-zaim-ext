@@ -176,7 +176,7 @@ describe("MainScreen", () => {
     await fillMinimumForm();
     await page.getByRole("button", { name: "登録" }).click();
 
-    await expect.element(page.getByRole("status")).toHaveTextContent("登録しました");
+    await expect.element(page.getByRole("status")).toMatchTextContent("登録しました");
 
     // フォームがリセットされ登録ボタンが再び無効になる
     await expect.element(page.getByRole("button", { name: "登録" })).toBeDisabled();
@@ -197,7 +197,7 @@ describe("MainScreen", () => {
     await fillMinimumForm();
     await page.getByRole("button", { name: "登録" }).click();
 
-    await expect.element(page.getByRole("alert")).toHaveTextContent("直近で同額");
+    await expect.element(page.getByRole("alert")).toMatchTextContent("直近で同額");
     await expect.element(page.getByRole("button", { name: "重複があっても登録" })).toBeVisible();
   });
 
@@ -269,7 +269,7 @@ describe("MainScreen", () => {
     await fillMinimumForm();
     await page.getByRole("button", { name: "登録" }).click();
 
-    await expect.element(page.getByRole("alert")).toHaveTextContent("登録に失敗しました（502）");
+    await expect.element(page.getByRole("alert")).toMatchTextContent("登録に失敗しました（502）");
   });
 
   test("品目編集モーダルはクリックした項目にフォーカスが当たって開く", async ({ worker }) => {
@@ -298,10 +298,10 @@ describe("MainScreen", () => {
 
     await expect
       .element(page.getByRole("button", { name: "品名を編集" }))
-      .toHaveTextContent("りんご");
+      .toMatchTextContent("りんご");
     await expect
       .element(page.getByRole("button", { name: "メモを編集" }))
-      .toHaveTextContent("特売");
+      .toMatchTextContent("特売");
   });
 
   test("品目ごとに異なるカテゴリを選んで登録できる", async ({ worker }) => {

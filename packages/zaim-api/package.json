@@ -10,7 +10,7 @@
   },
   "scripts": {
     "dev": "pnpm exec vp pack --watch",
-    "test": "vitest run",
+    "test": "vp test run",
     "generate:openapi3": "tsp compile ./typespec",
     "generate:ts-client": "openapi-ts"
   },
