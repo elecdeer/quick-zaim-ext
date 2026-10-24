@@ -176,12 +176,10 @@ export default function MainScreen({ serverUrl }: Props) {
       if (extracted.date !== null) setDate(extracted.date);
       if (extracted.accountId !== null) setAccountId(extracted.accountId);
       if (extracted.place !== null) {
+        // Zaim API は店舗を既存の place_uid でしか指定できないため、最近の店舗に一致しない
+        // 店舗名は使わない
         const matched = recentStores.find((s) => s.place === extracted.place);
-        setStoreSelection(
-          matched
-            ? { place: matched.place, placeUid: matched.placeUid }
-            : { place: extracted.place, placeUid: "" },
-        );
+        setStoreSelection(matched ? { place: matched.place, placeUid: matched.placeUid } : null);
       }
       if (extracted.items.length > 0) {
         setItems(
@@ -214,10 +212,7 @@ export default function MainScreen({ serverUrl }: Props) {
             ...(accountId !== null && { from_account_id: accountId }),
             ...(item.name && { name: item.name }),
             ...(item.comment && { comment: item.comment }),
-            ...(storeSelection && {
-              place: storeSelection.place,
-              place_uid: storeSelection.placeUid,
-            }),
+            ...(storeSelection && { place_uid: storeSelection.placeUid }),
           },
         });
         if (!res.ok) throw new Error(`登録に失敗しました（${res.status}）`);

@@ -198,7 +198,7 @@ describe("POST /api/zaim/payment", () => {
     expect(mockDelete).toHaveBeenCalledWith("zaim:cache:stores:zaim_user_999");
   });
 
-  test("店舗名はZaim APIに渡さず place_uid だけを渡す", async () => {
+  test("店舗は place_uid でZaim APIに渡す", async () => {
     let requestedUrl: URL | undefined;
     // 生成されたモックハンドラーの resolver 型には request が含まれないため msw の http を直接使う
     server.use(
@@ -218,12 +218,10 @@ describe("POST /api/zaim/payment", () => {
         genre_id: 201,
         amount: 1500,
         date: "2026-05-20",
-        place: "テスト店舗",
         place_uid: "uid_super_a",
       },
     });
 
-    expect(requestedUrl?.searchParams.has("place")).toBe(false);
     expect(requestedUrl?.searchParams.get("place_uid")).toBe("uid_super_a");
   });
 });

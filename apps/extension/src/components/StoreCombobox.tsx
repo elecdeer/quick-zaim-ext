@@ -111,7 +111,7 @@ const StoreComboboxContent = ({
             <ComboboxValue>
               {(v: Store | null) => (
                 <span className={cn("truncate", !v && "text-muted-foreground")}>
-                  {v?.place ?? value?.place ?? "店舗を選択（任意）"}
+                  {v?.place ?? "店舗を選択（任意）"}
                 </span>
               )}
             </ComboboxValue>

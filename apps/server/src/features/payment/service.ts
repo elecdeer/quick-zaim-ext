@@ -29,7 +29,6 @@ type RegisterPaymentParams = {
   from_account_id?: number;
   comment?: string;
   name?: string;
-  place?: string;
   place_uid?: string;
 };
 

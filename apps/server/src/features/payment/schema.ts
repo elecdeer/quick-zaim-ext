@@ -8,7 +8,6 @@ export const PaymentBodySchema = v.object({
   from_account_id: v.optional(v.pipe(v.number(), v.integer())),
   comment: v.optional(v.string()),
   name: v.optional(v.string()),
-  place: v.optional(v.string()),
   place_uid: v.optional(v.string()),
 });
 
