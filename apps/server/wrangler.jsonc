@@ -62,6 +62,10 @@
     },
     "vars": {
       "LLM_MODEL": "openai/gpt-5.4-mini",
+      // Preview では ctx.access が渡らないことがあるため、Cf-Access-Jwt-Assertion を検証して代替する。
+      // AUD は Worker の Access タブで有効にした Preview 用 Access アプリケーションのもの。
+      "ACCESS_TEAM_DOMAIN": "https://elecdeer.cloudflareaccess.com",
+      "ACCESS_AUD": "f991044f1bf984b83eeca0c86a885f3acf3a53c5ad092ca90c532f04895a757c",
     },
     "ai": { "binding": "AI" },
     // 本番 KV を汚さないよう、全 Preview で共有する Preview 専用ネームスペースを使う。

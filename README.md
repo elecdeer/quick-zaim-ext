@@ -76,7 +76,10 @@ for name in ZAIM_CONSUMER_KEY ZAIM_CONSUMER_SECRET; do pnpm -F server exec wrang
 
 ## 認証（Cloudflare Access）
 
-server へのログインとセッション管理は Worker の手前の [Cloudflare Access](https://developers.cloudflare.com/workers/configuration/cloudflare-access/) が行う。Worker は Access が付与する `ctx.access` からユーザー（メールアドレス）を取り出し、取れなければ 401 を返す。
+server へのログインとセッション管理は Worker の手前の [Cloudflare Access](https://developers.cloudflare.com/workers/configuration/cloudflare-access/) が行う。Worker は Access が付与する `ctx.access` からユーザー（メールアドレス）を取り出し、取れなければ Access が付ける `Cf-Access-Jwt-Assertion` をチームの公開鍵と AUD で検証して取り出す。どちらでも取れなければ 401 を返す。
+
+- Preview URL へのリクエストでは Access を通過していても `ctx.access` が渡らないことがあるため、JWT 検証で補っている（どちらで認証したか、401 の理由はログに出る）
+- JWT 検証には `ACCESS_TEAM_DOMAIN` と `ACCESS_AUD`（Worker の Access タブで有効にした Access アプリケーションの AUD タグ）を vars に設定する。Preview 用は `apps/server/wrangler.jsonc` の `previews.vars` に設定済み。本番の Access を有効にしたら、本番用の AUD をトップレベルの `vars` に追加する
 
 - 拡張機能は Access のセッション Cookie（`CF_Authorization`）を送り、未ログイン時の Access ログイン画面へのリダイレクトを 401 として扱う（`apps/extension/src/lib/serverClient.ts`）
 - ログインは拡張機能の設定オーバーレイから行う（`/auth/launch` を開くと Access のログインを経て拡張機能に戻る）。ログアウトは `/logout` から Access のログアウトへリダイレクトする

@@ -10,6 +10,7 @@ import type { Ai, KVNamespace } from "@cloudflare/workers-types";
 import type { createClient } from "@repo/zaim-api/client";
 import { getLogger } from "@logtape/logtape";
 import { Hono } from "hono";
+import { sign } from "hono/jwt";
 import { testClient } from "hono/testing";
 import type { AccessUser } from "./access.ts";
 import type { Env, HonoEnv } from "./env.ts";
@@ -174,3 +175,55 @@ export const oauthTest = test.extend<OAuthTestFixtures>({
     spy.mockRestore();
   },
 });
+
+/** Access JWT テストで使うチームドメインと AUD */
+export const ACCESS_TEST_CONFIG = {
+  teamDomain: "https://test-team.cloudflareaccess.com",
+  aud: "test-aud",
+} as const;
+
+/**
+ * Cloudflare Access の JWT を模した RS256 トークンを発行するテスト用の署名器を作る。
+ *
+ * `jwks` を Access の certs エンドポイントのレスポンスとして返せば、本物と同じ経路で署名を検証できる。
+ */
+export const createAccessJwtSigner = async (kid = "test-kid") => {
+  const keyPair = await crypto.subtle.generateKey(
+    {
+      name: "RSASSA-PKCS1-v1_5",
+      modulusLength: 2048,
+      publicExponent: new Uint8Array([1, 0, 1]),
+      hash: "SHA-256",
+    },
+    true,
+    ["sign", "verify"],
+  );
+  // workers-types の generateKey / exportKey は戻り値が共用体なので、型ガードで絞り込む
+  if (!("privateKey" in keyPair)) throw new Error("RSA key generation did not return a key pair");
+  const exportJwk = async (key: CryptoKey) => {
+    const jwk = await crypto.subtle.exportKey("jwk", key);
+    if (jwk instanceof ArrayBuffer) throw new Error("expected a JWK export");
+    return { ...jwk, kid, alg: "RS256" };
+  };
+  const privateJwk = await exportJwk(keyPair.privateKey);
+  const publicJwk = await exportJwk(keyPair.publicKey);
+  const now = Math.floor(Date.now() / 1000);
+
+  return {
+    jwks: { keys: [publicJwk] },
+    /** 既定では有効な Access JWT を発行し、claims で上書きできる */
+    sign: (claims: Record<string, unknown> = {}) =>
+      sign(
+        {
+          iss: ACCESS_TEST_CONFIG.teamDomain,
+          aud: [ACCESS_TEST_CONFIG.aud],
+          email: "user@example.com",
+          iat: now,
+          nbf: now,
+          exp: now + 3600,
+          ...claims,
+        },
+        privateJwk,
+      ),
+  };
+};

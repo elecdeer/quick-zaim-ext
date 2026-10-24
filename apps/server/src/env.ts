@@ -16,6 +16,14 @@ export type Env = {
 
   /** Cloudflare Workers AI binding（`wrangler.jsonc` の `ai.binding` で設定） */
   AI: Ai;
+  /**
+   * Cloudflare Access のチームドメイン（例: https://<team>.cloudflareaccess.com）。
+   * ctx.access が渡らないリクエストで Cf-Access-Jwt-Assertion を検証するのに使う。
+   */
+  ACCESS_TEAM_DOMAIN?: string;
+  /** Worker を保護している Access アプリケーションの AUD タグ（JWT の aud と照合する） */
+  ACCESS_AUD?: string;
+
   /** Workers AI のモデル ID（例: "@cf/meta/llama-3.3-70b-instruct-fp8-fast"）。`wrangler.jsonc` の vars で設定する */
   LLM_MODEL: string;
 };

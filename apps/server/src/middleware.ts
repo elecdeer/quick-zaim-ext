@@ -2,7 +2,13 @@ import { createClient } from "@repo/zaim-api/client";
 import { createZaimAuthInterceptor } from "@repo/zaim-api/oauth/interceptor";
 import type { Context } from "hono";
 import { createMiddleware } from "hono/factory";
-import { getAccessUser, type AccessUser } from "./access.ts";
+import {
+  getAccessUser,
+  getAccessUserFromJwt,
+  hasAccessContext,
+  type AccessJwtConfig,
+  type AccessUser,
+} from "./access.ts";
 import type { Env } from "./env.ts";
 import type { Logger } from "./loggerMiddleware.ts";
 import { getStoredZaimToken } from "./features/zaim-auth/repository.ts";
@@ -23,14 +29,24 @@ const readExecutionCtx = (c: Context): unknown => {
 };
 
 /**
+ * Access JWT の検証設定を環境変数から読む。どちらかが未設定なら JWT 検証は行わない。
+ */
+const readAccessJwtConfig = (env: Env): AccessJwtConfig | undefined =>
+  env.ACCESS_TEAM_DOMAIN && env.ACCESS_AUD
+    ? { teamDomain: env.ACCESS_TEAM_DOMAIN, aud: env.ACCESS_AUD }
+    : undefined;
+
+/**
  * Cloudflare Access で認証済みでなければ 401 を返す。認証済みの場合は user をコンテキストに設定する。
  * Hono の型推論により、このミドルウェアを .use()/.get() でチェーンすると
  * 後続ハンドラで user が AccessUser（非 null）として推論される。
  *
- * user がすでに設定済みの場合（テスト時のコンテキスト注入など）は ctx.access の参照をスキップする。
+ * まず ctx.access からユーザーを取り出し、取れなければ Cf-Access-Jwt-Assertion を検証して取り出す。
+ * user がすでに設定済みの場合（テスト時のコンテキスト注入など）はどちらもスキップする。
  */
 export const requireAccessUser = createMiddleware<{
-  Variables: { user: AccessUser };
+  Bindings: Env;
+  Variables: { user: AccessUser; logger: Logger };
 }>(async (c, next) => {
   // At runtime, user may be undefined (not set yet) or null (injected as
   // unauthenticated by the test context). Distinguish to avoid reading ctx.access
@@ -41,11 +57,40 @@ export const requireAccessUser = createMiddleware<{
     await next();
     return;
   }
-  const user = await getAccessUser(readExecutionCtx(c));
-  if (!user) {
+
+  const executionCtx = readExecutionCtx(c);
+  const userFromContext = await getAccessUser(executionCtx);
+  if (userFromContext) {
+    c.set("user", userFromContext);
+    await next();
+    return;
+  }
+
+  // ctx.access が使えない理由を後から追えるよう、JWT 検証に回った時点の状況を残す
+  const diagnostics = {
+    hasAccessContext: hasAccessContext(executionCtx),
+    hasJwtHeader: c.req.header("Cf-Access-Jwt-Assertion") !== undefined,
+    hasAccessEmailHeader: c.req.header("Cf-Access-Authenticated-User-Email") !== undefined,
+  };
+  const result = await getAccessUserFromJwt(
+    c.req.header("Cf-Access-Jwt-Assertion"),
+    readAccessJwtConfig(c.env),
+  );
+  if (!result.user) {
+    c.var.logger
+      .with({ ...diagnostics, reason: result.reason })
+      .warn(
+        "Unauthorized {path}: {reason} (ctx.access={hasAccessContext}, jwtHeader={hasJwtHeader})",
+      );
     return c.json({ error: "Unauthorized" }, 401);
   }
-  c.set("user", user);
+
+  c.var.logger
+    .with(diagnostics)
+    .info(
+      "ctx.access unavailable for {path} (ctx.access={hasAccessContext}); authenticated via Access JWT",
+    );
+  c.set("user", result.user);
   await next();
 });
 
