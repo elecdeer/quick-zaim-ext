@@ -25,3 +25,18 @@ export const DuplicateQuerySchema = v.object({
     v.check((n) => Number.isInteger(n), "genre_id must be an integer"),
   ),
 });
+
+/** 1 回の一括重複チェックで受け付ける明細行数の上限 */
+const BULK_DUPLICATE_MAX_ENTRIES = 500;
+
+export const BulkDuplicateBodySchema = v.object({
+  entries: v.pipe(
+    v.array(
+      v.object({
+        date: v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/)),
+        amount: v.pipe(v.number(), v.integer(), v.minValue(1)),
+      }),
+    ),
+    v.maxLength(BULK_DUPLICATE_MAX_ENTRIES),
+  ),
+});

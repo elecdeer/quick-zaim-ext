@@ -13,12 +13,17 @@ import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
 import {
   ExtractedPaymentSchema,
+  ExtractedStatementSchema,
   type ExtractPaymentBody,
+  type ExtractStatementBody,
   type ExtractedPayment,
-  type ExtractPaymentTiming,
+  type ExtractedStatement,
+  type ExtractTiming,
 } from "./schema.ts";
 
 const ARIA_SNAPSHOT_MAX_CHARS = 16000;
+/** 明細は行数が多いので、1 会計分のページより長く snapshot を渡す */
+const STATEMENT_ARIA_SNAPSHOT_MAX_CHARS = 48000;
 const RECENT_STORES_LIMIT = 20;
 
 const truncate = (text: string, max: number): string =>
@@ -110,9 +115,58 @@ export const buildPrompt = (input: ExtractPaymentBody): { system: string; prompt
 };
 
 /**
- * `ExtractedPaymentSchema` を OpenAI 互換の JSON Schema に変換した結果をキャッシュする。
+ * 明細ページから利用行を抽出するための system / prompt を構築する。
+ */
+export const buildStatementPrompt = (
+  input: ExtractStatementBody,
+): { system: string; prompt: string } => {
+  const system = [
+    "Extract every transaction row from a web page accessibility snapshot of a credit card (or bank / e-money) monthly statement for Zaim registration.",
+    "",
+    "Rules:",
+    "- One entry in `rows` per transaction row in the statement. Do not merge or split rows.",
+    '- `date`: the usage/transaction date (利用日) as "YYYY-MM-DD", not the billing or payment date. When the year is omitted, infer it from the statement period.',
+    "- `place`: the merchant name (利用先). Use a recent store name exactly when it clearly refers to the same merchant; otherwise copy the merchant name from the page.",
+    "- `amount`: the usage amount (利用金額) in JPY as a positive integer. For installment purchases use the original usage amount, not this month's installment. For foreign currency use the JPY amount.",
+    "- Skip refunds, cancellations, credits and negative amounts, as well as totals, subtotals and rows that are not individual transactions.",
+    "- `genreId`: the most fitting sub-category ID for each merchant. Must be one of the provided sub-category IDs; otherwise null.",
+    "  The listing shows `categoryId=name: genreId=name, ...` so you can see which genres belong to which category.",
+    "- `accountId`: the account that matches the card shown on the page. Must be one of the provided account IDs; otherwise null.",
+    "- `confidence`: high/medium/low based on how clearly the page conveys the transactions.",
+    "- `reasoning`: 1-3 sentences justifying your choices.",
+    "- Use null for fields that cannot be determined. `rows` may be empty when the page has no transactions.",
+  ].join("\n");
+
+  const ariaSnapshot = truncate(input.pageContent.ariaSnapshot, STATEMENT_ARIA_SNAPSHOT_MAX_CHARS);
+
+  const prompt = [
+    `URL: ${input.pageContent.url}`,
+    `Title: ${input.pageContent.title}`,
+    `Collected at: ${input.pageContent.collectedAt}`,
+    "",
+    "## Categories (format: `categoryId=name: genreId=name, ...`)",
+    formatCategoriesForPrompt(input.categories),
+    "",
+    "## Accounts (format: `accountId=name, ...`)",
+    formatAccountsForPrompt(input.accounts),
+    "",
+    "## Recent stores (format: `name [uid=placeUid, count, latestDate]`)",
+    formatRecentStoresForPrompt(input.recentStores),
+    "",
+    "## Page accessibility snapshot",
+    "```",
+    ariaSnapshot,
+    "```",
+  ].join("\n");
+
+  return { system, prompt };
+};
+
+/**
+ * 出力スキーマを OpenAI 互換の JSON Schema に変換した結果をキャッシュする。
  */
 const EXTRACTED_PAYMENT_JSON_SCHEMA = toJsonSchema(ExtractedPaymentSchema);
+const EXTRACTED_STATEMENT_JSON_SCHEMA = toJsonSchema(ExtractedStatementSchema);
 
 interface WorkersAiChatResponse {
   response?: unknown;
@@ -140,16 +194,19 @@ const extractAssistantPayload = (output: WorkersAiChatResponse): unknown => {
 };
 
 /**
- * Workers AI binding を使って支払い情報を抽出する。
+ * Workers AI binding に JSON Schema を強制した chat を投げ、valibot で検証した結果を返す。
  */
-export const runExtractPayment = async (params: {
+const runStructuredChat = async <TSchema extends v.GenericSchema>(params: {
   ai: Ai;
   model: string;
-  input: ExtractPaymentBody;
+  buildPrompt: () => { system: string; prompt: string };
+  schemaName: string;
+  jsonSchema: unknown;
+  schema: TSchema;
   abortSignal?: AbortSignal;
-}): Promise<{ object: ExtractedPayment; usage: unknown; timing: ExtractPaymentTiming }> => {
+}): Promise<{ object: v.InferOutput<TSchema>; usage: unknown; timing: ExtractTiming }> => {
   const tStart = performance.now();
-  const { system, prompt } = buildPrompt(params.input);
+  const { system, prompt } = params.buildPrompt();
   const tAfterPrompt = performance.now();
 
   const inputs: Record<string, unknown> = {
@@ -160,9 +217,9 @@ export const runExtractPayment = async (params: {
     response_format: {
       type: "json_schema",
       json_schema: {
-        name: "ExtractedPayment",
+        name: params.schemaName,
         strict: true,
-        schema: EXTRACTED_PAYMENT_JSON_SCHEMA,
+        schema: params.jsonSchema,
       },
     },
   };
@@ -174,7 +231,7 @@ export const runExtractPayment = async (params: {
   const payload = extractAssistantPayload(output);
   const tAfterParse = performance.now();
 
-  const object = v.parse(ExtractedPaymentSchema, payload);
+  const object = v.parse(params.schema, payload);
   const tAfterValidate = performance.now();
 
   return {
@@ -188,3 +245,41 @@ export const runExtractPayment = async (params: {
     },
   };
 };
+
+/**
+ * Workers AI binding を使って支払い情報を抽出する。
+ */
+export const runExtractPayment = (params: {
+  ai: Ai;
+  model: string;
+  input: ExtractPaymentBody;
+  abortSignal?: AbortSignal;
+}): Promise<{ object: ExtractedPayment; usage: unknown; timing: ExtractTiming }> =>
+  runStructuredChat({
+    ai: params.ai,
+    model: params.model,
+    buildPrompt: () => buildPrompt(params.input),
+    schemaName: "ExtractedPayment",
+    jsonSchema: EXTRACTED_PAYMENT_JSON_SCHEMA,
+    schema: ExtractedPaymentSchema,
+    abortSignal: params.abortSignal,
+  });
+
+/**
+ * Workers AI binding を使って明細ページから利用行を抽出する。
+ */
+export const runExtractStatement = (params: {
+  ai: Ai;
+  model: string;
+  input: ExtractStatementBody;
+  abortSignal?: AbortSignal;
+}): Promise<{ object: ExtractedStatement; usage: unknown; timing: ExtractTiming }> =>
+  runStructuredChat({
+    ai: params.ai,
+    model: params.model,
+    buildPrompt: () => buildStatementPrompt(params.input),
+    schemaName: "ExtractedStatement",
+    jsonSchema: EXTRACTED_STATEMENT_JSON_SCHEMA,
+    schema: ExtractedStatementSchema,
+    abortSignal: params.abortSignal,
+  });

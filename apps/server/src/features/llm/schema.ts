@@ -90,7 +90,7 @@ export type ExtractedPayment = v.InferOutput<typeof ExtractedPaymentSchema>;
 /**
  * 各処理フェーズの所要時間（ms）。ボトルネック切り分け用にハンドラ側でログする。
  */
-export interface ExtractPaymentTiming {
+export interface ExtractTiming {
   /** プロンプト構築（buildPrompt）にかかった時間 */
   promptMs: number;
   /** `env.AI.run` の往復時間。LLM 推論 + ネットワーク + ゲートウェイの合計 */
@@ -100,3 +100,40 @@ export interface ExtractPaymentTiming {
   /** 抽出結果を valibot で v.parse する時間 */
   validateMs: number;
 }
+
+/**
+ * `POST /api/llm/extract-statement` のリクエスト body スキーマ。
+ *
+ * 渡す情報は支払い抽出と同じ（ページ内容とカテゴリ・口座・店舗の候補）。
+ */
+export const ExtractStatementBodySchema = ExtractPaymentBodySchema;
+
+export type ExtractStatementBody = ExtractPaymentBody;
+
+/**
+ * クレジットカード明細などの 1 行（1 回の利用）分のスキーマ。
+ *
+ * 明細は「概要だけ」で登録するので、品目の内訳は持たず利用先と金額だけを抽出する。
+ */
+export const ExtractedStatementRowSchema = v.strictObject({
+  date: v.nullable(v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/))),
+  place: v.nullable(v.string()),
+  amount: v.nullable(v.number()),
+  genreId: v.nullable(v.number()),
+});
+
+export type ExtractedStatementRow = v.InferOutput<typeof ExtractedStatementRowSchema>;
+
+/**
+ * 明細ページから LLM に抽出させる出力スキーマ。
+ *
+ * 口座（カード）は明細全体で共通なのでトップレベルに置く。
+ */
+export const ExtractedStatementSchema = v.strictObject({
+  accountId: v.nullable(v.number()),
+  rows: v.array(ExtractedStatementRowSchema),
+  confidence: v.picklist(["high", "medium", "low"]),
+  reasoning: v.string(),
+});
+
+export type ExtractedStatement = v.InferOutput<typeof ExtractedStatementSchema>;

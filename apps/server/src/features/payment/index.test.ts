@@ -3,12 +3,13 @@
  *
  * POST /api/zaim/payment          - 支払い登録
  * GET  /api/zaim/payment/duplicate - 重複チェック
+ * POST /api/zaim/payment/duplicate/bulk - 明細の一括登録済み判定
  *
  * Zaim API のモックは vi.mock ではなく MSW を使用する。
  */
 
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "vite-plus/test";
-import { HttpResponse } from "msw";
+import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { moneyGetMoneyMockHandler, paymentOperationsCreateMockHandler } from "@repo/zaim-api";
 import { createClient } from "@repo/zaim-api/client";
@@ -195,6 +196,35 @@ describe("POST /api/zaim/payment", () => {
     });
 
     expect(mockDelete).toHaveBeenCalledWith("zaim:cache:stores:zaim_user_999");
+  });
+
+  test("店舗名はZaim APIに渡さず place_uid だけを渡す", async () => {
+    let requestedUrl: URL | undefined;
+    // 生成されたモックハンドラーの resolver 型には request が含まれないため msw の http を直接使う
+    server.use(
+      http.post("*/v2/home/money/payment", ({ request }) => {
+        requestedUrl = new URL(request.url);
+        return HttpResponse.json(MOCK_PAYMENT_BODY);
+      }),
+    );
+
+    await createTestClient(paymentRoutes, makeEnv(), {
+      user: MOCK_USER,
+      zaimClient: createZaimRealClient(),
+      zaimUserId: "zaim_user_999",
+    }).api.zaim.payment.$post({
+      json: {
+        category_id: 101,
+        genre_id: 201,
+        amount: 1500,
+        date: "2026-05-20",
+        place: "テスト店舗",
+        place_uid: "uid_super_a",
+      },
+    });
+
+    expect(requestedUrl?.searchParams.has("place")).toBe(false);
+    expect(requestedUrl?.searchParams.get("place_uid")).toBe("uid_super_a");
   });
 });
 
@@ -404,5 +434,85 @@ describe("GET /api/zaim/payment/duplicate", () => {
       expect.any(String),
       { expirationTtl: 3600 },
     );
+  });
+});
+
+// ── POST /api/zaim/payment/duplicate/bulk ───────────────────────────────────
+
+describe("POST /api/zaim/payment/duplicate/bulk", () => {
+  beforeEach(() => {
+    server.use(
+      moneyGetMoneyMockHandler(() => HttpResponse.json({ money: MOCK_MONEY_ITEMS, requested: 1 })),
+    );
+  });
+
+  test("Access未認証のとき401を返す", async () => {
+    const res = await createTestClient(paymentRoutes, makeEnv(), {
+      user: null,
+    }).api.zaim.payment.duplicate.bulk.$post({
+      json: { entries: [{ date: "2026-05-19", amount: 1500 }] },
+    });
+    expect(res.status).toBe(401);
+  });
+
+  test("Zaimトークン未連携のとき403を返す", async () => {
+    const res = await createTestClient(paymentRoutes, makeEnv(), {
+      user: MOCK_USER,
+    }).api.zaim.payment.duplicate.bulk.$post({
+      json: { entries: [{ date: "2026-05-19", amount: 1500 }] },
+    });
+    expect(res.status).toBe(403);
+  });
+
+  test("リクエストボディが不正のとき400を返す", async () => {
+    const res = await createTestClient(paymentRoutes, makeEnv(), {
+      user: MOCK_USER,
+      zaimClient: createZaimRealClient(),
+      zaimUserId: "zaim_user_999",
+    }).api.zaim.payment.duplicate.bulk.$post({
+      json: { entries: [{ date: "2026/05/19", amount: 1500 }] },
+    });
+    expect(res.status).toBe(400);
+  });
+
+  test("各行について登録済みの支払いを同じ順序で返す", async () => {
+    const { kv, mockGet } = createKVNamespaceMock();
+    mockGet.mockResolvedValue(null);
+
+    const res = await createTestClient(paymentRoutes, makeEnv(kv), {
+      user: MOCK_USER,
+      zaimClient: createZaimRealClient(),
+      zaimUserId: "zaim_user_999",
+    }).api.zaim.payment.duplicate.bulk.$post({
+      json: {
+        entries: [
+          // 既存 id=2（2026-05-18, 800円）と 2 日ずれ・カテゴリ不問で一致
+          { date: "2026-05-20", amount: 800 },
+          { date: "2026-05-19", amount: 9999 },
+          // 既存 id=1（2026-05-19, 1500円）と一致
+          { date: "2026-05-19", amount: 1500 },
+        ],
+      },
+    });
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { results: { match: { id: number } | null }[] };
+    expect(body.results.map((r) => r.match?.id ?? null)).toEqual([2, null, 1]);
+  });
+
+  test("日付±2日が含まれる月をすべて読み込む", async () => {
+    const { kv, mockGet } = createKVNamespaceMock();
+    mockGet.mockResolvedValue(null);
+
+    await createTestClient(paymentRoutes, makeEnv(kv), {
+      user: MOCK_USER,
+      zaimClient: createZaimRealClient(),
+      zaimUserId: "zaim_user_999",
+    }).api.zaim.payment.duplicate.bulk.$post({
+      json: { entries: [{ date: "2026-05-31", amount: 1500 }] },
+    });
+
+    expect(mockGet).toHaveBeenCalledWith("zaim:cache:money:zaim_user_999:2026-05");
+    expect(mockGet).toHaveBeenCalledWith("zaim:cache:money:zaim_user_999:2026-06");
   });
 });
