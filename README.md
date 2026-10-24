@@ -65,13 +65,12 @@ for name in OIDC_ISSUER OIDC_CLIENT_ID OIDC_CLIENT_SECRET OIDC_AUTH_SECRET ZAIM_
 | 設定                            | 値                                                                                              |
 | ------------------------------- | ----------------------------------------------------------------------------------------------- |
 | Git branch（production branch） | `main`                                                                                          |
-| Root directory                  | `apps/server`                                                                                   |
-| Build command                   | `pnpm run build:workers-ci`                                                                     |
-| Deploy command                  | `npx wrangler versions upload`（本番への昇格は手動のまま）                                      |
-| Preview command                 | `npx wrangler preview`                                                                          |
+| Root directory                  | 空（リポジトリのルート）                                                                        |
+| Build command                   | `pnpm exec vp run @repo/zaim-api#generate`                                                      |
+| Deploy command                  | `pnpm -F server exec wrangler versions upload`（本番への昇格は手動のまま）                      |
+| Preview command                 | `pnpm -F server exec wrangler preview`                                                          |
 | Branch control                  | Enable Preview Builds にチェック                                                                |
 | Build watch paths（include）    | `apps/server/*`, `packages/zaim-api/*`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml` |
-| Build variables                 | `SKIP_DEPENDENCY_INSTALL=1`, `PNPM_VERSION=12.14.0`                                             |
 
-- 自動インストールを止めて `build:workers-ci` でワークスペースのルートから `pnpm install` しているのは、Root directory（`apps/server`）にはロックファイルも `packageManager` もなく、ビルドイメージの自動検出に任せると pnpm workspace として解決される保証がないため
+- Root directory をリポジトリのルートにしているのは、ビルドイメージがルートの `pnpm-lock.yaml` と `packageManager` から pnpm workspace として依存をインストールできるようにするため。wrangler は `pnpm -F server exec` で `apps/server` から実行するので、`apps/server/wrangler.jsonc` が読まれる
 - 接続済みの Worker で「Set up Worker Previews」バナーが出る場合は、Switch to Worker Previews に切り替える（Preview command を `wrangler preview` にするために必要）
