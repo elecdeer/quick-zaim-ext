@@ -85,7 +85,7 @@ namespace ZaimAPI.Money {
     /** Page number (default: 1) */
     @query page?: int32,
 
-    /** Number of items per page (default: 20, max: 100) */
+    /** Number of items per page (max: 100). When page and limit are omitted, all matching items are returned (observed on the real API) */
     @query limit?: int32,
 
     /** Group results by receipt_id */
