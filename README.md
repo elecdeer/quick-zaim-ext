@@ -33,14 +33,15 @@ vp run dev
 ブランチごとに Cloudflare Workers の [Previews](https://developers.cloudflare.com/workers/previews/) を作り、本番に影響を与えずに実環境で動作確認できる。
 
 - URL: `<ブランチ名をスラッグ化したもの>-quick-zaim-server.<subdomain>.workers.dev`
-- KV は全 Preview 共通の Preview 専用ネームスペース、Auth0 は Preview 専用アプリを使う（`apps/server/wrangler.jsonc` の `previews` ブロック）
+- KV は全 Preview 共通の Preview 専用ネームスペースを使う（`apps/server/wrangler.jsonc` の `previews` ブロック）
+- 認証は Worker の手前の Cloudflare Access が行い、Preview URL もまとめて保護される
 - ログ・トレースは Cloudflare ダッシュボードの各 Preview の Observability タブで見る（`wrangler tail` は Preview 非対応）
 - Zaim アカウントは本番と同じなので、Preview から登録した支払いは実データに入る
 
 ### デプロイ
 
 - `main` 以外のブランチに server 関連の変更を push すると、[Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/)（Cloudflare の GitHub 連携）が `wrangler preview` で Preview を作成・更新し、URL を PR コメントとダッシュボードに出す。GitHub 側に Cloudflare の API トークンは置かない
-- ブランチを削除しても Preview は自動では消えない（上限を超えると最も古い Preview から自動削除される）。不要になったら `apps/server` で `pnpm exec wrangler preview delete --name <ブランチ名>` で消す
+- ブランチを削除しても Preview は自動では消えない（上限を超えると最も古い Preview から自動削除される）。不要になったら `pnpm -F server exec wrangler preview delete --name <ブランチ名>` で消す
 - ビルドを待たずにローカルから即デプロイする場合（Preview 名は現在の git ブランチ名になり、Workers Builds と同じ Preview を更新する）:
 
 ```bash
@@ -51,13 +52,11 @@ vp run deploy:preview
 
 ### 初回セットアップ
 
-1. Auth0 に Preview 専用の Regular Web Application を作り、以下を登録する
-   - Allowed Callback URLs: `https://*.<subdomain>.workers.dev/callback`
-   - Allowed Logout URLs: `https://*.<subdomain>.workers.dev/`
-2. Preview 用シークレットを登録する（`apps/server` で実行。新しく作られる Preview にのみ反映されるので、最初の Preview を作る前に行う）
+1. Cloudflare Access で Worker を保護する（下の「認証（Cloudflare Access）」を参照）
+2. Preview 用シークレットを登録する（新しく作られる Preview にのみ反映されるので、最初の Preview を作る前に行う。既存の Preview には `pnpm -F server exec wrangler preview secret put <NAME> --name <ブランチ名>` で個別に入れる）
 
 ```bash
-for name in OIDC_ISSUER OIDC_CLIENT_ID OIDC_CLIENT_SECRET OIDC_AUTH_SECRET ZAIM_CONSUMER_KEY ZAIM_CONSUMER_SECRET; do pnpm exec wrangler preview base-config secret put "$name"; done
+for name in ZAIM_CONSUMER_KEY ZAIM_CONSUMER_SECRET; do pnpm -F server exec wrangler preview base-config secret put "$name"; done
 ```
 
 3. Cloudflare ダッシュボードで `quick-zaim-server` の Settings > Build から GitHub リポジトリを接続し、以下を設定する
@@ -74,3 +73,23 @@ for name in OIDC_ISSUER OIDC_CLIENT_ID OIDC_CLIENT_SECRET OIDC_AUTH_SECRET ZAIM_
 
 - Root directory をリポジトリのルートにしているのは、ビルドイメージがルートの `pnpm-lock.yaml` と `packageManager` から pnpm workspace として依存をインストールできるようにするため。wrangler は `pnpm -F server exec` で `apps/server` から実行するので、`apps/server/wrangler.jsonc` が読まれる
 - 接続済みの Worker で「Set up Worker Previews」バナーが出る場合は、Switch to Worker Previews に切り替える（Preview command を `wrangler preview` にするために必要）
+
+## 認証（Cloudflare Access）
+
+server へのログインとセッション管理は Worker の手前の [Cloudflare Access](https://developers.cloudflare.com/workers/configuration/cloudflare-access/) が行う。Worker は Access が付与する `ctx.access` からユーザー（メールアドレス）を取り出し、取れなければ 401 を返す。
+
+- 拡張機能は Access のセッション Cookie（`CF_Authorization`）を送り、未ログイン時の Access ログイン画面へのリダイレクトを 401 として扱う（`apps/extension/src/lib/serverClient.ts`）
+- ログインは拡張機能の設定オーバーレイから行う（`/auth/launch` を開くと Access のログインを経て拡張機能に戻る）。ログアウトは `/logout` から Access のログアウトへリダイレクトする
+- Zaim 連携のトークンは KV にメールアドレスをキーとして保存する
+
+### ダッシュボードの設定
+
+1. Zero Trust の組織（team）がなければ作成する（Free プランで 50 ユーザーまで）。ログイン方法は既定のワンタイム PIN（メール）か、GitHub などの IdP を追加する
+2. Workers & Pages で `quick-zaim-server` を開き、Access タブで「Protect this Worker behind Access」を選ぶ
+   - 移行中は **Previews only**、本番も新しいコードに切り替えるときに **All traffic** にする（Access を有効にしないまま新しいコードを本番に出すと全 API が 401 になる）
+   - ポリシーに自分のメールアドレスを許可する
+   - セッション期間を決める（切れると拡張機能が未ログイン扱いになり、再ログインが必要）
+
+### ローカル開発
+
+`wrangler dev` には Access がないため、`apps/server/wrangler.jsonc` の `access.dev` で認証済みユーザー（`dev@example.com`）を再現している。ログイン操作は不要。未ログイン状態を試すときは `access.dev` を一時的に外す。
