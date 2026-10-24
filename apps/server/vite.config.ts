@@ -16,7 +16,7 @@ export default defineConfig({
         dependsOn: ["@repo/zaim-api#generate"],
       },
       "deploy:preview": {
-        // --name 省略時は現在の git ブランチ名が Preview 名になる（CI と同じ Preview を更新する）
+        // --name 省略時は現在の git ブランチ名が Preview 名になる（Workers Builds と同じ Preview を更新する）
         command: "wrangler preview",
         dependsOn: ["@repo/zaim-api#generate"],
         cache: false,

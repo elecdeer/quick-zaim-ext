@@ -71,7 +71,7 @@ for name in OIDC_ISSUER OIDC_CLIENT_ID OIDC_CLIENT_SECRET OIDC_AUTH_SECRET ZAIM_
 | Preview command                 | `npx wrangler preview`                                                                          |
 | Branch control                  | Enable Preview Builds にチェック                                                                |
 | Build watch paths（include）    | `apps/server/*`, `packages/zaim-api/*`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml` |
-| Build variables                 | `SKIP_DEPENDENCY_INSTALL=1`, `PNPM_VERSION=11.1.1`                                              |
+| Build variables                 | `SKIP_DEPENDENCY_INSTALL=1`, `PNPM_VERSION=12.14.0`                                             |
 
 - 自動インストールを止めて `build:workers-ci` でワークスペースのルートから `pnpm install` しているのは、Root directory（`apps/server`）にはロックファイルも `packageManager` もなく、ビルドイメージの自動検出に任せると pnpm workspace として解決される保証がないため
 - 接続済みの Worker で「Set up Worker Previews」バナーが出る場合は、Switch to Worker Previews に切り替える（Preview command を `wrangler preview` にするために必要）
