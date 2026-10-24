@@ -7,7 +7,7 @@
     "#storybook/preview": "./.storybook/preview.ts"
   },
   "scripts": {
-    "test:browser": "vitest run --config vitest.config.browser.ts",
+    "test:browser": "vp test run --config vitest.config.browser.ts",
     "prepare": "node -e \"if(!process.env.CI)require('child_process').execSync('wxt prepare',{stdio:'inherit'})\"",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
