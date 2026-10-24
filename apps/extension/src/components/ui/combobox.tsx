@@ -88,7 +88,8 @@ function ComboboxEmpty({ className, ...props }: ComboboxPrimitive.Empty.Props) {
   return (
     <ComboboxPrimitive.Empty
       data-slot="combobox-empty"
-      className={cn("py-6 text-center text-sm", className)}
+      // Combobox.Empty は候補があるときも中身のない要素を描画し続けるので、空のときは隠して余白を消す
+      className={cn("py-6 text-center text-sm empty:hidden", className)}
       {...props}
     />
   );
