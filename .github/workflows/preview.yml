@@ -1,0 +1,113 @@
+name: Preview
+
+# ブランチごとに server の Cloudflare Workers Preview（`wrangler preview`）を作成・更新し、
+# ブランチ削除時に片付ける。Preview 名はブランチ名をそのまま使う
+# （ローカルで `vp run deploy:preview` したときの既定名と揃え、同じ Preview を更新するため）。
+on:
+  push:
+    branches-ignore: [main]
+    paths:
+      - "apps/server/**"
+      - "packages/zaim-api/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/preview.yml"
+  # delete イベントはデフォルトブランチ上のワークフロー定義で実行されるため、
+  # このファイルが main にマージされるまでは片付けが動かない
+  delete:
+
+concurrency:
+  # delete イベントでは github.ref がデフォルトブランチを指すので、削除されたブランチ名を使う
+  group: ${{ github.workflow }}-${{ github.event_name == 'delete' && github.event.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy Preview
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: voidzero-dev/setup-vp@313600b80b104eadebb9111787d37a2e83e014ca # v1.17.0
+        with:
+          cache: true
+      # server が import する Zaim API クライアントは生成物でリポジトリに含まれないため先に生成する
+      - run: vp run "@repo/zaim-api#generate"
+
+      - name: Create or update Preview
+        id: preview
+        working-directory: apps/server
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BRANCH_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          output="$(vp exec wrangler preview --name "$BRANCH_NAME" --json)"
+          printf '%s\n' "$output"
+          # バナー等が JSON の前に混ざっても壊れないよう、最初の "{" 行以降だけを jq に渡す
+          preview_url="$(printf '%s\n' "$output" | sed -n '/^{/,$p' | jq -r '.preview.urls[0] // empty')"
+          if [ -z "$preview_url" ]; then
+            echo "::error::Preview URL を wrangler の出力から取得できませんでした"
+            exit 1
+          fi
+          echo "url=$preview_url" >> "$GITHUB_OUTPUT"
+
+      # デプロイ直後は反映待ちで失敗し得るためリトライする
+      - name: Health check
+        env:
+          PREVIEW_URL: ${{ steps.preview.outputs.url }}
+        run: curl --fail --silent --show-error --retry 5 --retry-delay 3 --retry-all-errors "$PREVIEW_URL/api/health"
+
+      - name: Report Preview URL
+        env:
+          PREVIEW_URL: ${{ steps.preview.outputs.url }}
+          BRANCH_NAME: ${{ github.ref_name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          body="Server Preview (\`$BRANCH_NAME\`): $PREVIEW_URL"
+          {
+            echo "## Server Preview"
+            echo ""
+            echo "$body"
+            echo ""
+            echo "拡張機能の設定オーバーレイでサーバー URL をこの URL に変更して確認する。"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # ブランチに対応する PR があれば、Bot の直近コメントを更新する形で URL を残す
+          pr_number="$(gh pr view "$BRANCH_NAME" --repo "$GITHUB_REPOSITORY" --json number --jq '.number // empty' 2>/dev/null || true)"
+          if [ -n "$pr_number" ]; then
+            gh pr comment "$pr_number" --repo "$GITHUB_REPOSITORY" --body "$body" --edit-last --create-if-none
+          fi
+
+  cleanup:
+    name: Delete Preview
+    if: github.event_name == 'delete' && github.event.ref_type == 'branch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: voidzero-dev/setup-vp@313600b80b104eadebb9111787d37a2e83e014ca # v1.17.0
+        with:
+          cache: true
+
+      - name: Delete Preview
+        working-directory: apps/server
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BRANCH_NAME: ${{ github.event.ref }}
+        run: |
+          # server を変更していないブランチは Preview が存在しないため、削除失敗ではジョブを落とさない
+          if vp exec wrangler preview delete --name "$BRANCH_NAME" --skip-confirmation; then
+            echo "Preview \`$BRANCH_NAME\` を削除した" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::Preview $BRANCH_NAME の削除に失敗した（存在しない可能性あり）"
+            echo "Preview \`$BRANCH_NAME\` は削除できなかった（存在しない可能性あり）" >> "$GITHUB_STEP_SUMMARY"
+          fi
