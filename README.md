@@ -39,9 +39,9 @@ vp run dev
 
 ### デプロイ
 
-- `main` 以外のブランチに server 関連の変更を push すると、GitHub Actions（`.github/workflows/preview.yml`）が Preview を作成・更新し、URL を Job Summary と PR コメントに出す
-- ブランチを削除すると Preview も削除される
-- CI を待たずにローカルから即デプロイする場合（Preview 名は現在の git ブランチ名になり、CI と同じ Preview を更新する）:
+- `main` 以外のブランチに server 関連の変更を push すると、[Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/)（Cloudflare の GitHub 連携）が `wrangler preview` で Preview を作成・更新し、URL を PR コメントとダッシュボードに出す。GitHub 側に Cloudflare の API トークンは置かない
+- ブランチを削除しても Preview は自動では消えない（上限を超えると最も古い Preview から自動削除される）。不要になったら `apps/server` で `pnpm exec wrangler preview delete --name <ブランチ名>` で消す
+- ビルドを待たずにローカルから即デプロイする場合（Preview 名は現在の git ブランチ名になり、Workers Builds と同じ Preview を更新する）:
 
 ```bash
 vp run deploy:preview
@@ -60,4 +60,18 @@ vp run deploy:preview
 for name in OIDC_ISSUER OIDC_CLIENT_ID OIDC_CLIENT_SECRET OIDC_AUTH_SECRET ZAIM_CONSUMER_KEY ZAIM_CONSUMER_SECRET; do pnpm exec wrangler preview base-config secret put "$name"; done
 ```
 
-3. Cloudflare API トークン（Workers Scripts: Edit と Workers KV Storage: Edit）を作り、GitHub リポジトリの Secrets に `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` を登録する
+3. Cloudflare ダッシュボードで `quick-zaim-server` の Settings > Build から GitHub リポジトリを接続し、以下を設定する
+
+| 設定                            | 値                                                                                              |
+| ------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Git branch（production branch） | `main`                                                                                          |
+| Root directory                  | `apps/server`                                                                                   |
+| Build command                   | `pnpm run build:workers-ci`                                                                     |
+| Deploy command                  | `npx wrangler versions upload`（本番への昇格は手動のまま）                                      |
+| Preview command                 | `npx wrangler preview`                                                                          |
+| Branch control                  | Enable Preview Builds にチェック                                                                |
+| Build watch paths（include）    | `apps/server/*`, `packages/zaim-api/*`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml` |
+| Build variables                 | `SKIP_DEPENDENCY_INSTALL=1`, `PNPM_VERSION=11.1.1`                                              |
+
+- 自動インストールを止めて `build:workers-ci` でワークスペースのルートから `pnpm install` しているのは、Root directory（`apps/server`）にはロックファイルも `packageManager` もなく、ビルドイメージの自動検出に任せると pnpm workspace として解決される保証がないため
+- 接続済みの Worker で「Set up Worker Previews」バナーが出る場合は、Switch to Worker Previews に切り替える（Preview command を `wrangler preview` にするために必要）
