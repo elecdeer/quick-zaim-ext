@@ -13,8 +13,10 @@ function ToastViewport({ className, ...props }: ToastPrimitive.Viewport.Props) {
     <ToastPrimitive.Portal>
       <ToastPrimitive.Viewport
         data-slot="toast-viewport"
+        // justify-self は fixed 要素にも効き、幅が中身（absolute のトーストなので 0）に縮むため使わない。
+        // 左右の inset と mx-auto + max-w で中央寄せする
         className={cn(
-          "fixed inset-x-4 bottom-4 z-50 mx-auto flex h-(--toast-frontmost-height) w-auto max-w-72 justify-self-center outline-hidden",
+          "fixed inset-x-4 bottom-4 z-50 mx-auto flex h-(--toast-frontmost-height) w-auto max-w-72 outline-hidden",
           className,
         )}
         {...props}
