@@ -24,7 +24,7 @@ export const NotLoggedIn = meta.story({
 export const LoggedIn = meta.story({
   args: {
     isAuthenticated: true,
-    user: { email: "user@example.com", sub: "auth0|abc123" },
+    user: { email: "user@example.com", id: "user@example.com" },
     isLoading: false,
   },
 });

@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useState } from "react";
-import { createClient } from "server/client";
+import { createServerClient } from "../lib/serverClient";
 import { browser } from "wxt/browser";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -79,12 +79,9 @@ const SettingsOverlayContent = ({ onOpenChange: _onOpenChange }: Pick<Props, "on
 
   const zaimDisconnectMutation = useMutation({
     mutationFn: async () => {
-      const client = createClient(serverUrl);
-      const res = await client.zaim.auth.token.$delete(
-        {},
-        { init: { credentials: "include", redirect: "manual" } },
-      );
-      if (!res.ok || res.type === "opaqueredirect") {
+      const client = createServerClient(serverUrl);
+      const res = await client.zaim.auth.token.$delete({});
+      if (!res.ok) {
         throw new Error("Zaim 連携解除に失敗しました");
       }
     },

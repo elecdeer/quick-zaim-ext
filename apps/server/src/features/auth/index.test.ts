@@ -1,90 +1,51 @@
 /**
  * auth ルートのテスト
  *
- * /logout  - セッション破棄 → Auth0 ログアウト URL へリダイレクト
+ * /logout  - Cloudflare Access のログアウトエンドポイントへリダイレクト
  * /me      - 認証済みユーザー情報を JSON で返す
  * /auth/launch - 拡張機能向け認証起動（redirect_uri バリデーション）
  */
 
-import { beforeEach, describe, expect, test, vi } from "vite-plus/test";
+import { describe, expect, test } from "vite-plus/test";
+import type { AccessUser } from "../../access.ts";
 import { createTestClient, createTestEnv } from "../../test-fixtures.ts";
 import { authRoutes } from "./index.ts";
 import type { Env } from "../../env.ts";
-import type { OidcAuth } from "@hono/oidc-auth";
 
-vi.mock("@hono/oidc-auth", () => ({
-  revokeSession: vi.fn().mockResolvedValue(undefined),
-}));
-
-import { revokeSession } from "@hono/oidc-auth";
-
-const mockRevokeSession = vi.mocked(revokeSession);
-
-const MOCK_USER = {
-  sub: "auth0|user123",
-  email: "user@example.com",
-  rtk: "",
-  rtkexp: 9999999999,
-  ssnexp: 9999999999,
-} as OidcAuth;
-
-beforeEach(() => {
-  vi.clearAllMocks();
-});
+const MOCK_USER: AccessUser = { id: "user@example.com", email: "user@example.com" };
 
 const makeEnv = (overrides?: Partial<Env>): Env => createTestEnv(overrides);
 
 // ── /logout ──────────────────────────────────────────────────────────────────
 
 describe("GET /logout", () => {
-  beforeEach(() => {
-    mockRevokeSession.mockResolvedValue(undefined as unknown as void);
-  });
-
-  test("Auth0のログアウトURLにリダイレクトする", async () => {
+  test("同一オリジンのCloudflare Accessログアウトにリダイレクトする", async () => {
     const res = await createTestClient(authRoutes, makeEnv()).logout.$get();
 
     expect(res.status).toBe(302);
-    const location = res.headers.get("Location") ?? "";
-    expect(location).toContain("example.auth0.com");
-    expect(location).toContain("v2/logout");
-    expect(location).toContain("client_id=test_client_id");
-  });
-
-  test("ログアウトURL末尾スラッシュが重複しない", async () => {
-    const res = await createTestClient(
-      authRoutes,
-      makeEnv({ OIDC_ISSUER: "https://example.auth0.com/" }),
-    ).logout.$get();
-    const location = res.headers.get("Location") ?? "";
-    expect(location).not.toContain("auth0.com//");
-  });
-
-  test("revokeSessionを呼び出す", async () => {
-    await createTestClient(authRoutes, makeEnv()).logout.$get();
-    expect(mockRevokeSession).toHaveBeenCalledOnce();
+    expect(res.headers.get("Location")).toBe("http://localhost/cdn-cgi/access/logout");
   });
 });
 
 // ── /me ──────────────────────────────────────────────────────────────────────
 
 describe("GET /me", () => {
-  test("認証済みユーザーのemailとsubを返す", async () => {
-    const res = await createTestClient(authRoutes, makeEnv(), { oidcAuth: MOCK_USER }).me.$get();
+  test("認証済みユーザーのemailとidを返す", async () => {
+    const res = await createTestClient(authRoutes, makeEnv(), { user: MOCK_USER }).me.$get();
     expect(res.status).toBe(200);
 
     const body = await res.json();
     expect(body.email).toBe("user@example.com");
-    expect(body.sub).toBe("auth0|user123");
+    expect(body.id).toBe("user@example.com");
   });
 
-  test("getAuthがnullを返しても200を返す（ミドルウェアで保護済みのため）", async () => {
-    const res = await createTestClient(authRoutes, makeEnv(), { oidcAuth: null }).me.$get();
+  test("userが未設定でも200を返す（ミドルウェアで保護済みのため）", async () => {
+    const res = await createTestClient(authRoutes, makeEnv()).me.$get();
     expect(res.status).toBe(200);
 
     const body = await res.json();
     expect(body.email).toBeUndefined();
-    expect(body.sub).toBeUndefined();
+    expect(body.id).toBeUndefined();
   });
 });
 

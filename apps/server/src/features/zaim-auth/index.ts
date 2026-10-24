@@ -39,9 +39,9 @@ const startRoute = new Hono<HonoEnv>().get(
   }),
   async (c) => {
     const logger = c.var.logger;
-    const auth = c.var.oidcAuth;
-    if (!auth?.sub) {
-      logger.warn("Zaim auth start: unauthorized (no OIDC session)");
+    const auth = c.var.user;
+    if (!auth?.id) {
+      logger.warn("Zaim auth start: unauthorized (no Access user)");
       return c.json({ error: "Unauthorized" }, 401);
     }
 
@@ -54,10 +54,16 @@ const startRoute = new Hono<HonoEnv>().get(
     }
 
     logger
-      .with({ userSub: auth.sub, extFlow: ext_redirect_uri !== undefined })
-      .info("Zaim auth start for user {userSub} (ext_flow={extFlow})");
+      .with({ userId: auth.id, extFlow: ext_redirect_uri !== undefined })
+      .info("Zaim auth start for user {userId} (ext_flow={extFlow})");
 
-    const callbackUrl = new URL("/zaim/auth/callback", c.req.url).toString();
+    // Zaim はコールバック URL のドメインがアプリに登録したサービスのドメインと一致しないと拒否する。
+    // Preview はブランチごとにホストが変わるため、ZAIM_OAUTH_CALLBACK_ORIGIN で固定のホストに向ける
+    // （Request Token の状態は Preview 間で共有する KV に置くので、別ホストでもトークン交換できる）。
+    const callbackUrl = new URL(
+      "/zaim/auth/callback",
+      c.env.ZAIM_OAUTH_CALLBACK_ORIGIN ?? c.req.url,
+    ).toString();
 
     const { oauthToken, oauthTokenSecret } = await fetchZaimRequestToken(
       {
@@ -70,14 +76,14 @@ const startRoute = new Hono<HonoEnv>().get(
 
     const state: RequestTokenState = {
       tokenSecret: oauthTokenSecret,
-      userSub: auth.sub,
+      userId: auth.id,
       extRedirectUri: ext_redirect_uri,
     };
 
     await saveRequestTokenState(c.env.ZAIM_KV, oauthToken, state, REQUEST_TOKEN_TTL);
 
     logger
-      .with({ oauthToken, userSub: auth.sub, ttl: REQUEST_TOKEN_TTL })
+      .with({ oauthToken, userId: auth.id, ttl: REQUEST_TOKEN_TTL })
       .debug("Request token stored in KV: {oauthToken} (TTL={ttl}s)");
 
     const authorizeUrl = buildZaimAuthorizeUrl(oauthToken);
@@ -139,23 +145,23 @@ const callbackRoute = new Hono<HonoEnv>().get(
  */
 const statusRoute = new Hono<HonoEnv>().get("/zaim/auth/status", async (c) => {
   const logger = c.var.logger;
-  const auth = c.var.oidcAuth;
+  const auth = c.var.user;
   if (!auth) {
-    logger.warn("Zaim auth status: unauthorized (no OIDC session)");
+    logger.warn("Zaim auth status: unauthorized (no Access user)");
     return c.json({ error: "Unauthorized" }, 401);
   }
 
-  logger.with({ userSub: auth.sub }).debug("Checking Zaim connection status for {userSub}");
+  logger.with({ userId: auth.id }).debug("Checking Zaim connection status for {userId}");
 
-  const stored = await getStoredZaimToken(c.env.ZAIM_KV, auth.sub as string);
+  const stored = await getStoredZaimToken(c.env.ZAIM_KV, auth.id);
   if (!stored) {
-    logger.with({ userSub: auth.sub }).debug("Zaim not connected for {userSub}");
+    logger.with({ userId: auth.id }).debug("Zaim not connected for {userId}");
     return c.json({ connected: false });
   }
 
   logger
-    .with({ userSub: auth.sub, zaimUserId: stored.zaimUserId })
-    .debug("Zaim connected for {userSub} (Zaim user {zaimUserId})");
+    .with({ userId: auth.id, zaimUserId: stored.zaimUserId })
+    .debug("Zaim connected for {userId} (Zaim user {zaimUserId})");
   return c.json({ connected: true, zaimUserId: stored.zaimUserId });
 });
 
@@ -164,15 +170,15 @@ const statusRoute = new Hono<HonoEnv>().get("/zaim/auth/status", async (c) => {
  */
 const tokenRoute = new Hono<HonoEnv>().delete("/zaim/auth/token", async (c) => {
   const logger = c.var.logger;
-  const auth = c.var.oidcAuth;
+  const auth = c.var.user;
   if (!auth) {
-    logger.warn("Zaim token delete: unauthorized (no OIDC session)");
+    logger.warn("Zaim token delete: unauthorized (no Access user)");
     return c.json({ error: "Unauthorized" }, 401);
   }
 
-  logger.with({ userSub: auth.sub }).info("Deleting Zaim access token for {userSub}");
-  await deleteAccessToken(c.env.ZAIM_KV, auth.sub as string);
-  logger.with({ userSub: auth.sub }).info("Zaim access token deleted for {userSub}");
+  logger.with({ userId: auth.id }).info("Deleting Zaim access token for {userId}");
+  await deleteAccessToken(c.env.ZAIM_KV, auth.id);
+  logger.with({ userId: auth.id }).info("Zaim access token deleted for {userId}");
   return c.json({ ok: true });
 });
 

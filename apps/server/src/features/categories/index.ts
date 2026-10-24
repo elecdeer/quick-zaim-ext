@@ -8,13 +8,13 @@
 import { sValidator } from "@hono/standard-validator";
 import { Hono } from "hono";
 import type { HonoEnv } from "../../env.ts";
-import { requireOidcAuth, requireZaimClient } from "../../middleware.ts";
+import { requireAccessUser, requireZaimClient } from "../../middleware.ts";
 import { CategoriesQuerySchema } from "./schema.ts";
 import { getCategories } from "./service.ts";
 
 export const categoriesRoutes = new Hono<HonoEnv>().get(
   "/api/zaim/categories",
-  requireOidcAuth,
+  requireAccessUser,
   requireZaimClient,
   sValidator("query", CategoriesQuerySchema, (result, c) => {
     if (!result.success) {

@@ -36,4 +36,49 @@
       "preview_id": "5ab6407251a04dda90faad8f95a9f76f",
     },
   ],
+  // 認証は Worker の手前の Cloudflare Access が行い、Worker は ctx.access からユーザーを取り出す。
+  // wrangler dev では Access がないため、dev ブロックで認証済みユーザーを再現する。
+  // aud は ctx.access.aud として見えるだけでアプリでは検証しないので、ローカル用の任意値でよい。
+  // 未認証状態を試すときは dev ブロックを外す。
+  "access": {
+    "dev": {
+      "aud": "local-dev",
+      "identity": { "email": "dev@example.com" },
+    },
+  },
+  // `wrangler preview` で作るブランチごとの Preview 用設定。
+  // Preview は本番の vars / bindings / observability を引き継がないため、必要なものはここで再定義する。
+  // シークレットは本番とは別に `wrangler preview base-config secret put <NAME>` で登録する。
+  "previews": {
+    "observability": {
+      "logs": {
+        "enabled": true,
+        "invocation_logs": true,
+      },
+      "traces": {
+        "enabled": true,
+        "head_sampling_rate": 1,
+      },
+    },
+    "vars": {
+      "LLM_MODEL": "openai/gpt-5.4-mini",
+      // Preview では ctx.access が渡らないことがあるため、Cf-Access-Jwt-Assertion を検証して代替する。
+      // AUD は Worker の Access タブで有効にした Preview 用 Access アプリケーションのもの。
+      "ACCESS_TEAM_DOMAIN": "https://elecdeer.cloudflareaccess.com",
+      "ACCESS_AUD": "f991044f1bf984b83eeca0c86a885f3acf3a53c5ad092ca90c532f04895a757c",
+      // Zaim はコールバック URL のドメインをアプリのサービス URL と照合するため、どの Preview から
+      // Zaim 連携を始めても固定の Preview（zaim-connect）でコールバックを受ける。
+      // Preview 用 Zaim アプリのサービス URL もこのオリジンにする。
+      "ZAIM_OAUTH_CALLBACK_ORIGIN": "https://zaim-connect-quick-zaim-server.dev-083.workers.dev",
+    },
+    "ai": { "binding": "AI" },
+    // 本番 KV を汚さないよう、全 Preview で共有する Preview 専用ネームスペースを使う。
+    // 共有にしているのは、Zaim 連携（KV 上のアクセストークン）を Preview ごとにやり直さずに済ませるため。
+    "kv_namespaces": [
+      {
+        "binding": "ZAIM_KV",
+        "id": "5ab6407251a04dda90faad8f95a9f76f",
+      },
+    ],
+  },
 }

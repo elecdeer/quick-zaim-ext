@@ -2,8 +2,8 @@ import * as v from "valibot";
 
 export const RequestTokenStateSchema = v.object({
   tokenSecret: v.string(),
-  /** Request Token 取得時点でのログインユーザーの OIDC sub */
-  userSub: v.string(),
+  /** Request Token 取得時点でのログインユーザーの ID（AccessUser.id） */
+  userId: v.string(),
   /** 拡張機能フロー時のみ: トークン交換後にリダイレクトする chromiumapp.org URL */
   extRedirectUri: v.optional(v.string()),
 });

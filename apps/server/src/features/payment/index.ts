@@ -9,13 +9,13 @@
 import { sValidator } from "@hono/standard-validator";
 import { Hono } from "hono";
 import type { HonoEnv } from "../../env.ts";
-import { requireOidcAuth, requireZaimClient } from "../../middleware.ts";
+import { requireAccessUser, requireZaimClient } from "../../middleware.ts";
 import { PaymentBodySchema, DuplicateQuerySchema } from "./schema.ts";
 import { registerPayment, checkDuplicates } from "./service.ts";
 
 const createPaymentRoute = new Hono<HonoEnv>().post(
   "/api/zaim/payment",
-  requireOidcAuth,
+  requireAccessUser,
   requireZaimClient,
   sValidator("json", PaymentBodySchema, (result, c) => {
     if (!result.success) return c.json({ error: "Invalid request body" }, 400);
@@ -48,7 +48,7 @@ const createPaymentRoute = new Hono<HonoEnv>().post(
 
 const getDuplicateRoute = new Hono<HonoEnv>().get(
   "/api/zaim/payment/duplicate",
-  requireOidcAuth,
+  requireAccessUser,
   requireZaimClient,
   sValidator("query", DuplicateQuerySchema, (result, c) => {
     if (!result.success) return c.json({ error: "Invalid query parameters" }, 400);

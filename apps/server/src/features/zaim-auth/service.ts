@@ -20,11 +20,11 @@ export const performZaimTokenExchange = async (
     throw new Error("Request token not found or expired");
   }
 
-  const { tokenSecret, userSub, extRedirectUri } = state;
+  const { tokenSecret, userId, extRedirectUri } = state;
 
   logger
-    .with({ userSub, oauthToken })
-    .debug("Request token state found for user {userSub}, starting access token exchange");
+    .with({ userId, oauthToken })
+    .debug("Request token state found for user {userId}, starting access token exchange");
 
   const accessConfig = {
     consumerKey: env.ZAIM_CONSUMER_KEY,
@@ -49,10 +49,10 @@ export const performZaimTokenExchange = async (
   const zaimUserId = await fetchZaimUserId(accessTokenConfig, logger);
 
   logger
-    .with({ userSub, zaimUserId })
-    .info("Access token obtained for user {userSub} (Zaim user {zaimUserId}), saving to KV");
+    .with({ userId, zaimUserId })
+    .info("Access token obtained for user {userId} (Zaim user {zaimUserId}), saving to KV");
 
-  await saveAccessToken(env.ZAIM_KV, userSub, {
+  await saveAccessToken(env.ZAIM_KV, userId, {
     oauthToken: accessToken,
     oauthTokenSecret,
     zaimUserId,
@@ -60,7 +60,7 @@ export const performZaimTokenExchange = async (
   await deleteRequestToken(env.ZAIM_KV, oauthToken);
 
   logger
-    .with({ userSub, zaimUserId })
+    .with({ userId, zaimUserId })
     .debug("Token exchange complete: access token stored, request token deleted");
 
   return { zaimUserId, extRedirectUri };
