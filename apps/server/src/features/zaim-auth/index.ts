@@ -57,7 +57,13 @@ const startRoute = new Hono<HonoEnv>().get(
       .with({ userId: auth.id, extFlow: ext_redirect_uri !== undefined })
       .info("Zaim auth start for user {userId} (ext_flow={extFlow})");
 
-    const callbackUrl = new URL("/zaim/auth/callback", c.req.url).toString();
+    // Zaim はコールバック URL のドメインがアプリに登録したサービスのドメインと一致しないと拒否する。
+    // Preview はブランチごとにホストが変わるため、ZAIM_OAUTH_CALLBACK_ORIGIN で固定のホストに向ける
+    // （Request Token の状態は Preview 間で共有する KV に置くので、別ホストでもトークン交換できる）。
+    const callbackUrl = new URL(
+      "/zaim/auth/callback",
+      c.env.ZAIM_OAUTH_CALLBACK_ORIGIN ?? c.req.url,
+    ).toString();
 
     const { oauthToken, oauthTokenSecret } = await fetchZaimRequestToken(
       {

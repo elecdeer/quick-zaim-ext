@@ -10,6 +10,11 @@ export type Env = {
   ZAIM_CONSUMER_KEY: string;
   /** Zaim API の Consumer Secret（Zaim Developer Console で発行） */
   ZAIM_CONSUMER_SECRET: string;
+  /**
+   * Zaim OAuth のコールバックを受けるオリジン（例: https://zaim-connect-quick-zaim-server.<subdomain>.workers.dev）。
+   * 未設定ならリクエストを受けたホストを使う。Zaim アプリに登録したサービスのドメインと一致させる必要がある。
+   */
+  ZAIM_OAUTH_CALLBACK_ORIGIN?: string;
 
   /** OAuth トークン等の一時・永続ステートを保持する Cloudflare KV ネームスペース */
   ZAIM_KV: KVNamespace;

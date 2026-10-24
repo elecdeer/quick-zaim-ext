@@ -37,6 +37,7 @@ vp run dev
 - 認証は Worker の手前の Cloudflare Access が行い、Preview URL もまとめて保護される
 - ログ・トレースは Cloudflare ダッシュボードの各 Preview の Observability タブで見る（`wrangler tail` は Preview 非対応）
 - Zaim アカウントは本番と同じなので、Preview から登録した支払いは実データに入る
+- Zaim は Preview 専用の Zaim アプリの鍵を使う。Zaim はコールバック URL のドメインをアプリのサービス URL と照合するため、どの Preview から Zaim 連携を始めてもコールバックは固定の Preview `zaim-connect` で受ける（`previews.vars` の `ZAIM_OAUTH_CALLBACK_ORIGIN`）
 
 ### デプロイ
 
@@ -53,13 +54,20 @@ vp run deploy:preview
 ### 初回セットアップ
 
 1. Cloudflare Access で Worker を保護する（下の「認証（Cloudflare Access）」を参照）
-2. Preview 用シークレットを登録する（新しく作られる Preview にのみ反映されるので、最初の Preview を作る前に行う。既存の Preview には `pnpm -F server exec wrangler preview secret put <NAME> --name <ブランチ名>` で個別に入れる）
+2. [Zaim Developers](https://dev.zaim.net/) で Preview 専用のアプリを作り、サービスの URL を `https://zaim-connect-quick-zaim-server.<subdomain>.workers.dev` にする
+3. Preview 用シークレットに Preview 専用 Zaim アプリの Consumer Key / Secret を登録する（新しく作られる Preview にのみ反映されるので、Preview を作る前に行う。既存の Preview には `pnpm -F server exec wrangler preview secret put <NAME> --name <ブランチ名>` で個別に入れる）
 
 ```bash
 for name in ZAIM_CONSUMER_KEY ZAIM_CONSUMER_SECRET; do pnpm -F server exec wrangler preview base-config secret put "$name"; done
 ```
 
-3. Cloudflare ダッシュボードで `quick-zaim-server` の Settings > Build から GitHub リポジトリを接続し、以下を設定する
+4. コールバックを受ける固定の Preview `zaim-connect` を作る（Zaim 連携のコールバックを処理できるコードであれば、どのブランチから作ってもよい）
+
+```bash
+pnpm -F server exec wrangler preview --name zaim-connect
+```
+
+5. Cloudflare ダッシュボードで `quick-zaim-server` の Settings > Build から GitHub リポジトリを接続し、以下を設定する
 
 | 設定                            | 値                                                                                              |
 | ------------------------------- | ----------------------------------------------------------------------------------------------- |

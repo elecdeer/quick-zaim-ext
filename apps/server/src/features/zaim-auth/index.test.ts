@@ -74,6 +74,31 @@ describe("GET /zaim/auth/start", () => {
     );
   });
 
+  test("コールバックURLは既定でリクエストを受けたホストの /zaim/auth/callback になる", async () => {
+    await createTestClient(zaimRoutes, makeEnv(), { user: MOCK_USER }).zaim.auth.start.$get({
+      query: {},
+    });
+    expect(mockFetchRequestToken).toHaveBeenCalledWith(
+      expect.anything(),
+      "http://localhost/zaim/auth/callback",
+      expect.anything(),
+    );
+  });
+
+  test("ZAIM_OAUTH_CALLBACK_ORIGINを設定するとそのオリジンでコールバックを受ける", async () => {
+    const env = createTestEnv({
+      ZAIM_OAUTH_CALLBACK_ORIGIN: "https://zaim-connect-quick-zaim-server.example.workers.dev",
+    });
+    await createTestClient(zaimRoutes, env, { user: MOCK_USER }).zaim.auth.start.$get({
+      query: {},
+    });
+    expect(mockFetchRequestToken).toHaveBeenCalledWith(
+      expect.anything(),
+      "https://zaim-connect-quick-zaim-server.example.workers.dev/zaim/auth/callback",
+      expect.anything(),
+    );
+  });
+
   test("拡張機能フロー: ext_redirect_uriを指定するとauthorizeUrlをJSONで返す", async () => {
     const extUri = "https://abc.chromiumapp.org/callback";
     const res = await createTestClient(zaimRoutes, makeEnv(), {

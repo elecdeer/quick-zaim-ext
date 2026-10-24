@@ -66,6 +66,10 @@
       // AUD は Worker の Access タブで有効にした Preview 用 Access アプリケーションのもの。
       "ACCESS_TEAM_DOMAIN": "https://elecdeer.cloudflareaccess.com",
       "ACCESS_AUD": "f991044f1bf984b83eeca0c86a885f3acf3a53c5ad092ca90c532f04895a757c",
+      // Zaim はコールバック URL のドメインをアプリのサービス URL と照合するため、どの Preview から
+      // Zaim 連携を始めても固定の Preview（zaim-connect）でコールバックを受ける。
+      // Preview 用 Zaim アプリのサービス URL もこのオリジンにする。
+      "ZAIM_OAUTH_CALLBACK_ORIGIN": "https://zaim-connect-quick-zaim-server.dev-083.workers.dev",
     },
     "ai": { "binding": "AI" },
     // 本番 KV を汚さないよう、全 Preview で共有する Preview 専用ネームスペースを使う。
