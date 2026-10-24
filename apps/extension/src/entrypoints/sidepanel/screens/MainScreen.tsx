@@ -9,7 +9,7 @@ import { StoreCombobox, type StoreSelection } from "../../../components/StoreCom
 import { useToastManager } from "@/components/ui/toast";
 import { useMutation } from "../../../lib/useMutation.ts";
 import { collectFromActiveTab } from "../../../page-collector/collectFromActiveTab.ts";
-import { createClient } from "server/client";
+import { createServerClient } from "../../../lib/serverClient";
 
 interface Item {
   id: string;
@@ -178,13 +178,13 @@ export default function MainScreen({ serverUrl }: Props) {
 
   const extractMutation = useMutation({
     mutationFn: async () => {
-      const client = createClient(serverUrl);
+      const client = createServerClient(serverUrl);
       const collected = await collectFromActiveTab();
 
       const [categoriesRes, accountsRes, storesRes] = await Promise.all([
-        client.api.zaim.categories.$get({ query: {} }, { init: { credentials: "include" } }),
-        client.api.zaim.accounts.$get({ query: {} }, { init: { credentials: "include" } }),
-        client.api.zaim.stores.$get({ query: {} }, { init: { credentials: "include" } }),
+        client.api.zaim.categories.$get({ query: {} }),
+        client.api.zaim.accounts.$get({ query: {} }),
+        client.api.zaim.stores.$get({ query: {} }),
       ]);
       if (!categoriesRes.ok)
         throw new Error(`カテゴリの取得に失敗しました（${categoriesRes.status}）`);
@@ -199,22 +199,19 @@ export default function MainScreen({ serverUrl }: Props) {
         .filter((account) => account.active === 1)
         .map((account) => ({ id: account.id, name: account.name }));
 
-      const extractRes = await client.api.llm["extract-payment"].$post(
-        {
-          json: {
-            pageContent: {
-              url: collected.url,
-              title: collected.title,
-              ariaSnapshot: collected.ariaSnapshot,
-              collectedAt: collected.collectedAt,
-            },
-            categories: categoriesBody.categories,
-            accounts: activeAccounts,
-            recentStores: storesBody.stores,
+      const extractRes = await client.api.llm["extract-payment"].$post({
+        json: {
+          pageContent: {
+            url: collected.url,
+            title: collected.title,
+            ariaSnapshot: collected.ariaSnapshot,
+            collectedAt: collected.collectedAt,
           },
+          categories: categoriesBody.categories,
+          accounts: activeAccounts,
+          recentStores: storesBody.stores,
         },
-        { init: { credentials: "include" } },
-      );
+      });
       if (!extractRes.ok) {
         throw new Error(`自動入力に失敗しました（${extractRes.status}）`);
       }
@@ -255,27 +252,24 @@ export default function MainScreen({ serverUrl }: Props) {
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const client = createClient(serverUrl);
+      const client = createServerClient(serverUrl);
       for (const item of items) {
         if (!item.category) throw new Error("カテゴリが選択されていません");
-        const res = await client.api.zaim.payment.$post(
-          {
-            json: {
-              category_id: item.category.categoryId,
-              genre_id: item.category.genreId,
-              amount: parseInt(item.amount, 10),
-              date,
-              ...(accountId !== null && { from_account_id: accountId }),
-              ...(item.name && { name: item.name }),
-              ...(item.comment && { comment: item.comment }),
-              ...(storeSelection && {
-                place: storeSelection.place,
-                place_uid: storeSelection.placeUid,
-              }),
-            },
+        const res = await client.api.zaim.payment.$post({
+          json: {
+            category_id: item.category.categoryId,
+            genre_id: item.category.genreId,
+            amount: parseInt(item.amount, 10),
+            date,
+            ...(accountId !== null && { from_account_id: accountId }),
+            ...(item.name && { name: item.name }),
+            ...(item.comment && { comment: item.comment }),
+            ...(storeSelection && {
+              place: storeSelection.place,
+              place_uid: storeSelection.placeUid,
+            }),
           },
-          { init: { credentials: "include" } },
-        );
+        });
         if (!res.ok) throw new Error(`登録に失敗しました（${res.status}）`);
       }
     },
@@ -300,22 +294,19 @@ export default function MainScreen({ serverUrl }: Props) {
     }
 
     setDuplicateState("checking");
-    const client = createClient(serverUrl);
+    const client = createServerClient(serverUrl);
 
     try {
       const results = await Promise.all(
         items.map(async (item) => {
           if (!item.category) throw new Error("カテゴリが選択されていません");
-          const res = await client.api.zaim.payment.duplicate.$get(
-            {
-              query: {
-                date,
-                amount: String(parseInt(item.amount, 10)),
-                genre_id: String(item.category.genreId),
-              },
+          const res = await client.api.zaim.payment.duplicate.$get({
+            query: {
+              date,
+              amount: String(parseInt(item.amount, 10)),
+              genre_id: String(item.category.genreId),
             },
-            { init: { credentials: "include" } },
-          );
+          });
           if (!res.ok) throw new Error(`重複チェックに失敗しました（${res.status}）`);
           const body = (await res.json()) as { duplicates: DuplicateInfo[] };
           return { itemId: item.id, duplicates: body.duplicates };

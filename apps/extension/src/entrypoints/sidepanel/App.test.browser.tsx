@@ -26,7 +26,7 @@ describe("App: 設定オーバーレイの自動オープン", () => {
     worker.use(
       ...noopZaimDataHandlers,
       http.get(`${MOCK_SERVER_URL}/me`, () =>
-        HttpResponse.json({ email: "user@example.com", sub: "auth0|abc123" }),
+        HttpResponse.json({ email: "user@example.com", id: "user@example.com" }),
       ),
       http.get(`${MOCK_SERVER_URL}/zaim/auth/status`, () =>
         HttpResponse.json({ connected: true, zaimUserId: "zaim_user_123456" }),

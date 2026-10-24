@@ -1,4 +1,4 @@
-import { createClient } from "server/client";
+import { createServerClient } from "./lib/serverClient";
 import { browser } from "wxt/browser";
 import { defineQuery } from "./lib/query";
 import { fetchAuthStatus, type AuthStatus } from "./entrypoints/sidepanel/authQueries";
@@ -37,31 +37,22 @@ export type StoresResponse = { fetchedAt: string; stores: Store[] };
 // --- Fetch functions ---
 
 const fetchAccounts = async (serverUrl: string): Promise<AccountsResponse> => {
-  const client = createClient(serverUrl);
-  const res = await client.api.zaim.accounts.$get(
-    { query: {} },
-    { init: { credentials: "include" } },
-  );
+  const client = createServerClient(serverUrl);
+  const res = await client.api.zaim.accounts.$get({ query: {} });
   if (!res.ok) throw new Error("口座の取得に失敗しました");
   return res.json();
 };
 
 const fetchCategories = async (serverUrl: string): Promise<CategoriesResponse> => {
-  const client = createClient(serverUrl);
-  const res = await client.api.zaim.categories.$get(
-    { query: {} },
-    { init: { credentials: "include" } },
-  );
+  const client = createServerClient(serverUrl);
+  const res = await client.api.zaim.categories.$get({ query: {} });
   if (!res.ok) throw new Error("カテゴリの取得に失敗しました");
   return res.json();
 };
 
 const fetchStores = async (serverUrl: string): Promise<StoresResponse> => {
-  const client = createClient(serverUrl);
-  const res = await client.api.zaim.stores.$get(
-    { query: {} },
-    { init: { credentials: "include" } },
-  );
+  const client = createServerClient(serverUrl);
+  const res = await client.api.zaim.stores.$get({ query: {} });
   if (!res.ok) throw new Error("店舗の取得に失敗しました");
   return res.json();
 };

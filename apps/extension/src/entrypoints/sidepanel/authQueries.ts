@@ -1,8 +1,8 @@
-import { createClient } from "server/client";
+import { createServerClient } from "../../lib/serverClient";
 
 export interface ServerUser {
   email?: string;
-  sub?: string;
+  id?: string;
 }
 
 export interface AuthStatus {
@@ -20,29 +20,23 @@ export const UNAUTHENTICATED: AuthStatus = {
 };
 
 export const fetchAuthStatus = async (url: string): Promise<AuthStatus> => {
-  const client = createClient(url);
+  const client = createServerClient(url);
   let meRes: Response;
   try {
-    meRes = await client.me.$get({}, { init: { credentials: "include", redirect: "manual" } });
+    meRes = await client.me.$get({});
   } catch {
     throw new Error("サーバーへの接続に失敗しました");
   }
 
-  if (meRes.type === "opaqueredirect" || !meRes.ok) {
+  if (!meRes.ok) {
     return UNAUTHENTICATED;
   }
 
   const user = await meRes.json();
   let zaim: { connected: boolean; zaimUserId?: string };
   try {
-    const zaimRes = await client.zaim.auth.status.$get(
-      {},
-      { init: { credentials: "include", redirect: "manual" } },
-    );
-    zaim =
-      zaimRes.ok && zaimRes.type !== "opaqueredirect"
-        ? await zaimRes.json()
-        : { connected: false as const };
+    const zaimRes = await client.zaim.auth.status.$get({});
+    zaim = zaimRes.ok ? await zaimRes.json() : { connected: false as const };
   } catch {
     zaim = { connected: false as const };
   }

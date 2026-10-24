@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 
 interface ServerUser {
   email?: string;
-  sub?: string;
+  id?: string;
 }
 
 interface Props {
