@@ -26,6 +26,15 @@ export const cacheStores = async (
 };
 
 /**
+ * 月別キャッシュの KV キー。
+ *
+ * v2: 以前は店舗一覧の取得時に不完全な支払い（店舗付きのものだけ）を書き込んでいたため、
+ * 残っている古いキャッシュを読まないようキーを変えた。
+ */
+const monthlyMoneyKey = (zaimUserId: string, yearMonth: string): string =>
+  `zaim:cache:money:v2:${zaimUserId}:${yearMonth}`;
+
+/**
  * 月別キャッシュを KV から取得する。
  */
 export const getCachedMonthlyMoney = async (
@@ -33,7 +42,7 @@ export const getCachedMonthlyMoney = async (
   zaimUserId: string,
   yearMonth: string,
 ): Promise<MonthlyMoneyCache | null> => {
-  const cached = await kv.get(`zaim:cache:money:${zaimUserId}:${yearMonth}`);
+  const cached = await kv.get(monthlyMoneyKey(zaimUserId, yearMonth));
   if (!cached) return null;
   return JSON.parse(cached) as MonthlyMoneyCache;
 };
@@ -48,7 +57,7 @@ export const cacheMonthlyMoney = async (
   data: MonthlyMoneyCache,
   ttl: number,
 ): Promise<void> => {
-  await kv.put(`zaim:cache:money:${zaimUserId}:${yearMonth}`, JSON.stringify(data), {
+  await kv.put(monthlyMoneyKey(zaimUserId, yearMonth), JSON.stringify(data), {
     expirationTtl: ttl,
   });
 };
@@ -61,7 +70,7 @@ export const deleteMonthlyMoneyCache = async (
   zaimUserId: string,
   yearMonth: string,
 ): Promise<void> => {
-  await kv.delete(`zaim:cache:money:${zaimUserId}:${yearMonth}`);
+  await kv.delete(monthlyMoneyKey(zaimUserId, yearMonth));
 };
 
 /**

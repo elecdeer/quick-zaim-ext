@@ -8,7 +8,7 @@ import { ItemEditDialog, type ItemEditField } from "../../../components/ItemEdit
 import { StoreCombobox, type StoreSelection } from "../../../components/StoreCombobox.tsx";
 import { useToastManager } from "@/components/ui/toast";
 import { useMutation } from "../../../lib/useMutation.ts";
-import { collectFromActiveTab } from "../../../page-collector/collectFromActiveTab.ts";
+import { collectExtractionInput, findCategorySelectionByGenreId } from "../../../lib/extraction.ts";
 import { createServerClient } from "../../../lib/serverClient";
 
 interface Item {
@@ -25,25 +25,6 @@ interface Props {
 
 type DuplicateInfo = { id: number; date: string; amount: number };
 type DuplicateState = "unchecked" | "checking" | "warned";
-
-/**
- * categories 一覧から `genreId` が属する `categoryId` を逆引きして
- * `CategorySelection` を組み立てる。該当しなければ null。
- *
- * LLM 推論レスポンスには `genreId` しか含まれないため、registration に必要な
- * `categoryId` をここで補完する。
- */
-const findCategorySelectionByGenreId = (
-  categories: ReadonlyArray<{ id: number; subCategories: ReadonlyArray<{ id: number }> }>,
-  genreId: number,
-): CategorySelection | null => {
-  for (const category of categories) {
-    if (category.subCategories.some((sub) => sub.id === genreId)) {
-      return { categoryId: category.id, genreId };
-    }
-  }
-  return null;
-};
 
 const newItem = (category: CategorySelection | null = null): Item => ({
   id: crypto.randomUUID(),
@@ -179,59 +160,26 @@ export default function MainScreen({ serverUrl }: Props) {
   const extractMutation = useMutation({
     mutationFn: async () => {
       const client = createServerClient(serverUrl);
-      const collected = await collectFromActiveTab();
-
-      const [categoriesRes, accountsRes, storesRes] = await Promise.all([
-        client.api.zaim.categories.$get({ query: {} }),
-        client.api.zaim.accounts.$get({ query: {} }),
-        client.api.zaim.stores.$get({ query: {} }),
-      ]);
-      if (!categoriesRes.ok)
-        throw new Error(`カテゴリの取得に失敗しました（${categoriesRes.status}）`);
-      if (!accountsRes.ok) throw new Error(`口座の取得に失敗しました（${accountsRes.status}）`);
-      if (!storesRes.ok) throw new Error(`店舗の取得に失敗しました（${storesRes.status}）`);
-
-      const categoriesBody = await categoriesRes.json();
-      const accountsBody = await accountsRes.json();
-      const storesBody = await storesRes.json();
-
-      const activeAccounts = accountsBody.accounts
-        .filter((account) => account.active === 1)
-        .map((account) => ({ id: account.id, name: account.name }));
-
-      const extractRes = await client.api.llm["extract-payment"].$post({
-        json: {
-          pageContent: {
-            url: collected.url,
-            title: collected.title,
-            ariaSnapshot: collected.ariaSnapshot,
-            collectedAt: collected.collectedAt,
-          },
-          categories: categoriesBody.categories,
-          accounts: activeAccounts,
-          recentStores: storesBody.stores,
-        },
-      });
+      const input = await collectExtractionInput(client);
+      const extractRes = await client.api.llm["extract-payment"].$post({ json: input });
       if (!extractRes.ok) {
         throw new Error(`自動入力に失敗しました（${extractRes.status}）`);
       }
       const extracted = await extractRes.json();
       return {
         extracted,
-        recentStores: storesBody.stores,
-        categories: categoriesBody.categories,
+        recentStores: input.recentStores,
+        categories: input.categories,
       };
     },
     onSuccess: ({ extracted, recentStores, categories }) => {
       if (extracted.date !== null) setDate(extracted.date);
       if (extracted.accountId !== null) setAccountId(extracted.accountId);
       if (extracted.place !== null) {
+        // Zaim API は店舗を既存の place_uid でしか指定できないため、最近の店舗に一致しない
+        // 店舗名は使わない
         const matched = recentStores.find((s) => s.place === extracted.place);
-        setStoreSelection(
-          matched
-            ? { place: matched.place, placeUid: matched.placeUid }
-            : { place: extracted.place, placeUid: "" },
-        );
+        setStoreSelection(matched ? { place: matched.place, placeUid: matched.placeUid } : null);
       }
       if (extracted.items.length > 0) {
         setItems(
@@ -264,10 +212,7 @@ export default function MainScreen({ serverUrl }: Props) {
             ...(accountId !== null && { from_account_id: accountId }),
             ...(item.name && { name: item.name }),
             ...(item.comment && { comment: item.comment }),
-            ...(storeSelection && {
-              place: storeSelection.place,
-              place_uid: storeSelection.placeUid,
-            }),
+            ...(storeSelection && { place_uid: storeSelection.placeUid }),
           },
         });
         if (!res.ok) throw new Error(`登録に失敗しました（${res.status}）`);

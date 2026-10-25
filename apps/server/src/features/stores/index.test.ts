@@ -238,7 +238,7 @@ describe("GET /api/zaim/stores", () => {
     });
   });
 
-  test("取得後に月別moneyキャッシュをKVに書き込む", async () => {
+  test("店舗一覧の取得では月別moneyキャッシュを書き込まない", async () => {
     const { kv, mockGet, mockPut } = createKVNamespaceMock();
     mockGet.mockResolvedValueOnce(null);
 
@@ -251,7 +251,7 @@ describe("GET /api/zaim/stores", () => {
     const monthlyPuts = mockPut.mock.calls.filter(([key]) =>
       (key as string).startsWith("zaim:cache:money:"),
     );
-    expect(monthlyPuts.length).toBeGreaterThan(0);
+    expect(monthlyPuts).toHaveLength(0);
   });
 
   test("no_cache=1のときKVキャッシュを無視してAPIを呼ぶ", async () => {

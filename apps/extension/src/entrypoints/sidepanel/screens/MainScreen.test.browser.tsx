@@ -3,7 +3,7 @@ import { describe, expect, test as baseTest, vi } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser";
 import { render } from "vitest-browser-react";
 import { test } from "../../../test-utils/browser-test.ts";
-import { Default } from "./MainScreen.stories";
+import { AllFilled, Default } from "./MainScreen.stories";
 
 const MOCK_SERVER_URL = "http://mock-server.test";
 
@@ -341,6 +341,70 @@ describe("MainScreen", () => {
         expect.objectContaining({ genre_id: 1003, amount: 500 }),
       );
     });
+  });
+
+  /** 指定した店舗名を返す自動入力ハンドラー。品目は 1 件（食料品・250 円） */
+  const extractPaymentHandler = (place: string) =>
+    http.post(`${MOCK_SERVER_URL}/api/llm/extract-payment`, () =>
+      HttpResponse.json({
+        date: "2026-06-13",
+        accountId: 2,
+        place,
+        items: [{ name: "牛乳", amount: 250, comment: null, genreId: 1001 }],
+        confidence: "high",
+        reasoning: "",
+      }),
+    );
+
+  // AllFilled は collectFromActiveTab が使う chrome.* をスタブする decorator を持つ
+  test("自動入力の店舗が最近の店舗に一致すれば選択し place_uid で登録する", async ({ worker }) => {
+    const postHandler = vi.fn<(body: unknown) => void>();
+    worker.use(
+      ...commonHandlers,
+      extractPaymentHandler("スーパーA"),
+      http.post(`${MOCK_SERVER_URL}/api/zaim/payment`, async ({ request }) => {
+        postHandler(await request.json());
+        return HttpResponse.json({ id: 999, modified: "2024-01-01T00:00:00Z" }, { status: 201 });
+      }),
+    );
+    await render(<AllFilled.Component />);
+
+    await page.getByRole("button", { name: "このページから自動入力" }).click();
+    await expect
+      .element(page.getByRole("combobox", { name: "店舗" }))
+      .toHaveTextContent("スーパーA");
+    await page.getByRole("button", { name: "登録" }).click();
+
+    await vi.waitFor(() => {
+      expect(postHandler).toHaveBeenCalledWith(expect.objectContaining({ place_uid: "uid-001" }));
+    });
+    expect(postHandler.mock.calls[0]?.[0]).not.toHaveProperty("place");
+  });
+
+  test("自動入力の店舗が最近の店舗に一致しなければ店舗を選択しない", async ({ worker }) => {
+    const postHandler = vi.fn<(body: unknown) => void>();
+    worker.use(
+      ...commonHandlers,
+      extractPaymentHandler("初めての店"),
+      http.post(`${MOCK_SERVER_URL}/api/zaim/payment`, async ({ request }) => {
+        postHandler(await request.json());
+        return HttpResponse.json({ id: 999, modified: "2024-01-01T00:00:00Z" }, { status: 201 });
+      }),
+    );
+    await render(<AllFilled.Component />);
+
+    await page.getByRole("button", { name: "このページから自動入力" }).click();
+    await expect.element(page.getByText("牛乳")).toBeVisible();
+    await expect
+      .element(page.getByRole("combobox", { name: "店舗" }))
+      .toHaveTextContent("店舗を選択（任意）");
+    await page.getByRole("button", { name: "登録" }).click();
+
+    await vi.waitFor(() => {
+      expect(postHandler).toHaveBeenCalledTimes(1);
+    });
+    expect(postHandler.mock.calls[0]?.[0]).not.toHaveProperty("place");
+    expect(postHandler.mock.calls[0]?.[0]).not.toHaveProperty("place_uid");
   });
 });
 
