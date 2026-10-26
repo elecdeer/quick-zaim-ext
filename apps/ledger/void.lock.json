@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "source": {
+    "name": "quick-ledger",
+    "observability": {
+      "logs": {
+        "enabled": true,
+        "invocation_logs": true
+      }
+    },
+    "access": {
+      "dev": {
+        "aud": "local-dev",
+        "identity": {
+          "email": "dev@example.com"
+        }
+      }
+    }
+  },
+  "resolved": {
+    "name": "quick-ledger",
+    "observability": {
+      "logs": {
+        "enabled": true,
+        "invocation_logs": true
+      }
+    },
+    "access": {
+      "dev": {
+        "aud": "local-dev",
+        "identity": {
+          "email": "dev@example.com"
+        }
+      }
+    },
+    "account_id": "083aedbcc1eba2b5feea87d824d5c8d8",
+    "d1_databases": [
+      {
+        "binding": "DB",
+        "database_name": "quick-ledger-db",
+        "database_id": "f07e46e6-6216-48f3-8e02-31da90239f4f",
+        "migrations_dir": "./db/migrations"
+      }
+    ],
+    "compatibility_date": "2026-02-24"
+  },
+  "text": "{\n  \"name\": \"quick-ledger\",\n  \"observability\": {\n    \"logs\": {\n      \"enabled\": true,\n      \"invocation_logs\": true\n    }\n  },\n  \"access\": {\n    \"dev\": {\n      \"aud\": \"local-dev\",\n      \"identity\": {\n        \"email\": \"dev@example.com\"\n      }\n    }\n  },\n  \"account_id\": \"083aedbcc1eba2b5feea87d824d5c8d8\",\n  \"d1_databases\": [\n    {\n      \"binding\": \"DB\",\n      \"database_name\": \"quick-ledger-db\",\n      \"database_id\": \"f07e46e6-6216-48f3-8e02-31da90239f4f\",\n      \"migrations_dir\": \"./db/migrations\"\n    }\n  ],\n  \"compatibility_date\": \"2026-02-24\"\n}\n"
+}

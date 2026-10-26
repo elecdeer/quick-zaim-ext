@@ -36,6 +36,7 @@ export default defineMiddleware(async (c, next) => {
 
   const userFromContext = await getAccessUser(readExecutionCtx(c));
   if (userFromContext) {
+    console.info("Access authenticated via ctx.access", { path: c.req.path });
     c.set("accessUser", userFromContext);
     await next();
     return;
@@ -50,6 +51,7 @@ export default defineMiddleware(async (c, next) => {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
+  console.info("Access authenticated via Cf-Access-Jwt-Assertion", { path: c.req.path });
   c.set("accessUser", result.user);
   await next();
 });
