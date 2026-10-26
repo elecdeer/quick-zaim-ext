@@ -123,6 +123,14 @@ pnpm -F ledger exec void deploy
 - 初回はチェックアウトごとに `pnpm -F ledger exec void connect --platform cloudflare` でデプロイ先を選ぶ（選択は `.void/` に保存され Git には入らない）
 - デプロイ時に D1 のマイグレーションが適用される。適用前の復元ポイントと `void db restore` のコマンドが表示される
 - Void は Workers Previews に対応していないため、ブランチごとの Preview はない
+- Void は Worker の公開設定（`workers_dev`・`preview_urls`・`routes`）がダッシュボード側とずれているとデプロイを止めるので、`void.config.ts` に今の値を書いている
+- 破壊的なマイグレーション（`DROP TABLE` など）は、ファイルに `-- void:allow-destructive` の行がないと適用されない
+- デプロイの最後に Void が新しい版の準備確認をするが、Access に止められる。手元からデプロイするときは Access の短期トークンを渡す（取れないときは新しい版が有効にならず、前の版のまま動く）
+
+```bash
+cf access login https://quick-ledger.<subdomain>.workers.dev
+CF_ACCESS_TOKEN="$(cf access token https://quick-ledger.<subdomain>.workers.dev)" pnpm -F ledger exec void deploy
+```
 
 ### 認証
 
@@ -133,5 +141,5 @@ pnpm -F ledger exec void deploy
 pnpm -F ledger exec void secret put ACCESS_AUD
 ```
 
-- ローカル開発では `void.config.ts` の `cloudflare.access.dev` で認証済みユーザー（`dev@example.com`）を再現する
+- ローカル開発では、開発サーバー（`import.meta.env.DEV`）のときだけ `dev@example.com` として通す。`void.config.ts` に `cloudflare.access.dev` を書く方法は、デプロイ時に Worker の設定としてアップロードされ、シークレットと一緒に送れずに失敗するため使わない
 - コンテキスト変数の `user` は Void の認証機能（Better Auth）が型を予約しているため、`accessUser` を使う

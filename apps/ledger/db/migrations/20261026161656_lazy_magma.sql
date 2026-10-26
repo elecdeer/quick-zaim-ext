@@ -1,3 +1,4 @@
+-- void:allow-destructive
 -- void db generate は accounts への列追加を ALTER TABLE ADD で出力するが、
 -- SQLite は式の既定値を持つ列を行のあるテーブルに追加できないため、作り直してデータを移す
 CREATE TABLE `__new_accounts` (

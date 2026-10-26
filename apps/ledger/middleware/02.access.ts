@@ -23,13 +23,28 @@ const readExecutionCtx = (c: Context): unknown => {
 };
 
 /**
+ * 開発サーバーでの認証済みユーザー。
+ *
+ * ローカルには Access がないので固定のユーザーとして通す。wrangler の access.dev で ctx.access を再現する方法は、
+ * void.config.ts の access がデプロイ時に Worker の設定としてアップロードされ、シークレットと一緒に送れず失敗するため使わない。
+ */
+const DEV_USER: AccessUser = { id: "dev@example.com", email: "dev@example.com" };
+
+/**
  * Cloudflare Access で認証済みでなければ 401 を返し、認証済みならユーザーをコンテキストに設定する。
  *
  * まず ctx.access から取り出し、取れなければ Cf-Access-Jwt-Assertion を検証する。
  * Void のデプロイ時の準備確認（/__void/*）は Access の認証情報付きで来るが、ユーザーは要らないので通す。
+ * 開発サーバー（import.meta.env.DEV）では常に DEV_USER として通す。本番のビルドでは DEV が false に置き換わる。
  */
 export default defineMiddleware(async (c, next) => {
   if (c.req.path.startsWith("/__void/")) {
+    await next();
+    return;
+  }
+
+  if (import.meta.env.DEV) {
+    c.set("accessUser", DEV_USER);
     await next();
     return;
   }
