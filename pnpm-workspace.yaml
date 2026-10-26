@@ -38,6 +38,7 @@ catalog:
   wrangler: ^4.152.0
   void: 1.2.1
   "@void/react": 1.2.1
+  csv-parse: 7.0.3
 
 catalogMode: prefer
 overrides:

@@ -12,5 +12,5 @@
     "types": ["void/env"],
     "jsx": "react-jsx"
   },
-  "include": ["src", "pages", "routes", "middleware", "db", "env.ts", "void.config.ts"]
+  "include": ["scripts", "src", "pages", "routes", "middleware", "db", "env.ts", "void.config.ts"]
 }
