@@ -302,17 +302,17 @@ const uniqueBy = <T>(values: T[], key: (value: T) => string): T[] => [
 ];
 
 /**
- * 取り込みの SQL を作る。
+ * 取り込みの SQL 文を、流す順に作る。
  *
  * 取り込みは総入れ替えなので、前回までに取り込んだ取引を消してから入れ直す。手入力の取引とマスタは残す。
  * マスタは名前で INSERT OR IGNORE するので、何度流しても既存の ID は変わらない。
  * 取引の ID を変数に持てないので、品目は直前に入れた取引を MAX(id) で参照する（AUTOINCREMENT なので
  * 新しい行ほど ID が大きい）。last_insert_rowid() は 2 件目以降の品目で品目の ID になってしまうため使わない。
  */
-export const buildImportSql = (
+export const buildImportStatements = (
   transactions: ImportTransaction[],
   batch: { fileName: string; rowCount: number },
-): string => {
+): string[] => {
   const items = transactions.flatMap((transaction) => transaction.items);
   const categories = uniqueBy(
     items.flatMap((item) => (item.category === null ? [] : [item.category])),
@@ -333,7 +333,7 @@ export const buildImportSql = (
     (name) => name,
   );
 
-  const statements = [
+  return [
     "DELETE FROM transactions WHERE source = 'zaim_csv'",
     `INSERT INTO import_batches (source, file_name, row_count) VALUES ('zaim_csv', ${quote(batch.fileName)}, ${batch.rowCount})`,
     ...accountNames.map((name) => `INSERT OR IGNORE INTO accounts (name) VALUES (${quote(name)})`),
@@ -354,8 +354,26 @@ export const buildImportSql = (
       ),
     ]),
   ];
-  return `${statements.join(";\n")};\n`;
 };
+
+/**
+ * 取り込みの SQL を 1 つのファイルの中身にする（`void db execute --file` 向け）。
+ */
+export const buildImportSql = (
+  transactions: ImportTransaction[],
+  batch: { fileName: string; rowCount: number },
+): string => `${buildImportStatements(transactions, batch).join(";\n")};\n`;
+
+/**
+ * SQL 文を size 件ずつに分ける（`cf d1 raw --batch` 向け）。
+ *
+ * D1 はバッチごとにトランザクションで流すので、1 つのバッチの中で失敗すればそのバッチは入らない。
+ * バッチをまたいでは戻らないが、取り込みは総入れ替えなので、失敗したら最初から流し直せばよい。
+ */
+export const chunkStatements = (statements: string[], size: number): string[][] =>
+  Array.from({ length: Math.ceil(statements.length / size) }, (_, i) =>
+    statements.slice(i * size, (i + 1) * size),
+  );
 
 /** 方法・月ごとの件数と合計。取り込み前の CSV と取り込み後の台帳を突き合わせるのに使う */
 export type ImportSummaryRow = {

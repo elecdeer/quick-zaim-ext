@@ -164,18 +164,25 @@ CSV にはレシートのまとまりがないが、Zaim でレシートとし�
 
 ```bash
 # 手元で変換（DB には触れない）。--summary には方法・月ごとの件数と合計を出す
-pnpm -F ledger exec vpx scripts/import-zaim-csv.ts <CSV の絶対パス> --out <SQL> --summary <JSON>
-pnpm -F ledger exec void db execute --file <SQL>            # ローカルの D1 で確かめる
-pnpm -F ledger exec void db execute --remote --file <SQL>   # 本番の D1 に入れる
+pnpm -F ledger exec vpx scripts/import-zaim-csv.ts <CSV の絶対パス> --out <SQL> --summary <JSON> --batch-dir <dir>
+
+# ローカルの D1 で確かめる
+pnpm -F ledger exec void db execute --file <SQL>
+
+# 本番の D1 に入れる（バッチを番号順に 1 つずつ）
+for f in <dir>/batch-*.json; do cf d1 raw <D1 の ID> --batch "@$f" > /dev/null || break; done
 ```
+
+- 本番では `void db execute --remote --file` を使わない。Void がファイルの中身をコマンドの引数で `cf` に渡すため、4MB ほどの SQL では引数の長さの上限を超えて起動できない（E2BIG）
+- バッチは 1 つずつトランザクションで流れる。途中のバッチで失敗しても、取り込みは総入れ替えなので最初から流し直せばよい
 
 1. スクリプトが CSV を読み（UTF-8 と Shift_JIS の両方に対応）、行ごとに valibot で検証する。1 行でもエラーがあれば行番号と理由を出して SQL を出力しない
 2. マスタは名前で `INSERT OR IGNORE` するので、何度流しても ID は変わらない
-3. 取引は `source = 'zaim_csv'` と `import_batch_id` を付けて入れる。品目は直前の `last_insert_rowid()` を参照する
+3. 取引は `source = 'zaim_csv'` と `import_batch_id` を付けて入れる。品目は直前に入れた取引を `MAX(id)` で参照する（2 件目以降の品目では `last_insert_rowid()` が品目の ID になるため使わない）
 4. 本番に入れる前の時刻を控えておけば、`void db restore --timestamp` で戻せる（Time Travel）
 
 - 家計のデータをサーバーの API に送らずに済むよう、変換は手元のスクリプトで行う
-- SQL の文字列は自前でエスケープする（シングルクォートを重ねる）。ファイルが大きすぎて `void db execute --remote` で入らない場合は、パラメータを使える `cf d1 raw --batch` で分割して入れる
+- SQL の文字列は自前でエスケープする（シングルクォートを重ねる）
 - 取り込み後に、`--summary` の JSON と、台帳で `SUMMARY_SQL`（[zaimCsv.ts](../src/import/zaimCsv.ts)）を流した結果を突き合わせて確かめる
 
 ### ローカルの D1 で確かめた結果（2026-10-27）
@@ -184,6 +191,12 @@ pnpm -F ledger exec void db execute --remote --file <SQL>   # 本番の D1 に�
 - マスタは口座 15、カテゴリ 18、内訳 55、店舗 494
 - 方法・月ごとの件数と合計（232 組）が CSV とすべて一致した。外部キーの違反はなく、カテゴリ・内訳・店舗・口座・集計の設定・品目名・メモの件数も CSV と一致した
 - 同じ SQL をもう一度流しても件数は変わらず、口座の ID も変わらなかった
+
+### 本番の D1 に入れた結果（2026-10-27）
+
+- 12,114 文を 500 文ずつ 25 個のバッチに分け、`cf d1 raw --batch` ですべて流した（1 バッチは最大 196KB）
+- 件数・マスタの数はローカルと同じで、方法・月ごとの件数と合計（232 組）も CSV とすべて一致した。外部キーの違反もなかった
+- 取り込む直前の時刻は 2026-10-26T16:49:56Z。この時点へは `void db restore --timestamp` で戻せる（Workers Free では 7 日間）
 
 ### 切り替え時の再取り込み
 

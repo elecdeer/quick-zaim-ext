@@ -3,6 +3,8 @@ import { describe, expect, test } from "vite-plus/test";
 import { applyMigrations, createDb, insert } from "../../db/testing.ts";
 import {
   buildImportSql,
+  buildImportStatements,
+  chunkStatements,
   groupIntoTransactions,
   parseZaimRecords,
   summarizeRows,
@@ -427,5 +429,38 @@ describe("buildImportSql", () => {
     const db = createImportedDb(records);
 
     expect(db.prepare(SUMMARY_SQL).all()).toEqual(summarizeRows(parseOk(records)));
+  });
+});
+
+describe("chunkStatements", () => {
+  test("文を順番どおりに指定した件数ずつ分け、最後のバッチには余りが入る", () => {
+    expect(chunkStatements(["a", "b", "c", "d", "e"], 2)).toEqual([["a", "b"], ["c", "d"], ["e"]]);
+  });
+
+  test("バッチに分けて順に流しても、1 つのファイルで流したときと同じ結果になる", () => {
+    const records = [
+      record({ お店: "スーパー", 品目: "牛乳", 支出: "200" }),
+      record({ お店: "スーパー", 品目: "パン", 支出: "150" }),
+      record({ 日付: "2026-10-02", 支出: "300" }),
+    ];
+    const transactions = groupIntoTransactions(parseOk(records));
+    const batch = { fileName: "zaim.csv", rowCount: records.length };
+    const dump = (db: DatabaseSync): unknown =>
+      db
+        .prepare(
+          "SELECT t.id, t.date, i.amount, i.sort FROM transactions t JOIN transaction_items i ON i.transaction_id = t.id ORDER BY i.id",
+        )
+        .all();
+
+    const single = createDb();
+    applyMigrations(single);
+    single.exec(buildImportSql(transactions, batch));
+    const chunked = createDb();
+    applyMigrations(chunked);
+    for (const chunk of chunkStatements(buildImportStatements(transactions, batch), 3)) {
+      for (const sql of chunk) chunked.exec(sql);
+    }
+
+    expect(dump(chunked)).toEqual(dump(single));
   });
 });
