@@ -104,3 +104,34 @@ server へのログインとセッション管理は Worker の手前の [Cloudf
 ### ローカル開発
 
 `wrangler dev` には Access がないため、`apps/server/wrangler.jsonc` の `access.dev` で認証済みユーザー（`dev@example.com`）を再現している。ログイン操作は不要。未ログイン状態を試すときは `access.dev` を一時的に外す。
+
+## ledger（Zaim API の置き換え）
+
+Zaim API は 2026-12-07 に提供が終わるため、支払いを自前の台帳に記録する `apps/ledger` を [Void](https://void.cloud/) で作っている（現在はスパイク）。Cloudflare Workers 上の D1 と Drizzle を使い、`quick-zaim-server` とは別の Worker `quick-ledger` にデプロイする。
+
+- URL: `https://quick-ledger.<subdomain>.workers.dev`
+- API は `routes/`、Web 画面は `pages/`、スキーマは `db/schema.ts`（`void db generate` でマイグレーションを作る）
+- 拡張機能からは `ledger/client` の `createLedgerClient` で型付きで呼ぶ。Void の `void/client` の fetch は `credentials` を指定できず Access の Cookie を送れないため使わない
+- 拡張機能向けの型は `pnpm -F ledger run build:types` で `dist/types` に出す（`vp pack` だと Void が生成する型を読めず `any` になる）
+
+### デプロイ
+
+```bash
+pnpm -F ledger exec void deploy
+```
+
+- 初回はチェックアウトごとに `pnpm -F ledger exec void connect --platform cloudflare` でデプロイ先を選ぶ（選択は `.void/` に保存され Git には入らない）
+- デプロイ時に D1 のマイグレーションが適用される。適用前の復元ポイントと `void db restore` のコマンドが表示される
+- Void は Workers Previews に対応していないため、ブランチごとの Preview はない
+
+### 認証
+
+- Access アプリケーションは Worker 単位（destination の type が `worker`）で作り、ポリシーは `quick-zaim-server` と共有している
+- Void のアプリは静的アセットを持つため、Access のルーターが `ctx.access` を Worker に渡さない。本番では常に `Cf-Access-Jwt-Assertion` の JWT 検証で認証するので、`ACCESS_AUD` シークレットが必須（未設定だと全リクエストが 401 になる）
+
+```bash
+pnpm -F ledger exec void secret put ACCESS_AUD
+```
+
+- ローカル開発では `void.config.ts` の `cloudflare.access.dev` で認証済みユーザー（`dev@example.com`）を再現する
+- コンテキスト変数の `user` は Void の認証機能（Better Auth）が型を予約しているため、`accessUser` を使う
