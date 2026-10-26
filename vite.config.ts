@@ -12,7 +12,14 @@ export default defineConfig({
     "*": "vp check --fix",
   },
   fmt: {
-    ignorePatterns: ["**/.wrangler/**", "**/.output/**", "**/.wxt/**", "**/mockServiceWorker.js"],
+    ignorePatterns: [
+      "**/.wrangler/**",
+      "**/.output/**",
+      "**/.wxt/**",
+      "**/mockServiceWorker.js",
+      // void db generate が出力する Drizzle のスナップショット
+      "apps/ledger/db/migrations/meta/**",
+    ],
   },
   lint: {
     plugins: ["typescript"],

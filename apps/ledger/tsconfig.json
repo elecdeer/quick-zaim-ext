@@ -1,0 +1,16 @@
+{
+  "extends": "./.void/tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "types": ["void/env"],
+    "jsx": "react-jsx"
+  },
+  "include": ["src", "pages", "routes", "middleware", "db", "env.ts", "void.config.ts"]
+}
