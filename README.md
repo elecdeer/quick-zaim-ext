@@ -143,3 +143,4 @@ pnpm -F ledger exec void secret put ACCESS_AUD
 
 - ローカル開発では、開発サーバー（`import.meta.env.DEV`）のときだけ `dev@example.com` として通す。`void.config.ts` に `cloudflare.access.dev` を書く方法は、デプロイ時に Worker の設定としてアップロードされ、シークレットと一緒に送れずに失敗するため使わない
 - コンテキスト変数の `user` は Void の認証機能（Better Auth）が型を予約しているため、`accessUser` を使う
+- 自動入力（`POST /api/transactions/extract`）が使う Workers AI にはローカルの模擬環境がなく、開発サーバーは Access の後ろにある `quick-ledger` 経由でリモートの AI につなぐ。そのため Access のサービストークン（`CLOUDFLARE_ACCESS_CLIENT_ID` と `CLOUDFLARE_ACCESS_CLIENT_SECRET`）がないと開発サーバーが起動しない。AI 以外を試すだけなら、`void.config.ts` に一時的に `inference: { bindings: { ai: false } }` を足す

@@ -14,6 +14,8 @@
     "build:types": "tsc -p tsconfig.json --noEmit false --declaration --emitDeclarationOnly --outDir dist/types"
   },
   "dependencies": {
+    "@valibot/to-json-schema": "catalog:",
+    "drizzle-orm": "catalog:",
     "hono": "^4.13.14",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",

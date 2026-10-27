@@ -20,23 +20,27 @@ describe("createLedgerClient", () => {
   });
 
   test("body を渡すと JSON として送る", async () => {
-    const fetchMock = createFetchMock(Response.json({ id: 2, name: "楽天カード" }));
+    const fetchMock = createFetchMock(Response.json({ duplicates: [[]] }));
     const call = createLedgerClient("https://ledger.example.com", fetchMock);
+    const body = { date: "2026-10-27", items: [{ genreId: 1, amount: 200 }] };
 
-    await call("/api/accounts", "POST", { body: { name: "楽天カード" } });
+    await call("/api/transactions/duplicates", "POST", { body });
 
-    expect(fetchMock).toHaveBeenCalledWith(new URL("https://ledger.example.com/api/accounts"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "楽天カード" }),
-    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      new URL("https://ledger.example.com/api/transactions/duplicates"),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    );
   });
 
   test("2xx 以外ならステータスと本文を持つ LedgerFetchError を投げる", async () => {
     const fetchMock = createFetchMock(Response.json({ error: "Unauthorized" }, { status: 401 }));
     const call = createLedgerClient("https://ledger.example.com", fetchMock);
 
-    const error = await call("/api/me", "GET").catch((e: unknown) => e);
+    const error = await call("/me", "GET").catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(LedgerFetchError);
     expect(error).toMatchObject({ status: 401, data: { error: "Unauthorized" } });
@@ -46,6 +50,6 @@ describe("createLedgerClient", () => {
     const fetchMock = createFetchMock(new Response(null, { status: 204 }));
     const call = createLedgerClient("https://ledger.example.com", fetchMock);
 
-    await expect(call("/api/me", "GET")).resolves.toBeUndefined();
+    await expect(call("/me", "GET")).resolves.toBeUndefined();
   });
 });
