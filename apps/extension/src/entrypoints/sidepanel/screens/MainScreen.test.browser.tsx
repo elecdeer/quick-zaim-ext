@@ -1,6 +1,6 @@
 import type { LedgerInput, LedgerOutput } from "ledger/client";
 import { http, HttpResponse } from "msw";
-import { describe, expect, test as baseTest, vi } from "vite-plus/test";
+import { describe, expect, vi } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser";
 import { render } from "vitest-browser-react";
 import type { collectFromActiveTab } from "../../../page-collector/collectFromActiveTab.ts";
@@ -445,19 +445,32 @@ describe("MainScreen", () => {
 });
 
 describe("MainScreen visual regression", () => {
-  baseTest("初期状態", async () => {
+  /** 口座・店舗・カテゴリの選択欄が読み込まれるまで待つ（読み込み中や失敗の表示を撮らないため） */
+  const waitForMasters = async () => {
+    await expect.element(page.getByRole("combobox", { name: "口座" })).toBeVisible();
+    await expect.element(page.getByRole("combobox", { name: "店舗" })).toBeVisible();
+    await expect.element(page.getByRole("combobox", { name: "カテゴリ" }).first()).toBeVisible();
+  };
+
+  test("初期状態", async ({ worker }) => {
+    worker.use(...commonHandlers);
     await render(<Default.Component />);
+    await waitForMasters();
     await expect(page.elementLocator(document.body)).toMatchScreenshot("main-screen-initial");
   });
 
-  baseTest("品目追加後", async () => {
+  test("品目追加後", async ({ worker }) => {
+    worker.use(...commonHandlers);
     const screen = await render(<Default.Component />);
+    await waitForMasters();
     await userEvent.click(screen.getByRole("button", { name: "+ 品目を追加" }));
     await expect(page.elementLocator(document.body)).toMatchScreenshot("main-screen-two-items");
   });
 
-  baseTest("金額入力後", async () => {
+  test("金額入力後", async ({ worker }) => {
+    worker.use(...commonHandlers);
     const screen = await render(<Default.Component />);
+    await waitForMasters();
     await userEvent.click(screen.getByRole("button", { name: "金額を編集" }));
     await userEvent.fill(screen.getByRole("spinbutton", { name: "金額" }), "1000");
     await userEvent.click(screen.getByRole("button", { name: "完了" }));

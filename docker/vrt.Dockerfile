@@ -14,6 +14,7 @@ RUN pnpm fetch
 # CI=true: prepare スクリプト内のlefthookとwxt prepareをスキップする
 COPY package.json ./
 COPY apps/extension/package.json apps/extension/
+COPY apps/ledger/package.json apps/ledger/
 COPY apps/server/package.json apps/server/
 COPY packages/zaim-api/package.json packages/zaim-api/
 
