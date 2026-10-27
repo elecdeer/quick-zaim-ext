@@ -98,6 +98,11 @@ export const defineQuery = <TParams, TData>(
   const pendingFetches = new Map<string, Promise<TData>>();
   const gcTimers = new Map<string, ReturnType<typeof setTimeout>>();
   const usedParams = new Map<string, TParams>();
+  /**
+   * resetAll のたびに進める世代。resetAll より前に始まった取得の結果は、
+   * リセット後のキャッシュに書き込まない（テスト間でキャッシュが漏れるのを防ぐ）
+   */
+  let generation = 0;
 
   /** キャッシュデータを保持する writable atom（キーごと） */
   const cacheFamily = atomFamily(
@@ -140,14 +145,16 @@ export const defineQuery = <TParams, TData>(
     if (pending) return pending;
     usedParams.set(key, params);
     const controller = new AbortController();
+    const startedGeneration = generation;
     const promise = queryFn(params, { signal: controller.signal }).then(
       (data) => {
+        if (startedGeneration !== generation) return data;
         queryJotaiStore.set(cacheFamily(params), data);
         pendingFetches.delete(key);
         return data;
       },
       (error) => {
-        pendingFetches.delete(key);
+        if (startedGeneration === generation) pendingFetches.delete(key);
         throw error;
       },
     );
@@ -161,7 +168,9 @@ export const defineQuery = <TParams, TData>(
     const currentEpoch = queryJotaiStore.get(epochFamily(params));
     queryJotaiStore.set(epochFamily(params), currentEpoch + 1);
     const controller = new AbortController();
+    const startedGeneration = generation;
     const promise = queryFn(params, { signal: controller.signal }).then((data) => {
+      if (startedGeneration !== generation) return data;
       queryJotaiStore.set(cacheFamily(params), data);
       pendingFetches.delete(key);
       return data;
@@ -235,6 +244,7 @@ export const defineQuery = <TParams, TData>(
   };
 
   const resetAll = (): void => {
+    generation++;
     for (const [key, params] of usedParams) {
       cancelGcTimer(key);
       queryJotaiStore.set(cacheFamily(params), undefined);
