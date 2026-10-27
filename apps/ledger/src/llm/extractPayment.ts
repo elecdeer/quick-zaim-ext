@@ -136,6 +136,7 @@ export const buildPrompt = (input: ExtractPaymentContext): { system: string; pro
     "  Pick the genre by its parent category context — the listing shows `categoryId=name: genreId=name, ...` so you can see which genres belong to which category.",
     "  Choose the most fitting genre for each item independently; different items in the same purchase may have different genres.",
     "  Do NOT output a category ID; only the per-item `genreId` is required.",
+    "  A discount item takes the same `genreId` as the item it discounts. When it applies to the whole purchase, use the genre of the largest item.",
     "- Use null for fields that cannot be determined.",
     "- `items` is never empty; include at least one entry even if every field is null.",
   ].join("\n");

@@ -87,6 +87,11 @@ describe("buildPrompt", () => {
     expect(system).toContain("YYYY-MM-DD");
     expect(system).toContain("`items` is never empty");
   });
+
+  test("値引きは値引きの対象と同じ内訳にするよう指示する", () => {
+    const { system } = buildPrompt(baseInput());
+    expect(system).toContain("A discount item takes the same `genreId` as the item it discounts.");
+  });
 });
 
 describe("runExtractPayment", () => {
