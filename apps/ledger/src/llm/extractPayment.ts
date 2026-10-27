@@ -1,15 +1,16 @@
 /**
  * LLM によるページからの支払い情報の抽出。apps/server/src/features/llm から移したもの。
- *
- * Cloudflare Workers AI binding (`env.AI.run`) を直接叩く。`workers-ai-provider` を
- * 経由しないのは、同プロバイダが OpenAI 互換モデル（例: `openai/gpt-5.4-mini`）に対して
- * `response_format.json_schema.name` を埋めず OpenAI 側で `Missing required parameter`
- * エラーになるためで、ここでは valibot スキーマを `@valibot/to-json-schema` で
- * JSON Schema に変換し、`json_schema.name`/`strict` を明示して送る。
+ * Workers AI の呼び出しは structuredChat.ts にまとめている。
  */
 import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
 import type { CategoryWithGenres, PlaceWithUsage } from "../ledger/masters.ts";
+import {
+  runStructuredChat,
+  truncate,
+  type AiRunner,
+  type ExtractTiming,
+} from "./structuredChat.ts";
 
 /** 拡張機能の content script が集めたページの内容 */
 export const PageContentSchema = v.object({
@@ -63,23 +64,8 @@ export const ExtractedPaymentSchema = v.strictObject({
 
 export type ExtractedPayment = v.InferOutput<typeof ExtractedPaymentSchema>;
 
-/** 各処理フェーズの所要時間（ms）。ボトルネック切り分け用にハンドラ側でログする */
-export type ExtractPaymentTiming = {
-  /** プロンプト構築（buildPrompt）にかかった時間 */
-  promptMs: number;
-  /** `env.AI.run` の往復時間。LLM 推論 + ネットワーク + ゲートウェイの合計 */
-  aiMs: number;
-  /** レスポンスから JSON を抜き出して JSON.parse する時間 */
-  parseMs: number;
-  /** 抽出結果を valibot で v.parse する時間 */
-  validateMs: number;
-};
-
 const ARIA_SNAPSHOT_MAX_CHARS = 16000;
 const RECENT_PLACES_LIMIT = 20;
-
-const truncate = (text: string, max: number): string =>
-  text.length <= max ? text : `${text.slice(0, max)}\n…[truncated ${text.length - max} chars]`;
 
 /**
  * カテゴリ一覧を 1 カテゴリ 1 行のコンパクトな形式にまとめる。
@@ -106,8 +92,11 @@ export const formatAccountsForPrompt = (accounts: ExtractPaymentContext["account
 /**
  * 最近使った店舗をプロンプト用にフォーマットする。使ったことのない店舗は候補にしない。
  */
-export const formatRecentPlacesForPrompt = (places: PlaceWithUsage[]): string => {
-  const recent = places.filter((place) => place.lastUsedOn !== null).slice(0, RECENT_PLACES_LIMIT);
+export const formatRecentPlacesForPrompt = (
+  places: PlaceWithUsage[],
+  limit: number = RECENT_PLACES_LIMIT,
+): string => {
+  const recent = places.filter((place) => place.lastUsedOn !== null).slice(0, limit);
   if (recent.length === 0) return "(none)";
   return recent
     .map((place) => `${place.name} [${place.useCount}x, ${place.lastUsedOn ?? ""}]`)
@@ -169,87 +158,21 @@ export const buildPrompt = (input: ExtractPaymentContext): { system: string; pro
 /** `ExtractedPaymentSchema` を OpenAI 互換の JSON Schema に変換した結果 */
 const EXTRACTED_PAYMENT_JSON_SCHEMA = toJsonSchema(ExtractedPaymentSchema);
 
-type WorkersAiChatResponse = {
-  response?: unknown;
-  choices?: Array<{ message?: { content?: unknown } }>;
-  usage?: unknown;
-};
-
-/**
- * Workers AI の chat 系レスポンスから assistant メッセージ本体を取り出す。
- */
-const extractAssistantPayload = (output: WorkersAiChatResponse): unknown => {
-  const choiceContent = output.choices?.[0]?.message?.content;
-  if (choiceContent != null && choiceContent !== "") {
-    if (typeof choiceContent === "string") {
-      return JSON.parse(choiceContent);
-    }
-    return choiceContent;
-  }
-  if ("response" in output) {
-    const response = output.response;
-    if (typeof response === "string") return JSON.parse(response);
-    if (response !== null && response !== undefined) return response;
-  }
-  throw new Error(`Workers AI returned no usable content: ${JSON.stringify(output)}`);
-};
-
-/** Workers AI の binding のうち、ここで使う部分 */
-export type AiRunner = {
-  run: (
-    model: string,
-    inputs: Record<string, unknown>,
-    options?: { signal?: AbortSignal },
-  ) => Promise<unknown>;
-};
-
 /**
  * Workers AI binding を使って支払い情報を抽出する。
  */
-export const runExtractPayment = async (params: {
+export const runExtractPayment = (params: {
   ai: AiRunner;
   model: string;
   input: ExtractPaymentContext;
   abortSignal?: AbortSignal;
-}): Promise<{ object: ExtractedPayment; usage: unknown; timing: ExtractPaymentTiming }> => {
-  const tStart = performance.now();
-  const { system, prompt } = buildPrompt(params.input);
-  const tAfterPrompt = performance.now();
-
-  const inputs: Record<string, unknown> = {
-    messages: [
-      { role: "system", content: system },
-      { role: "user", content: prompt },
-    ],
-    response_format: {
-      type: "json_schema",
-      json_schema: {
-        name: "ExtractedPayment",
-        strict: true,
-        schema: EXTRACTED_PAYMENT_JSON_SCHEMA,
-      },
-    },
-  };
-  // chat 系モデルは choices か response を持つオブジェクトを返す（取り出しは extractAssistantPayload が確かめる）
-  const output = (await params.ai.run(params.model, inputs, {
-    signal: params.abortSignal,
-  })) as WorkersAiChatResponse;
-  const tAfterAi = performance.now();
-
-  const payload = extractAssistantPayload(output);
-  const tAfterParse = performance.now();
-
-  const object = v.parse(ExtractedPaymentSchema, payload);
-  const tAfterValidate = performance.now();
-
-  return {
-    object,
-    usage: output.usage,
-    timing: {
-      promptMs: Math.round(tAfterPrompt - tStart),
-      aiMs: Math.round(tAfterAi - tAfterPrompt),
-      parseMs: Math.round(tAfterParse - tAfterAi),
-      validateMs: Math.round(tAfterValidate - tAfterParse),
-    },
-  };
-};
+}): Promise<{ object: ExtractedPayment; usage: unknown; timing: ExtractTiming }> =>
+  runStructuredChat({
+    ai: params.ai,
+    model: params.model,
+    buildPrompt: () => buildPrompt(params.input),
+    schemaName: "ExtractedPayment",
+    jsonSchema: EXTRACTED_PAYMENT_JSON_SCHEMA,
+    schema: ExtractedPaymentSchema,
+    abortSignal: params.abortSignal,
+  });

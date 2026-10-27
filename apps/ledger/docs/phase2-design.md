@@ -148,6 +148,39 @@
 - 品目の `comment` は台帳の用語に合わせて `memo`、`place` は `placeName` にする
 - 評価スクリプト（`apps/server/scripts/eval-extract-payment.ts`）はフェーズ4で移す
 
+### 明細からの一括登録
+
+main で拡張機能に「明細から一括」のタブ（カード明細から利用行を読み取り、概要だけでまとめて登録する）が入ったので、これも台帳で動かす。
+
+```ts
+// POST /api/statements/extract
+// body: 自動入力と同じ { pageContent }
+// response
+{
+  accountId: number | null;
+  rows: {
+    date: string | null;
+    place: string | null; // 明細に書かれた利用先名
+    placeName: string | null; // 同じ店と推測した既存の店舗の名前
+    amount: number | null;
+    genreId: number | null;
+  }[];
+  confidence: "high" | "medium" | "low";
+  reasoning: string;
+}
+
+// POST /api/statements/registered（登録済みの判定。DB は変えない）
+// body
+{ entries: { date: string; amount: number }[] } // 500 行まで
+// response: entries と同じ順で、割り当てた支出（なければ null）
+{ matches: ({ transactionId: number; date: string; amount: number; placeName: string | null } | null)[] }
+```
+
+- 明細の読み取りは自動入力と同じく、口座・カテゴリ・店舗を台帳が読む。明細の利用先名は半角カナや略称で店舗名とずれるので、既存の店舗への照合は LLM に任せる（候補は最近使った 200 件）
+- 登録済みの判定は Zaim のときと同じく「金額が一致し、日付のずれが ±2 日以内」で、ずれの小さい組から 1 対 1 で割り当てる。金額は取引の品目の合計と比べる（レシートを品目ごとに登録した取引も、合計が明細の金額と一致する）
+- 登録は行ごとに `POST /api/transactions` を呼ぶ。行ごとに 1 件の取引で、途中で失敗したときにどの行まで登録できたかを画面に出せる
+- 店舗に紐付かない行は、Zaim のときと同じく利用先名を品名に入れ、店舗は空にする。明細の表記のまま店舗を作ると、表記ゆれの店舗が増えるため
+
 ### レスポンスの型と状態コード
 
 - 拡張機能は `ledger/client` の `createLedgerClient` で呼び、レスポンスの型はハンドラの戻り値から生成したものを使う。拡張機能の [queries.ts](../../extension/src/queries.ts) にある手書きの型はなくす
