@@ -1,8 +1,10 @@
+import type { LedgerInput } from "ledger/client";
 import type { CategorySelection } from "../components/CategoryCombobox.tsx";
 import { collectFromActiveTab } from "../page-collector/collectFromActiveTab.ts";
-import type { createServerClient } from "./serverClient";
+import type { CategoriesResponse } from "../queries.ts";
 
-type ServerClient = ReturnType<typeof createServerClient>;
+/** 台帳の読み取り API に送るページの内容 */
+export type PageContent = LedgerInput<"/api/transactions/extract", "POST">["body"]["pageContent"];
 
 /**
  * categories 一覧から `genreId` が属する `categoryId` を逆引きして
@@ -12,11 +14,11 @@ type ServerClient = ReturnType<typeof createServerClient>;
  * `categoryId` をここで補完する。
  */
 export const findCategorySelectionByGenreId = (
-  categories: ReadonlyArray<{ id: number; subCategories: ReadonlyArray<{ id: number }> }>,
+  categories: CategoriesResponse["categories"],
   genreId: number,
 ): CategorySelection | null => {
   for (const category of categories) {
-    if (category.subCategories.some((sub) => sub.id === genreId)) {
+    if (category.genres.some((genre) => genre.id === genreId)) {
       return { categoryId: category.id, genreId };
     }
   }
@@ -24,38 +26,15 @@ export const findCategorySelectionByGenreId = (
 };
 
 /**
- * アクティブなタブのページ内容と、LLM 抽出に渡す候補（カテゴリ・有効な口座・最近の店舗）を
- * まとめて取得する。戻り値はそのまま `/api/llm/*` の body に使える。
+ * アクティブなタブから、台帳の読み取り API に送るページの内容を集める。
+ * 口座・カテゴリ・店舗の候補は台帳が自分で読むので送らない。
  */
-export const collectExtractionInput = async (client: ServerClient) => {
+export const collectPageContent = async (): Promise<PageContent> => {
   const collected = await collectFromActiveTab();
-
-  const [categoriesRes, accountsRes, storesRes] = await Promise.all([
-    client.api.zaim.categories.$get({ query: {} }),
-    client.api.zaim.accounts.$get({ query: {} }),
-    client.api.zaim.stores.$get({ query: {} }),
-  ]);
-  if (!categoriesRes.ok) throw new Error(`カテゴリの取得に失敗しました（${categoriesRes.status}）`);
-  if (!accountsRes.ok) throw new Error(`口座の取得に失敗しました（${accountsRes.status}）`);
-  if (!storesRes.ok) throw new Error(`店舗の取得に失敗しました（${storesRes.status}）`);
-
-  const categoriesBody = await categoriesRes.json();
-  const accountsBody = await accountsRes.json();
-  const storesBody = await storesRes.json();
-
-  const activeAccounts = accountsBody.accounts
-    .filter((account) => account.active === 1)
-    .map((account) => ({ id: account.id, name: account.name }));
-
   return {
-    pageContent: {
-      url: collected.url,
-      title: collected.title,
-      ariaSnapshot: collected.ariaSnapshot,
-      collectedAt: collected.collectedAt,
-    },
-    categories: categoriesBody.categories,
-    accounts: activeAccounts,
-    recentStores: storesBody.stores,
+    url: collected.url,
+    title: collected.title,
+    ariaSnapshot: collected.ariaSnapshot,
+    collectedAt: collected.collectedAt,
   };
 };

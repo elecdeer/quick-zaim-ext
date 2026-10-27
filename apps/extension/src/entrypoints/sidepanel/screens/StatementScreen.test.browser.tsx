@@ -1,122 +1,29 @@
+import type { LedgerInput } from "ledger/client";
 import { http, HttpResponse } from "msw";
 import { describe, expect } from "vite-plus/test";
 import { page } from "vite-plus/test/browser";
 import { render } from "vitest-browser-react";
 import { test } from "../../../test-utils/browser-test.ts";
+import { mockUrl, statementHandlers } from "../../../test-utils/ledgerMocks.ts";
 import { Default } from "./StatementScreen.stories";
 
-const MOCK_SERVER_URL = "http://mock-server.test";
+const commonHandlers = statementHandlers;
 
-const mockCategoriesResponse = {
-  fetchedAt: "2024-01-01T00:00:00Z",
-  categories: [
-    {
-      id: 101,
-      name: "食費",
-      mode: "payment",
-      subCategories: [
-        { id: 1001, name: "食料品" },
-        { id: 1002, name: "カフェ" },
-      ],
-    },
-    {
-      id: 102,
-      name: "交通費",
-      mode: "payment",
-      subCategories: [{ id: 1003, name: "電車・バス" }],
-    },
-  ],
-};
-
-const mockAccountsResponse = {
-  fetchedAt: "2024-01-01T00:00:00Z",
-  accounts: [
-    {
-      id: 2,
-      name: "クレジットカード",
-      active: 1,
-      sort: 1,
-      modified: "2024-01-01",
-      localId: 0,
-      websiteId: 0,
-      parentAccountId: 0,
-    },
-  ],
-};
-
-const mockStoresResponse = {
-  fetchedAt: "2024-01-01T00:00:00Z",
-  stores: [
-    { place: "スーパーA", placeUid: "uid-001", latestDate: "2026-04-10", count: 5 },
-    { place: "カフェC 駅前店", placeUid: "uid-003", latestDate: "2026-03-01", count: 2 },
-  ],
-};
-
-const commonHandlers = [
-  http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, () =>
-    HttpResponse.json(mockCategoriesResponse),
-  ),
-  http.get(`${MOCK_SERVER_URL}/api/zaim/accounts`, () => HttpResponse.json(mockAccountsResponse)),
-  http.get(`${MOCK_SERVER_URL}/api/zaim/stores`, () => HttpResponse.json(mockStoresResponse)),
-  http.post(`${MOCK_SERVER_URL}/api/llm/extract-statement`, () =>
-    HttpResponse.json({
-      accountId: 2,
-      rows: [
-        {
-          date: "2026-05-01",
-          place: "ｽｰﾊﾟｰA",
-          placeUid: "uid-001",
-          amount: 1200,
-          genreId: 1001,
-        },
-        { date: "2026-05-02", place: "JR東日本", placeUid: null, amount: 300, genreId: 1003 },
-        { date: "2026-05-03", place: "カフェC", placeUid: null, amount: 450, genreId: 1002 },
-        { date: null, place: "読み取れない行", placeUid: null, amount: null, genreId: null },
-      ],
-      confidence: "high",
-      reasoning: "",
-    }),
-  ),
-  // 2 行目（JR東日本）だけ登録済み
-  http.post(`${MOCK_SERVER_URL}/api/zaim/payment/duplicate/bulk`, () =>
-    HttpResponse.json({
-      results: [
-        { match: null },
-        {
-          match: {
-            id: 50,
-            date: "2026-05-02",
-            amount: 300,
-            place: "",
-            placeUid: "",
-            mode: "payment",
-            categoryId: 102,
-            genreId: 1003,
-          },
-        },
-        { match: null },
-      ],
-    }),
-  ),
-];
-
-type PaymentRequestBody = {
-  amount: number;
-  date: string;
-  genre_id: number;
-  from_account_id?: number;
-  name?: string;
-  place_uid?: string;
-};
+type PaymentBody = LedgerInput<"/api/transactions", "POST">["body"];
 
 /** 登録リクエストの body を記録し、`failOnCall` 回目だけ 500 を返すハンドラー */
 const recordPaymentHandler = (failOnCall?: number) => {
-  const bodies: PaymentRequestBody[] = [];
-  const handler = http.post(`${MOCK_SERVER_URL}/api/zaim/payment`, async ({ request }) => {
-    bodies.push((await request.json()) as PaymentRequestBody);
-    if (bodies.length === failOnCall) return new HttpResponse(null, { status: 500 });
-    return HttpResponse.json({ id: 999, modified: "2026-06-01T00:00:00Z" }, { status: 201 });
-  });
+  const bodies: PaymentBody[] = [];
+  const handler = http.post<never, PaymentBody>(
+    mockUrl("/api/transactions"),
+    async ({ request }) => {
+      bodies.push(await request.json());
+      if (bodies.length === failOnCall) {
+        return HttpResponse.json({ error: "登録できませんでした" }, { status: 500 });
+      }
+      return HttpResponse.json({ id: 999 });
+    },
+  );
   return { handler, bodies };
 };
 
@@ -158,7 +65,7 @@ describe("StatementScreen", () => {
     worker,
   }) => {
     const { handler, bodies } = recordPaymentHandler();
-    worker.use(...commonHandlers, handler);
+    worker.use(handler, ...commonHandlers);
     await render(<Default.Component />);
     await extract();
 
@@ -169,20 +76,16 @@ describe("StatementScreen", () => {
       .toBeInTheDocument();
     expect(bodies).toEqual([
       {
-        category_id: 101,
-        genre_id: 1001,
-        amount: 1200,
         date: "2026-05-01",
-        from_account_id: 2,
-        place_uid: "uid-001",
+        fromAccountId: 2,
+        placeName: "スーパーA",
+        items: [{ genreId: 1001, name: null, memo: null, amount: 1200 }],
       },
       {
-        category_id: 101,
-        genre_id: 1002,
-        amount: 450,
         date: "2026-05-03",
-        from_account_id: 2,
-        name: "カフェC",
+        fromAccountId: 2,
+        placeName: null,
+        items: [{ genreId: 1002, name: "カフェC", memo: null, amount: 450 }],
       },
     ]);
     expect(page.getByText("登録しました", { exact: true }).all().length).toBe(2);
@@ -191,7 +94,7 @@ describe("StatementScreen", () => {
 
   test("登録済みと判定された行も選択し直せば登録できる", async ({ worker }) => {
     const { handler, bodies } = recordPaymentHandler();
-    worker.use(...commonHandlers, handler);
+    worker.use(handler, ...commonHandlers);
     await render(<Default.Component />);
     await extract();
 
@@ -201,12 +104,12 @@ describe("StatementScreen", () => {
     await expect
       .element(page.getByRole("status").filter({ hasText: "3件登録しました" }))
       .toBeInTheDocument();
-    expect(bodies.map((body) => body.amount)).toEqual([1200, 300, 450]);
+    expect(bodies.map((body) => body.items[0]?.amount)).toEqual([1200, 300, 450]);
   });
 
   test("途中で登録に失敗するとエラーを表示し、登録できた行は選択から外れる", async ({ worker }) => {
     const { handler } = recordPaymentHandler(2);
-    worker.use(...commonHandlers, handler);
+    worker.use(handler, ...commonHandlers);
     await render(<Default.Component />);
     await extract();
 
@@ -226,7 +129,7 @@ describe("StatementScreen", () => {
 
   test("行ごとに店舗を選び直して登録できる", async ({ worker }) => {
     const { handler, bodies } = recordPaymentHandler();
-    worker.use(...commonHandlers, handler);
+    worker.use(handler, ...commonHandlers);
     await render(<Default.Component />);
     await extract();
 
@@ -242,9 +145,9 @@ describe("StatementScreen", () => {
     await expect
       .element(page.getByRole("status").filter({ hasText: "2件登録しました" }))
       .toBeInTheDocument();
-    expect(bodies.map(({ name, place_uid }) => ({ name, place_uid }))).toEqual([
-      { name: "ｽｰﾊﾟｰA", place_uid: undefined },
-      { name: undefined, place_uid: "uid-003" },
+    expect(bodies.map(({ placeName, items }) => ({ placeName, name: items[0]?.name }))).toEqual([
+      { placeName: null, name: "ｽｰﾊﾟｰA" },
+      { placeName: "カフェC 駅前店", name: null },
     ]);
   });
 });

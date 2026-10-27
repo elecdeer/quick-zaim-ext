@@ -77,3 +77,39 @@ export const masterHandlers = [
   placesHandler,
   noDuplicatesHandler,
 ];
+
+/** 明細の一括登録で使う店舗。明細の利用先名と表記がずれる店舗を含む */
+export const mockStatementPlaces: LedgerOutput<"/api/places", "GET"> = {
+  places: [
+    { id: 1, name: "スーパーA", lastUsedOn: "2026-04-10", useCount: 5 },
+    { id: 3, name: "カフェC 駅前店", lastUsedOn: "2026-03-01", useCount: 2 },
+  ],
+};
+
+/** 読み取れる行が 3 件、日付と金額を読み取れない行が 1 件の明細 */
+export const mockStatement: LedgerOutput<"/api/statements/extract", "POST"> = {
+  accountId: 2,
+  rows: [
+    { date: "2026-05-01", place: "ｽｰﾊﾟｰA", placeName: "スーパーA", amount: 1200, genreId: 1001 },
+    { date: "2026-05-02", place: "JR東日本", placeName: null, amount: 300, genreId: 1003 },
+    { date: "2026-05-03", place: "カフェC", placeName: null, amount: 450, genreId: 1002 },
+    { date: null, place: "読み取れない行", placeName: null, amount: null, genreId: null },
+  ],
+  confidence: "high",
+  reasoning: "",
+};
+
+/** 2 行目（JR東日本）だけ登録済みとして返す */
+export const mockStatementMatches: LedgerOutput<"/api/statements/registered", "POST"> = {
+  matches: [null, { transactionId: 50, date: "2026-05-02", amount: 300, placeName: null }, null],
+};
+
+/** 明細の一括登録画面の読み取りと登録に使うハンドラー */
+export const statementHandlers = [
+  accountsHandler,
+  categoriesHandler,
+  http.get(mockUrl("/api/places"), () => HttpResponse.json(mockStatementPlaces)),
+  http.post(mockUrl("/api/statements/extract"), () => HttpResponse.json(mockStatement)),
+  http.post(mockUrl("/api/statements/registered"), () => HttpResponse.json(mockStatementMatches)),
+  http.post(mockUrl("/api/transactions"), () => HttpResponse.json({ id: 999 })),
+];

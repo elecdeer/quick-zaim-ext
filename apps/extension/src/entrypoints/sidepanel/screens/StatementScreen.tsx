@@ -5,9 +5,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToastManager } from "@/components/ui/toast";
 import { AccountCombobox } from "../../../components/AccountCombobox.tsx";
 import { CategoryCombobox, type CategorySelection } from "../../../components/CategoryCombobox.tsx";
-import { StoreCombobox, type StoreSelection } from "../../../components/StoreCombobox.tsx";
-import { collectExtractionInput } from "../../../lib/extraction.ts";
-import { createServerClient } from "../../../lib/serverClient";
+import { StoreCombobox } from "../../../components/StoreCombobox.tsx";
+import { collectPageContent } from "../../../lib/extraction.ts";
+import { createServerClient, withErrorMessage } from "../../../lib/serverClient";
 import {
   buildStatementRows,
   selectReadableRows,
@@ -15,6 +15,7 @@ import {
   type StatementRow,
 } from "../../../lib/statementRows.ts";
 import { useMutation } from "../../../lib/useMutation.ts";
+import { categoriesQuery, placesQuery } from "../../../queries.ts";
 
 interface Props {
   serverUrl: string;
@@ -40,7 +41,7 @@ interface StatementRowItemProps {
   serverUrl: string;
   disabled: boolean;
   onSelectedChange: (selected: boolean) => void;
-  onStoreChange: (store: StoreSelection | null) => void;
+  onStoreChange: (store: string | null) => void;
   onCategoryChange: (category: CategorySelection | null) => void;
 }
 
@@ -121,32 +122,30 @@ export default function StatementScreen({ serverUrl }: Props) {
   const extractMutation = useMutation({
     mutationFn: async () => {
       const client = createServerClient(serverUrl);
-      const input = await collectExtractionInput(client);
-
-      const extractRes = await client.api.llm["extract-statement"].$post({ json: input });
-      if (!extractRes.ok) throw new Error(`明細の読み取りに失敗しました（${extractRes.status}）`);
-      const extracted = await extractRes.json();
+      const pageContent = await collectPageContent();
+      // 推測した店舗名と内訳を一覧に照らすので、店舗とカテゴリの一覧も使う。選択欄が読み込み済みならキャッシュを使う
+      const [extracted, { places }, { categories }] = await Promise.all([
+        withErrorMessage(
+          "明細の読み取り",
+          client("/api/statements/extract", "POST", { body: { pageContent } }),
+        ),
+        withErrorMessage("店舗の取得", placesQuery.prefetch(serverUrl)),
+        withErrorMessage("カテゴリの取得", categoriesQuery.prefetch(serverUrl)),
+      ]);
 
       const readableRows = selectReadableRows(extracted.rows);
       let matches: Array<RegisteredMatch | null> = readableRows.map(() => null);
       if (readableRows.length > 0) {
-        const duplicateRes = await client.api.zaim.payment.duplicate.bulk.$post({
-          json: { entries: readableRows.map((row) => ({ date: row.date, amount: row.amount })) },
-        });
-        if (!duplicateRes.ok) {
-          throw new Error(`登録済みの確認に失敗しました（${duplicateRes.status}）`);
-        }
-        const duplicateBody = await duplicateRes.json();
-        matches = duplicateBody.results.map((result) => result.match);
+        ({ matches } = await withErrorMessage(
+          "登録済みの確認",
+          client("/api/statements/registered", "POST", {
+            body: { entries: readableRows.map((row) => ({ date: row.date, amount: row.amount })) },
+          }),
+        ));
       }
 
       return {
-        rows: buildStatementRows({
-          rows: readableRows,
-          matches,
-          recentStores: input.recentStores,
-          categories: input.categories,
-        }),
+        rows: buildStatementRows({ rows: readableRows, matches, places, categories }),
         accountId: extracted.accountId,
         skippedCount: extracted.rows.length - readableRows.length,
       };
@@ -174,27 +173,26 @@ export default function StatementScreen({ serverUrl }: Props) {
         // 途中で失敗したとき登録済みの行がわかるよう、1 件ずつ登録して行の状態を更新する
         for (const [index, row] of targets.entries()) {
           if (!row.category) throw new Error("カテゴリが選択されていない行があります");
-          const res = await client.api.zaim.payment.$post({
-            json: {
-              category_id: row.category.categoryId,
-              genre_id: row.category.genreId,
-              amount: row.amount,
-              date: row.date,
-              ...(accountId !== null && { from_account_id: accountId }),
-              // Zaim API は店舗名（place）での指定を受け付けず、既存店舗の place_uid しか使えない。
-              // 店舗に紐付かない利用先は名前が残るよう品名に入れる
-              ...(row.store
-                ? { place_uid: row.store.placeUid }
-                : row.place
-                  ? { name: row.place }
-                  : {}),
-            },
-          });
-          if (!res.ok) {
-            throw new Error(
-              `「${row.place || "(利用先不明)"}」の登録に失敗しました（${res.status}）`,
-            );
-          }
+          await withErrorMessage(
+            `「${row.place || "(利用先不明)"}」の登録`,
+            client("/api/transactions", "POST", {
+              body: {
+                date: row.date,
+                fromAccountId: accountId,
+                // 明細の表記のまま店舗を作ると表記ゆれの店舗が増えるので、
+                // 既存の店舗に紐付かない利用先は名前が残るよう品名に入れる
+                placeName: row.store,
+                items: [
+                  {
+                    genreId: row.category.genreId,
+                    name: row.store === null ? row.place || null : null,
+                    memo: null,
+                    amount: row.amount,
+                  },
+                ],
+              },
+            }),
+          );
           updateRow(row.id, { selected: false, submitted: true });
           setProgress({ done: index + 1, total: targets.length });
         }
@@ -205,6 +203,8 @@ export default function StatementScreen({ serverUrl }: Props) {
     },
     onSuccess: (count) => {
       toastManager.add({ description: `${count}件登録しました` });
+      // 登録で店舗の並び順が変わるので取り直す。失敗しても今の一覧を使い続ける
+      placesQuery.refetch(serverUrl).catch(() => {});
     },
   });
 

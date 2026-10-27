@@ -1,19 +1,34 @@
 import { describe, expect, test } from "vite-plus/test";
+import type { CategoriesResponse, PlacesResponse } from "../queries.ts";
 import { buildStatementRows, selectReadableRows } from "./statementRows.ts";
 
-const categories = [
-  { id: 101, subCategories: [{ id: 1001 }, { id: 1002 }] },
-  { id: 102, subCategories: [{ id: 1003 }] },
+const categories: CategoriesResponse["categories"] = [
+  {
+    id: 101,
+    name: "食費",
+    genres: [
+      { id: 1001, name: "食料品" },
+      { id: 1002, name: "外食" },
+    ],
+  },
+  { id: 102, name: "交通費", genres: [{ id: 1003, name: "電車・バス" }] },
 ];
+
+const place = (id: number, name: string): PlacesResponse["places"][number] => ({
+  id,
+  name,
+  lastUsedOn: "2026-04-01",
+  useCount: 1,
+});
 
 describe("selectReadableRows", () => {
   test("日付と正の整数の金額がある行だけを残す", () => {
     const rows = selectReadableRows([
-      { date: "2026-05-01", place: "店A", placeUid: null, amount: 1000, genreId: 1001 },
-      { date: null, place: "日付なし", placeUid: null, amount: 500, genreId: null },
-      { date: "2026-05-02", place: "金額なし", placeUid: null, amount: null, genreId: null },
-      { date: "2026-05-03", place: "返金", placeUid: null, amount: -300, genreId: null },
-      { date: "2026-05-04", place: "小数", placeUid: null, amount: 12.5, genreId: null },
+      { date: "2026-05-01", place: "店A", placeName: null, amount: 1000, genreId: 1001 },
+      { date: null, place: "日付なし", placeName: null, amount: 500, genreId: null },
+      { date: "2026-05-02", place: "金額なし", placeName: null, amount: null, genreId: null },
+      { date: "2026-05-03", place: "返金", placeName: null, amount: -300, genreId: null },
+      { date: "2026-05-04", place: "小数", placeName: null, amount: 12.5, genreId: null },
     ]);
 
     expect(rows.map((row) => row.place)).toEqual(["店A"]);
@@ -22,59 +37,63 @@ describe("selectReadableRows", () => {
 
 describe("buildStatementRows", () => {
   test("登録済みと判定した行は選択を外し、それ以外は選択する", () => {
+    const registered = { transactionId: 99, date: "2026-05-02", amount: 2000, placeName: null };
     const rows = buildStatementRows({
       rows: [
-        { date: "2026-05-01", place: "店A", placeUid: null, amount: 1000, genreId: null },
-        { date: "2026-05-02", place: "店B", placeUid: null, amount: 2000, genreId: null },
+        { date: "2026-05-01", place: "店A", placeName: null, amount: 1000, genreId: null },
+        { date: "2026-05-02", place: "店B", placeName: null, amount: 2000, genreId: null },
       ],
-      matches: [null, { id: 99, date: "2026-05-02" }],
-      recentStores: [],
+      matches: [null, registered],
+      places: [],
       categories,
     });
 
     expect(rows.map((row) => row.selected)).toEqual([true, false]);
-    expect(rows[1]?.registered).toEqual({ id: 99, date: "2026-05-02" });
+    expect(rows[1]?.registered).toEqual(registered);
   });
 
   test("genreId からカテゴリを補完し、該当しなければ未選択にする", () => {
     const rows = buildStatementRows({
       rows: [
-        { date: "2026-05-01", place: "店A", placeUid: null, amount: 1000, genreId: 1003 },
-        { date: "2026-05-01", place: "店B", placeUid: null, amount: 1000, genreId: 9999 },
+        { date: "2026-05-01", place: "店A", placeName: null, amount: 1000, genreId: 1003 },
+        { date: "2026-05-01", place: "店B", placeName: null, amount: 1000, genreId: 9999 },
       ],
       matches: [null, null],
-      recentStores: [],
+      places: [],
       categories,
     });
 
     expect(rows.map((row) => row.category)).toEqual([{ categoryId: 102, genreId: 1003 }, null]);
   });
 
-  test("LLM が推測した店舗 ID が既存店舗にあれば紐付け、なければ店舗名の完全一致で探す", () => {
+  test("LLM が推測した店舗名が一覧にあれば紐付け、なければ利用先名の完全一致で探す", () => {
     const rows = buildStatementRows({
       rows: [
-        { date: "2026-05-01", place: "ｱﾏｿﾞﾝ", placeUid: "uid-amazon", amount: 1000, genreId: null },
-        { date: "2026-05-01", place: "スーパーA", placeUid: null, amount: 1000, genreId: null },
         {
           date: "2026-05-01",
-          place: "初めての店",
-          placeUid: "uid-unknown",
+          place: "ｱﾏｿﾞﾝ",
+          placeName: "Amazon.co.jp",
           amount: 1000,
           genreId: null,
         },
-        { date: "2026-05-01", place: null, placeUid: null, amount: 1000, genreId: null },
+        { date: "2026-05-01", place: "スーパーA", placeName: null, amount: 1000, genreId: null },
+        {
+          date: "2026-05-01",
+          place: "初めての店",
+          placeName: "存在しない店",
+          amount: 1000,
+          genreId: null,
+        },
+        { date: "2026-05-01", place: null, placeName: null, amount: 1000, genreId: null },
       ],
       matches: [null, null, null, null],
-      recentStores: [
-        { place: "スーパーA", placeUid: "uid-a" },
-        { place: "Amazon.co.jp", placeUid: "uid-amazon" },
-      ],
+      places: [place(1, "スーパーA"), place(2, "Amazon.co.jp")],
       categories,
     });
 
     expect(rows.map((row) => [row.place, row.store])).toEqual([
-      ["ｱﾏｿﾞﾝ", { place: "Amazon.co.jp", placeUid: "uid-amazon" }],
-      ["スーパーA", { place: "スーパーA", placeUid: "uid-a" }],
+      ["ｱﾏｿﾞﾝ", "Amazon.co.jp"],
+      ["スーパーA", "スーパーA"],
       ["初めての店", null],
       ["", null],
     ]);

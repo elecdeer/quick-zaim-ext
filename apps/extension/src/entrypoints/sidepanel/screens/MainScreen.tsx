@@ -9,9 +9,9 @@ import { ItemEditDialog, type ItemEditField } from "../../../components/ItemEdit
 import { StoreCombobox } from "../../../components/StoreCombobox.tsx";
 import { useToastManager } from "@/components/ui/toast";
 import { useMutation } from "../../../lib/useMutation.ts";
-import { collectFromActiveTab } from "../../../page-collector/collectFromActiveTab.ts";
+import { collectPageContent, findCategorySelectionByGenreId } from "../../../lib/extraction.ts";
 import { createServerClient, withErrorMessage } from "../../../lib/serverClient";
-import { categoriesQuery, placesQuery, type CategoriesResponse } from "../../../queries.ts";
+import { categoriesQuery, placesQuery } from "../../../queries.ts";
 
 interface Item {
   id: string;
@@ -30,25 +30,6 @@ type DuplicateInfo = LedgerOutput<
   "POST"
 >["duplicates"][number][number];
 type DuplicateState = "unchecked" | "checking" | "warned";
-
-/**
- * categories 一覧から `genreId` が属する `categoryId` を逆引きして
- * `CategorySelection` を組み立てる。該当しなければ null。
- *
- * LLM 推論レスポンスには `genreId` しか含まれないため、registration に必要な
- * `categoryId` をここで補完する。
- */
-const findCategorySelectionByGenreId = (
-  categories: CategoriesResponse["categories"],
-  genreId: number,
-): CategorySelection | null => {
-  for (const category of categories) {
-    if (category.genres.some((genre) => genre.id === genreId)) {
-      return { categoryId: category.id, genreId };
-    }
-  }
-  return null;
-};
 
 const newItem = (category: CategorySelection | null = null): Item => ({
   id: crypto.randomUUID(),
@@ -183,20 +164,13 @@ export default function MainScreen({ serverUrl }: Props) {
 
   const extractMutation = useMutation({
     mutationFn: async () => {
-      const collected = await collectFromActiveTab();
+      const pageContent = await collectPageContent();
       // 内訳から親カテゴリを引くためにカテゴリの一覧も使う。カテゴリの選択欄が読み込み済みならキャッシュを使う
       const [extracted, { categories }] = await Promise.all([
         withErrorMessage(
           "自動入力",
           createServerClient(serverUrl)("/api/transactions/extract", "POST", {
-            body: {
-              pageContent: {
-                url: collected.url,
-                title: collected.title,
-                ariaSnapshot: collected.ariaSnapshot,
-                collectedAt: collected.collectedAt,
-              },
-            },
+            body: { pageContent },
           }),
         ),
         withErrorMessage("カテゴリの取得", categoriesQuery.prefetch(serverUrl)),
