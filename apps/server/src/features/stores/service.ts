@@ -1,22 +1,11 @@
 import type { createClient } from "@repo/zaim-api/client";
 import type { KVNamespace } from "@cloudflare/workers-types";
 import type { Logger } from "../../loggerMiddleware.ts";
-import type { MoneyItem, Store, StoresResponse, MonthlyMoneyCache } from "./schema.ts";
+import type { MoneyItem, Store, StoresResponse } from "./schema.ts";
 import { fetchAllMoneyFromZaim } from "./external.ts";
-import { getCachedStores, cacheStores, cacheMonthlyMoney } from "./repository.ts";
+import { getCachedStores, cacheStores } from "./repository.ts";
 
 const STORES_CACHE_TTL = 3600;
-const CURRENT_MONTH_MONEY_TTL = 3600;
-const PAST_MONTH_MONEY_TTL = 2592000;
-
-const currentYearMonth = (): string => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  return `${year}-${month}`;
-};
-
-const yearMonthOf = (date: string): string => date.slice(0, 7);
 
 /**
  * 支払いアイテムから店舗一覧を集約する。
@@ -46,44 +35,6 @@ export const aggregateStores = (items: MoneyItem[]): Store[] => {
 };
 
 /**
- * 取得した支払いアイテムを月別に分割して KV にキャッシュする。
- */
-export const buildAndCacheMonthlyData = async (
-  kv: KVNamespace,
-  zaimUserId: string,
-  items: MoneyItem[],
-  logger: Logger,
-): Promise<void> => {
-  const thisMonth = currentYearMonth();
-  const byMonth = new Map<string, MoneyItem[]>();
-
-  for (const item of items) {
-    const ym = yearMonthOf(item.date);
-    const group = byMonth.get(ym);
-    if (group) {
-      group.push(item);
-    } else {
-      byMonth.set(ym, [item]);
-    }
-  }
-
-  const fetchedAt = new Date().toISOString();
-  const puts: Promise<void>[] = [];
-
-  for (const [ym, monthItems] of byMonth) {
-    const ttl = ym < thisMonth ? PAST_MONTH_MONEY_TTL : CURRENT_MONTH_MONEY_TTL;
-    const value: MonthlyMoneyCache = { fetchedAt, items: monthItems };
-    puts.push(cacheMonthlyMoney(kv, zaimUserId, ym, value, ttl));
-  }
-
-  await Promise.all(puts);
-
-  logger
-    .with({ zaimUserId, monthCount: byMonth.size })
-    .debug("Cached {monthCount} monthly money caches for Zaim user {zaimUserId}");
-};
-
-/**
  * 店舗一覧を取得する。KV キャッシュがあればそれを返し、なければ Zaim API から取得して集約・キャッシュする。
  */
 export const getStores = async (params: {
@@ -110,9 +61,9 @@ export const getStores = async (params: {
       .debug("Stores cache bypassed (no_cache=1) for Zaim user {zaimUserId}");
   }
 
+  // ここで取得した支払いは店舗付きのものだけで件数も限られるため、重複チェック用の
+  // 月別キャッシュには書き込まない（不完全なキャッシュが登録済みの見落としにつながる）
   const items = await fetchAllMoneyFromZaim(zaimClient, logger);
-
-  await buildAndCacheMonthlyData(kv, zaimUserId, items, logger);
 
   const stores = aggregateStores(items);
   const response: StoresResponse = {

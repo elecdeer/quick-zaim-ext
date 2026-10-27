@@ -4,14 +4,15 @@
  * エンドポイント:
  *   POST /api/zaim/payment          - 支払いアイテムを Zaim に登録する
  *   GET  /api/zaim/payment/duplicate - 支払いアイテムの重複チェックを行う
+ *   POST /api/zaim/payment/duplicate/bulk - 明細の各行が登録済みかをまとめて判定する
  */
 
 import { sValidator } from "@hono/standard-validator";
 import { Hono } from "hono";
 import type { HonoEnv } from "../../env.ts";
 import { requireAccessUser, requireZaimClient } from "../../middleware.ts";
-import { PaymentBodySchema, DuplicateQuerySchema } from "./schema.ts";
-import { registerPayment, checkDuplicates } from "./service.ts";
+import { PaymentBodySchema, DuplicateQuerySchema, BulkDuplicateBodySchema } from "./schema.ts";
+import { registerPayment, checkDuplicates, findRegisteredEntries } from "./service.ts";
 
 const createPaymentRoute = new Hono<HonoEnv>().post(
   "/api/zaim/payment",
@@ -70,6 +71,29 @@ const getDuplicateRoute = new Hono<HonoEnv>().get(
   },
 );
 
+const postBulkDuplicateRoute = new Hono<HonoEnv>().post(
+  "/api/zaim/payment/duplicate/bulk",
+  requireAccessUser,
+  requireZaimClient,
+  sValidator("json", BulkDuplicateBodySchema, (result, c) => {
+    if (!result.success) return c.json({ error: "Invalid request body" }, 400);
+  }),
+  async (c) => {
+    const { entries } = c.req.valid("json");
+
+    const matches = await findRegisteredEntries({
+      kv: c.env.ZAIM_KV,
+      zaimClient: c.var.zaimClient,
+      zaimUserId: c.var.zaimUserId,
+      entries,
+      logger: c.var.logger,
+    });
+
+    return c.json({ results: matches.map((match) => ({ match })) });
+  },
+);
+
 export const paymentRoutes = new Hono<HonoEnv>()
   .route("/", createPaymentRoute)
-  .route("/", getDuplicateRoute);
+  .route("/", getDuplicateRoute)
+  .route("/", postBulkDuplicateRoute);

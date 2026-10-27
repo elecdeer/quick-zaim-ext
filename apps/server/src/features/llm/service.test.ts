@@ -1,12 +1,12 @@
 /**
- * buildPrompt のフォーマット回帰テスト。
+ * buildPrompt / buildStatementPrompt のフォーマット回帰テスト。
  *
  * LLM の品質はモデル次第なので動作確認はできないが、プロンプト中に渡している
  * カテゴリ/口座/店舗の表現が崩れていないことを確認する。
  */
 
 import { describe, expect, test } from "vite-plus/test";
-import { buildPrompt } from "./service.ts";
+import { buildPrompt, buildStatementPrompt } from "./service.ts";
 import type { ExtractPaymentBody } from "./schema.ts";
 
 const baseInput = (overrides: Partial<ExtractPaymentBody> = {}): ExtractPaymentBody => ({
@@ -86,5 +86,56 @@ describe("buildPrompt", () => {
     expect(system).toContain("Extract payment info");
     expect(system).toContain("YYYY-MM-DD");
     expect(system).toContain("`items` is never empty");
+  });
+});
+
+describe("buildStatementPrompt", () => {
+  test("カテゴリ・口座・店舗の候補を支払い抽出と同じ形式で渡す", () => {
+    const { prompt } = buildStatementPrompt(baseInput());
+    expect(prompt).toContain("101=食費: 10101=食料品, 10102=カフェ");
+    expect(prompt).toContain("1=現金, 2=Suica");
+    expect(prompt).toContain("スーパーA [uid=uid_a, 5x, 2026-05-30]");
+  });
+
+  test("支払い抽出より長い ARIA snapshot をそのまま渡す", () => {
+    const longSnapshot = "row: 2026/05/01 店 1,000\n".repeat(1000);
+    const { prompt } = buildStatementPrompt(
+      baseInput({
+        pageContent: {
+          url: "https://example.com/statement",
+          title: "ご利用明細",
+          ariaSnapshot: longSnapshot,
+          collectedAt: "2026-06-01T00:00:00Z",
+        },
+      }),
+    );
+    expect(longSnapshot.length).toBeGreaterThan(16000);
+    expect(prompt).toContain(longSnapshot);
+    expect(prompt).not.toContain("truncated");
+  });
+
+  test("店舗は支払い抽出の上限（20 件）を超えて候補に渡す", () => {
+    const recentStores = Array.from({ length: 30 }, (_, i) => ({
+      place: `店${i}`,
+      placeUid: `uid_${i}`,
+      latestDate: "2026-05-01",
+      count: 1,
+    }));
+    const { prompt } = buildStatementPrompt(baseInput({ recentStores }));
+    expect(prompt).toContain("店29 [uid=uid_29, 1x, 2026-05-01]");
+    expect(buildPrompt(baseInput({ recentStores })).prompt).not.toContain("店29");
+  });
+
+  test("system プロンプトで既存店舗の uid を選ばせる", () => {
+    const { system } = buildStatementPrompt(baseInput());
+    expect(system).toContain("`placeUid`");
+    expect(system).toContain("never invent a uid");
+  });
+
+  test("system プロンプトに明細抽出のルールが入っている", () => {
+    const { system } = buildStatementPrompt(baseInput());
+    expect(system).toContain("monthly statement");
+    expect(system).toContain("usage/transaction date");
+    expect(system).toContain("Skip refunds");
   });
 });

@@ -7,7 +7,7 @@ import { requireAccessUser } from "./middleware.ts";
 import { authRoutes } from "./features/auth/index.ts";
 import { accountsRoutes } from "./features/accounts/index.ts";
 import { categoriesRoutes } from "./features/categories/index.ts";
-import { llmExtractPaymentRoutes } from "./features/llm/index.ts";
+import { llmExtractPaymentRoutes, llmExtractStatementRoutes } from "./features/llm/index.ts";
 import { storesRoutes } from "./features/stores/index.ts";
 import { paymentRoutes } from "./features/payment/index.ts";
 import { zaimRoutes } from "./features/zaim-auth/index.ts";
@@ -72,6 +72,7 @@ const app = base
   .route("/", paymentRoutes)
   // LLM 抽出（/api/llm/*）- /api/* の requireAccessUser で保護済み
   .route("/", llmExtractPaymentRoutes)
+  .route("/", llmExtractStatementRoutes)
   .route("/", healthRoute);
 
 export default app;

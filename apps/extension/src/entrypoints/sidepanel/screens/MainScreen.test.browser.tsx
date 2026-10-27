@@ -394,6 +394,54 @@ describe("MainScreen", () => {
       .element(page.getByRole("alert"))
       .toMatchTextContent("自動入力に失敗しました（502）");
   });
+
+  /** 指定した店舗名を返す自動入力ハンドラー。品目は 1 件（食料品・250 円） */
+  const extractPaymentHandler = (placeName: string) =>
+    http.post(mockUrl("/api/transactions/extract"), () => {
+      const extracted: LedgerOutput<"/api/transactions/extract", "POST"> = {
+        date: "2026-06-13",
+        accountId: 2,
+        placeName,
+        items: [{ name: "牛乳", amount: 250, memo: null, genreId: 1001 }],
+        confidence: "high",
+        reasoning: "",
+      };
+      return HttpResponse.json(extracted);
+    });
+
+  test("自動入力の店舗が一覧にあれば選択し、店舗名で登録する", async ({ worker }) => {
+    const postHandler = vi.fn<(body: PaymentBody) => void>();
+    worker.use(...commonHandlers, extractPaymentHandler("スーパーA"), recordPayment(postHandler));
+
+    await render(<Default.Component />);
+
+    await page.getByRole("button", { name: "このページから自動入力" }).click();
+    await expect
+      .element(page.getByRole("combobox", { name: "店舗" }))
+      .toHaveTextContent("スーパーA");
+    await page.getByRole("button", { name: "登録" }).click();
+
+    await vi.waitFor(() => {
+      expect(postHandler).toHaveBeenCalledWith(expect.objectContaining({ placeName: "スーパーA" }));
+    });
+  });
+
+  test("自動入力の店舗が一覧になくても、その店舗名で登録する", async ({ worker }) => {
+    const postHandler = vi.fn<(body: PaymentBody) => void>();
+    worker.use(...commonHandlers, extractPaymentHandler("初めての店"), recordPayment(postHandler));
+
+    await render(<Default.Component />);
+
+    await page.getByRole("button", { name: "このページから自動入力" }).click();
+    await expect.element(page.getByText("牛乳")).toBeVisible();
+    await page.getByRole("button", { name: "登録" }).click();
+
+    await vi.waitFor(() => {
+      expect(postHandler).toHaveBeenCalledWith(
+        expect.objectContaining({ placeName: "初めての店" }),
+      );
+    });
+  });
 });
 
 describe("MainScreen visual regression", () => {

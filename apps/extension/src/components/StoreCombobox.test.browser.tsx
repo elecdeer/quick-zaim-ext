@@ -53,6 +53,28 @@ describe("StoreCombobox", () => {
     await expect.element(page.getByRole("option", { name: "カフェC" })).toBeVisible();
   });
 
+  test("候補があるときは「見つかりません」の領域が場所を取らない", async ({ worker }) => {
+    worker.use(placesHandler);
+
+    await render(<ControlledStoreCombobox />);
+    await page.getByRole("combobox", { name: "店舗" }).click();
+    await expect.element(page.getByRole("option", { name: "スーパーA" })).toBeVisible();
+
+    // Base UI の Combobox.Empty は候補があっても空の要素を描画し続ける
+    const empty = document.querySelector('[data-slot="combobox-empty"]');
+    expect(empty?.getBoundingClientRect().height).toBe(0);
+  });
+
+  test("検索に一致する店舗がなければ「見つかりません」を表示する", async ({ worker }) => {
+    worker.use(placesHandler);
+
+    await render(<ControlledStoreCombobox />);
+    await page.getByRole("combobox", { name: "店舗" }).click();
+    await page.getByPlaceholder("店舗を検索").fill("存在しない店舗");
+
+    await expect.element(page.getByText("店舗が見つかりません")).toBeVisible();
+  });
+
   test("店舗を選択すると店舗名でonChangeが呼ばれる", async ({ worker }) => {
     worker.use(placesHandler);
 

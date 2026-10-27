@@ -2,11 +2,13 @@ import { GearIcon } from "@phosphor-icons/react";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { SettingsOverlay } from "../../components/SettingsOverlay.tsx";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Toaster, ToastProvider } from "@/components/ui/toast";
 import { ErrorBoundary } from "@/lib/ErrorBoundary";
 import { useSuspenseQuery } from "@/lib/query";
 import { authStatusQuery, serverUrlQuery } from "../../queries.ts";
 import MainScreen from "./screens/MainScreen.tsx";
+import StatementScreen from "./screens/StatementScreen.tsx";
 
 /**
  * アプリケーションのルートコンポーネント。
@@ -37,7 +39,7 @@ const AppContent = () => {
   if (!serverUrl) {
     return (
       <AppLayout settingsOpen={true} onSettingsOpenChange={() => {}}>
-        <MainScreen serverUrl="" />
+        <Screens serverUrl="" />
       </AppLayout>
     );
   }
@@ -46,7 +48,7 @@ const AppContent = () => {
     <ErrorBoundary
       fallback={
         <AppLayout settingsOpen={!autoOpenedRef.current} onSettingsOpenChange={() => {}}>
-          <MainScreen serverUrl={serverUrl} />
+          <Screens serverUrl={serverUrl} />
         </AppLayout>
       }
     >
@@ -87,10 +89,29 @@ const AppWithAuth = ({
 
   return (
     <AppLayout settingsOpen={settingsOpen} onSettingsOpenChange={setSettingsOpen}>
-      <MainScreen serverUrl={serverUrl} />
+      <Screens serverUrl={serverUrl} />
     </AppLayout>
   );
 };
+
+/**
+ * 1 件ずつ登録する通常の画面と、明細から一括登録する画面をタブで切り替える。
+ * 切り替えても入力中の内容が消えないよう、非表示のタブも mount したままにする。
+ */
+const Screens = ({ serverUrl }: { serverUrl: string }) => (
+  <Tabs defaultValue="payment">
+    <TabsList className="w-full">
+      <TabsTrigger value="payment">支払い</TabsTrigger>
+      <TabsTrigger value="statement">明細から一括</TabsTrigger>
+    </TabsList>
+    <TabsContent value="payment" keepMounted>
+      <MainScreen serverUrl={serverUrl} />
+    </TabsContent>
+    <TabsContent value="statement" keepMounted>
+      <StatementScreen serverUrl={serverUrl} />
+    </TabsContent>
+  </Tabs>
+);
 
 interface AppLayoutProps {
   settingsOpen: boolean;

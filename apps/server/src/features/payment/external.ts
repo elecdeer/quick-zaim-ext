@@ -43,6 +43,9 @@ export const createPayment = async (
       ...(params.from_account_id !== undefined && { from_account_id: params.from_account_id }),
       ...(params.comment !== undefined && { comment: params.comment }),
       ...(params.name !== undefined && { name: params.name }),
+      // place は送らない。Zaim API は place を含むリクエストを place_uid の有無に関わらず
+      // 400 "Parameters are not enough." で拒否する（2026-10-25 に実 API で確認）。
+      // 店舗は既存の place_uid でのみ指定できる。
       ...(params.place_uid !== undefined && { place_uid: params.place_uid }),
     },
   });
