@@ -308,12 +308,12 @@ importers:
       date-fns:
         specifier: 'catalog:'
         version: 4.4.0
-      hono:
-        specifier: ^4.12.14
-        version: 4.12.14
       jotai:
         specifier: 'catalog:'
         version: 2.20.1(@babel/core@7.29.0(supports-color@10.2.2))(@babel/template@7.29.7)(@types/react@19.2.14)(react@19.2.5)
+      ledger:
+        specifier: workspace:*
+        version: link:../ledger
       lucide-react:
         specifier: 'catalog:'
         version: 1.18.0(react@19.2.5)
@@ -326,9 +326,6 @@ importers:
       react-dom:
         specifier: ^19.2.5
         version: 19.2.5(react@19.2.5)
-      server:
-        specifier: workspace:*
-        version: link:../server
       tailwind-merge:
         specifier: 'catalog:'
         version: 3.6.0

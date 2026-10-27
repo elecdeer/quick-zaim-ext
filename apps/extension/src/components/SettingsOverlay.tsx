@@ -1,5 +1,4 @@
 import { Suspense, useEffect, useState } from "react";
-import { createServerClient } from "../lib/serverClient";
 import { browser } from "wxt/browser";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -7,19 +6,16 @@ import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { ErrorBoundary } from "@/lib/ErrorBoundary";
 import { useSuspenseQuery } from "@/lib/query";
-import { useMutation } from "@/lib/useMutation";
 import { launchServerLogin } from "../auth/serverAuth.ts";
-import { launchZaimConnect } from "../auth/zaimAuth.ts";
 import { UNAUTHENTICATED } from "../entrypoints/sidepanel/authQueries.ts";
 import {
   accountsQuery,
   authStatusQuery,
   categoriesQuery,
+  placesQuery,
   serverUrlQuery,
-  storesQuery,
 } from "../queries.ts";
 import ServerLogin from "./ServerLogin.tsx";
-import ZaimLogin from "./ZaimLogin.tsx";
 
 interface Props {
   open: boolean;
@@ -27,7 +23,7 @@ interface Props {
 }
 
 /**
- * サーバー URL 設定、サーバー認証、Zaim 連携をまとめて行う設定オーバーレイ。
+ * サーバー URL 設定とサーバー認証をまとめて行う設定オーバーレイ。
  */
 export const SettingsOverlay = ({ open, onOpenChange }: Props) => {
   return (
@@ -52,11 +48,11 @@ const SettingsOverlayContent = ({ onOpenChange: _onOpenChange }: Pick<Props, "on
     setServerUrlInput(serverUrl);
   }, [serverUrl]);
 
-  const invalidateZaimDataQueries = async (): Promise<void> => {
+  const refetchMasterQueries = async (): Promise<void> => {
     await Promise.all([
       categoriesQuery.refetch(serverUrl),
       accountsQuery.refetch(serverUrl),
-      storesQuery.refetch(serverUrl),
+      placesQuery.refetch(serverUrl),
     ]);
   };
 
@@ -68,27 +64,6 @@ const SettingsOverlayContent = ({ onOpenChange: _onOpenChange }: Pick<Props, "on
       setIsRefetching(false);
     }
   };
-
-  const zaimConnectMutation = useMutation({
-    mutationFn: () => launchZaimConnect(serverUrl),
-    onSuccess: async () => {
-      await refetchAuth();
-      await invalidateZaimDataQueries();
-    },
-  });
-
-  const zaimDisconnectMutation = useMutation({
-    mutationFn: async () => {
-      const client = createServerClient(serverUrl);
-      const res = await client.zaim.auth.token.$delete({});
-      if (!res.ok) {
-        throw new Error("Zaim 連携解除に失敗しました");
-      }
-    },
-    onSuccess: () => {
-      authStatusQuery.setData(serverUrl, UNAUTHENTICATED);
-    },
-  });
 
   const handleSaveServerUrl = async () => {
     const url = serverUrlInput.replace(/\/$/, "");
@@ -105,7 +80,7 @@ const SettingsOverlayContent = ({ onOpenChange: _onOpenChange }: Pick<Props, "on
     try {
       await launchServerLogin(serverUrl);
       await refetchAuth();
-      await invalidateZaimDataQueries();
+      await refetchMasterQueries();
     } catch {
       // ユーザーがポップアップを閉じた場合など
     }
@@ -115,12 +90,6 @@ const SettingsOverlayContent = ({ onOpenChange: _onOpenChange }: Pick<Props, "on
     void browser.tabs.create({ url: `${serverUrl}/logout` });
     authStatusQuery.setData(serverUrl, UNAUTHENTICATED);
   };
-
-  const mutationError =
-    (zaimConnectMutation.error instanceof Error ? zaimConnectMutation.error.message : null) ??
-    (zaimDisconnectMutation.error instanceof Error ? zaimDisconnectMutation.error.message : null);
-
-  const errorMessage = storageError ?? mutationError;
 
   return (
     <>
@@ -145,8 +114,8 @@ const SettingsOverlayContent = ({ onOpenChange: _onOpenChange }: Pick<Props, "on
         </Button>
       </section>
 
-      {errorMessage && (
-        <p className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">{errorMessage}</p>
+      {storageError && (
+        <p className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">{storageError}</p>
       )}
 
       {serverUrl && (
@@ -161,13 +130,9 @@ const SettingsOverlayContent = ({ onOpenChange: _onOpenChange }: Pick<Props, "on
             <AuthSection
               serverUrl={serverUrl}
               isRefetching={isRefetching}
-              zaimConnectPending={zaimConnectMutation.isPending}
-              zaimDisconnectPending={zaimDisconnectMutation.isPending}
               onLogin={handleServerLogin}
               onLogout={handleServerLogout}
               onRefresh={() => void refetchAuth()}
-              onZaimConnect={() => zaimConnectMutation.mutate()}
-              onZaimDisconnect={() => zaimDisconnectMutation.mutate()}
             />
           </Suspense>
         </ErrorBoundary>
@@ -189,50 +154,28 @@ const SettingsOverlayContent = ({ onOpenChange: _onOpenChange }: Pick<Props, "on
 interface AuthSectionProps {
   serverUrl: string;
   isRefetching: boolean;
-  zaimConnectPending: boolean;
-  zaimDisconnectPending: boolean;
   onLogin: () => void;
   onLogout: () => void;
   onRefresh: () => void;
-  onZaimConnect: () => void;
-  onZaimDisconnect: () => void;
 }
 
 const AuthSection = ({
   serverUrl,
   isRefetching,
-  zaimConnectPending,
-  zaimDisconnectPending,
   onLogin,
   onLogout,
   onRefresh,
-  onZaimConnect,
-  onZaimDisconnect,
 }: AuthSectionProps) => {
   const { data: auth } = useSuspenseQuery(authStatusQuery, serverUrl);
-  const isLoading = isRefetching || zaimConnectPending || zaimDisconnectPending;
 
   return (
-    <>
-      <ServerLogin
-        isAuthenticated={auth.isServerAuthenticated}
-        user={auth.serverUser}
-        isLoading={isLoading}
-        onLogin={onLogin}
-        onLogout={onLogout}
-        onRefresh={onRefresh}
-      />
-
-      {auth.isServerAuthenticated && (
-        <ZaimLogin
-          isConnected={auth.isZaimConnected}
-          zaimUserId={auth.zaimUserId}
-          isLoading={isLoading}
-          onConnect={onZaimConnect}
-          onDisconnect={onZaimDisconnect}
-          onRefresh={onRefresh}
-        />
-      )}
-    </>
+    <ServerLogin
+      isAuthenticated={auth.isServerAuthenticated}
+      user={auth.serverUser}
+      isLoading={isRefetching}
+      onLogin={onLogin}
+      onLogout={onLogout}
+      onRefresh={onRefresh}
+    />
   );
 };

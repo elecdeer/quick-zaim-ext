@@ -1,10 +1,8 @@
-import { http, HttpResponse } from "msw";
 import { useState } from "react";
 import preview from "#storybook/preview";
 import { setupBrowserMock } from "../test-utils/browser-mock.ts";
+import { meHandler, MOCK_SERVER_URL, unauthenticatedHandler } from "../test-utils/ledgerMocks.ts";
 import { SettingsOverlay } from "./SettingsOverlay.tsx";
-
-const MOCK_SERVER_URL = "http://mock-server.test";
 
 const ControlledWrapper = () => {
   const [open, setOpen] = useState(true);
@@ -52,39 +50,16 @@ export const NotLoggedIn = meta.story({
   name: "未ログイン",
   parameters: {
     msw: {
-      handlers: [http.get(`${MOCK_SERVER_URL}/me`, () => new HttpResponse(null, { status: 401 }))],
+      handlers: [unauthenticatedHandler],
     },
   },
 });
 
-export const ServerLoggedIn = meta.story({
-  name: "サーバーログイン済み・Zaim未連携",
+export const LoggedIn = meta.story({
+  name: "ログイン済み",
   parameters: {
     msw: {
-      handlers: [
-        http.get(`${MOCK_SERVER_URL}/me`, () =>
-          HttpResponse.json({ email: "user@example.com", id: "user@example.com" }),
-        ),
-        http.get(`${MOCK_SERVER_URL}/zaim/auth/status`, () =>
-          HttpResponse.json({ connected: false }),
-        ),
-      ],
-    },
-  },
-});
-
-export const ZaimConnected = meta.story({
-  name: "Zaim連携済み",
-  parameters: {
-    msw: {
-      handlers: [
-        http.get(`${MOCK_SERVER_URL}/me`, () =>
-          HttpResponse.json({ email: "user@example.com", id: "user@example.com" }),
-        ),
-        http.get(`${MOCK_SERVER_URL}/zaim/auth/status`, () =>
-          HttpResponse.json({ connected: true, zaimUserId: "zaim-user-001" }),
-        ),
-      ],
+      handlers: [meHandler],
     },
   },
 });

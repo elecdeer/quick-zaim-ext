@@ -1,27 +1,15 @@
 import { http, HttpResponse } from "msw";
 import { useState } from "react";
 import preview from "#storybook/preview";
-import { StoreCombobox, type StoreSelection } from "./StoreCombobox.tsx";
-
-const MOCK_SERVER_URL = "http://mock-server.test";
-
-const mockStoresResponse = {
-  fetchedAt: "2024-01-01T00:00:00Z",
-  stores: [
-    { place: "スーパーA", placeUid: "uid-001", latestDate: "2024-01-10", count: 5 },
-    { place: "コンビニB", placeUid: "uid-002", latestDate: "2024-01-05", count: 3 },
-    { place: "カフェC", placeUid: "uid-003", latestDate: "2024-01-01", count: 1 },
-  ],
-};
+import { MOCK_SERVER_URL, mockUrl, placesHandler } from "../test-utils/ledgerMocks.ts";
+import { StoreCombobox } from "./StoreCombobox.tsx";
 
 const ControlledWrapper = ({ serverUrl }: { serverUrl: string }) => {
-  const [value, setValue] = useState<StoreSelection | null>(null);
+  const [value, setValue] = useState<string | null>(null);
   return (
     <div className="flex flex-col gap-2">
       <StoreCombobox serverUrl={serverUrl} value={value} onChange={setValue} />
-      <p className="text-xs text-gray-500">
-        選択中: {value ? `place="${value.place}", placeUid=${value.placeUid}` : "なし"}
-      </p>
+      <p className="text-xs text-gray-500">選択中: {value ?? "なし"}</p>
     </div>
   );
 };
@@ -49,9 +37,7 @@ export const Default = meta.story({
   name: "店舗選択（履歴あり）",
   parameters: {
     msw: {
-      handlers: [
-        http.get(`${MOCK_SERVER_URL}/api/zaim/stores`, () => HttpResponse.json(mockStoresResponse)),
-      ],
+      handlers: [placesHandler],
     },
   },
 });
@@ -60,25 +46,16 @@ export const NoHistory = meta.story({
   name: "履歴なし",
   parameters: {
     msw: {
-      handlers: [
-        http.get(`${MOCK_SERVER_URL}/api/zaim/stores`, () =>
-          HttpResponse.json({ fetchedAt: "2024-01-01T00:00:00Z", stores: [] }),
-        ),
-      ],
+      handlers: [http.get(mockUrl("/api/places"), () => HttpResponse.json({ places: [] }))],
     },
   },
 });
 
 export const Error = meta.story({
-  name: "取得エラー（フリー入力は可能）",
+  name: "取得エラー",
   parameters: {
     msw: {
-      handlers: [
-        http.get(
-          `${MOCK_SERVER_URL}/api/zaim/stores`,
-          () => new HttpResponse(null, { status: 500 }),
-        ),
-      ],
+      handlers: [http.get(mockUrl("/api/places"), () => new HttpResponse(null, { status: 500 }))],
     },
   },
 });

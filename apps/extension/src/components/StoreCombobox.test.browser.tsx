@@ -1,28 +1,20 @@
-import { http, HttpResponse } from "msw";
+import { delay, http, HttpResponse } from "msw";
 import { useState } from "react";
 import { describe, expect, vi } from "vite-plus/test";
 import { page } from "vite-plus/test/browser";
 import { render } from "vitest-browser-react";
 import { test } from "../test-utils/browser-test.ts";
-import { StoreCombobox, type StoreSelection } from "./StoreCombobox.tsx";
-
-const MOCK_SERVER_URL = "http://mock-server.test";
-
-const mockStoresResponse = {
-  fetchedAt: "2024-01-01T00:00:00Z",
-  stores: [
-    { place: "スーパーA", placeUid: "uid-001", latestDate: "2024-01-10", count: 5 },
-    { place: "コンビニB", placeUid: "uid-002", latestDate: "2024-01-05", count: 3 },
-    { place: "カフェC", placeUid: "uid-003", latestDate: "2024-01-01", count: 1 },
-  ],
-};
+import { MOCK_SERVER_URL, mockPlaces, mockUrl, placesHandler } from "../test-utils/ledgerMocks.ts";
+import { StoreCombobox } from "./StoreCombobox.tsx";
 
 const ControlledStoreCombobox = ({
+  initialValue = null,
   onChange,
 }: {
-  onChange?: (v: StoreSelection | null) => void;
+  initialValue?: string | null;
+  onChange?: (v: string | null) => void;
 }) => {
-  const [value, setValue] = useState<StoreSelection | null>(null);
+  const [value, setValue] = useState<string | null>(initialValue);
   return (
     <StoreCombobox
       serverUrl={MOCK_SERVER_URL}
@@ -38,9 +30,9 @@ const ControlledStoreCombobox = ({
 describe("StoreCombobox", () => {
   test("ローディング中はスケルトンが表示される", async ({ worker }) => {
     worker.use(
-      http.get(`${MOCK_SERVER_URL}/api/zaim/stores`, async () => {
-        await new Promise((resolve) => setTimeout(resolve, 60000));
-        return HttpResponse.json(mockStoresResponse);
+      http.get(mockUrl("/api/places"), async () => {
+        await delay("infinite");
+        return HttpResponse.json(mockPlaces);
       }),
     );
 
@@ -49,10 +41,8 @@ describe("StoreCombobox", () => {
     await expect.element(page.getByRole("status", { name: "店舗を読み込み中" })).toBeVisible();
   });
 
-  test("過去の店舗一覧が表示される", async ({ worker }) => {
-    worker.use(
-      http.get(`${MOCK_SERVER_URL}/api/zaim/stores`, () => HttpResponse.json(mockStoresResponse)),
-    );
+  test("台帳の店舗一覧が表示される", async ({ worker }) => {
+    worker.use(placesHandler);
 
     await render(<ControlledStoreCombobox />);
 
@@ -63,26 +53,32 @@ describe("StoreCombobox", () => {
     await expect.element(page.getByRole("option", { name: "カフェC" })).toBeVisible();
   });
 
-  test("店舗を選択するとplace・placeUid付きでonChangeが呼ばれる", async ({ worker }) => {
-    worker.use(
-      http.get(`${MOCK_SERVER_URL}/api/zaim/stores`, () => HttpResponse.json(mockStoresResponse)),
-    );
+  test("店舗を選択すると店舗名でonChangeが呼ばれる", async ({ worker }) => {
+    worker.use(placesHandler);
 
-    const onChange = vi.fn<(value: StoreSelection | null) => void>();
+    const onChange = vi.fn<(value: string | null) => void>();
     await render(<ControlledStoreCombobox onChange={onChange} />);
 
     await page.getByRole("combobox", { name: "店舗" }).click();
     await page.getByRole("option", { name: "スーパーA" }).click();
 
-    expect(onChange).toHaveBeenCalledWith({ place: "スーパーA", placeUid: "uid-001" });
+    expect(onChange).toHaveBeenCalledWith("スーパーA");
+  });
+
+  test("一覧にない店舗名もそのまま表示する", async ({ worker }) => {
+    worker.use(placesHandler);
+
+    await render(<ControlledStoreCombobox initialValue="はじめての店" />);
+
+    await expect
+      .element(page.getByRole("combobox", { name: "店舗" }))
+      .toMatchTextContent("はじめての店");
   });
 
   test("クリアするとonChangeがnullで呼ばれる", async ({ worker }) => {
-    worker.use(
-      http.get(`${MOCK_SERVER_URL}/api/zaim/stores`, () => HttpResponse.json(mockStoresResponse)),
-    );
+    worker.use(placesHandler);
 
-    const onChange = vi.fn<(value: StoreSelection | null) => void>();
+    const onChange = vi.fn<(value: string | null) => void>();
     await render(<ControlledStoreCombobox onChange={onChange} />);
 
     await page.getByRole("combobox", { name: "店舗" }).click();
@@ -94,9 +90,7 @@ describe("StoreCombobox", () => {
   });
 
   test("店舗取得エラー時にエラーメッセージが表示される", async ({ worker }) => {
-    worker.use(
-      http.get(`${MOCK_SERVER_URL}/api/zaim/stores`, () => new HttpResponse(null, { status: 500 })),
-    );
+    worker.use(http.get(mockUrl("/api/places"), () => new HttpResponse(null, { status: 500 })));
 
     await render(<StoreCombobox serverUrl={MOCK_SERVER_URL} value={null} onChange={() => {}} />);
 

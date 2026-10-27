@@ -11,7 +11,7 @@ export type ItemEditField = "name" | "memo" | "amount";
 interface ItemDraft {
   name: string;
   amount: string;
-  comment: string;
+  memo: string;
   category: CategorySelection | null;
 }
 
@@ -78,8 +78,8 @@ export const ItemEditDialog = ({
               ref={memoRef}
               id="item-edit-memo"
               placeholder="メモ"
-              value={item.comment}
-              onChange={(e) => onChange({ comment: e.target.value })}
+              value={item.memo}
+              onChange={(e) => onChange({ memo: e.target.value })}
             />
           </Field>
           <Field>

@@ -111,8 +111,8 @@ Zaim API は 2026-12-07 に提供が終わるため、支払いを自前の台�
 
 - URL: `https://quick-ledger.<subdomain>.workers.dev`
 - API は `routes/`、Web 画面は `pages/`、スキーマは `db/schema.ts`（`void db generate` でマイグレーションを作る）
-- 拡張機能からは `ledger/client` の `createLedgerClient` で型付きで呼ぶ。Void の `void/client` の fetch は `credentials` を指定できず Access の Cookie を送れないため使わない
-- 拡張機能向けの型は `pnpm -F ledger run build:types` で `dist/types` に出す（`vp pack` だと Void が生成する型を読めず `any` になる）
+- 拡張機能は台帳の API だけを呼ぶ（`quick-zaim-server` には向けられない）。`ledger/client` の `createLedgerClient` で型付きで呼ぶ。Void の `void/client` の fetch は `credentials` を指定できず Access の Cookie を送れないため使わない
+- 拡張機能向けの型は `vp run ledger#build:types` で `dist/types` に出す（`vp pack` だと Void が生成する型を読めず `any` になる）。拡張機能の `build` は先にこれを実行する。型チェックの前にも必要なので、CI では `vp check` の前に実行している
 
 ### デプロイ
 

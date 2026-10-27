@@ -1,4 +1,4 @@
-import { createClient } from "server/client";
+import { createLedgerClient, LedgerFetchError } from "ledger/client";
 
 /**
  * サーバー API 用の fetch。
@@ -17,7 +17,20 @@ export const accessAwareFetch: typeof fetch = async (input, init) => {
 };
 
 /**
- * Access のセッションを送り、ログイン画面へのリダイレクトを 401 として返すサーバー API クライアントを作る。
+ * Access のセッションを送り、ログイン画面へのリダイレクトを 401 として返す台帳 API クライアントを作る。
  */
 export const createServerClient = (serverUrl: string) =>
-  createClient(serverUrl, { fetch: accessAwareFetch });
+  createLedgerClient(serverUrl, accessAwareFetch);
+
+/**
+ * API の呼び出しが失敗したら、画面に出せるメッセージのエラーに置き換えて投げる。
+ * 台帳が返した状態コードがあればメッセージに含める。
+ */
+export const withErrorMessage = async <T>(action: string, request: Promise<T>): Promise<T> => {
+  try {
+    return await request;
+  } catch (error) {
+    const status = error instanceof LedgerFetchError ? `（${error.status}）` : "";
+    throw new Error(`${action}に失敗しました${status}`, { cause: error });
+  }
+};

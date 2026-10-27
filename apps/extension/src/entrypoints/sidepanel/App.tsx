@@ -79,11 +79,11 @@ const AppWithAuth = ({
 
   useEffect(() => {
     if (autoOpenedRef.current) return;
-    if (!auth.isZaimConnected) {
+    if (!auth.isServerAuthenticated) {
       setSettingsOpen(true);
     }
     autoOpenedRef.current = true;
-  }, [auth.isZaimConnected, setSettingsOpen, autoOpenedRef]);
+  }, [auth.isServerAuthenticated, setSettingsOpen, autoOpenedRef]);
 
   return (
     <AppLayout settingsOpen={settingsOpen} onSettingsOpenChange={setSettingsOpen}>
