@@ -15,7 +15,7 @@ export default defineConfig({
     compatibility_flags: ["nodejs_compat"],
   },
   cloudflare: {
-    name: "quick-ledger",
+    name: "tsuke",
     // Void は Worker の公開設定がダッシュボード側の状態とずれているとデプロイを止めるので、今の値を明示する
     workers_dev: true,
     preview_urls: true,

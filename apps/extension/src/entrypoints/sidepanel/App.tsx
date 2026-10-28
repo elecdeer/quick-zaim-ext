@@ -26,7 +26,7 @@ export default function App() {
 const AppShell = () => (
   <div className="flex min-h-screen flex-col gap-4 bg-background p-4">
     <header className="flex items-center justify-between">
-      <h1 className="text-lg font-bold">Quick Zaim</h1>
+      <h1 className="text-lg font-bold">Tsuke</h1>
     </header>
   </div>
 );
@@ -122,7 +122,7 @@ interface AppLayoutProps {
 const AppLayout = ({ settingsOpen, onSettingsOpenChange, children }: AppLayoutProps) => (
   <div className="flex min-h-screen flex-col gap-4 bg-background p-4">
     <header className="flex items-center justify-between">
-      <h1 className="text-lg font-bold">Quick Zaim</h1>
+      <h1 className="text-lg font-bold">Tsuke</h1>
       <Button
         type="button"
         variant="ghost"

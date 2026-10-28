@@ -3,7 +3,7 @@ import type { AriaNode } from "./ariaSnapshot.ts";
 /**
  * sidepanel から content script に送るページ収集リクエストの type 識別子。
  */
-export const PAGE_COLLECTOR_MESSAGE_TYPE = "quick-zaim/page-collector/collect" as const;
+export const PAGE_COLLECTOR_MESSAGE_TYPE = "tsuke/page-collector/collect" as const;
 
 export interface CollectPageContentRequest {
   type: typeof PAGE_COLLECTOR_MESSAGE_TYPE;

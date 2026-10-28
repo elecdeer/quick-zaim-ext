@@ -1,7 +1,7 @@
 {
   "version": 1,
   "source": {
-    "name": "quick-ledger",
+    "name": "tsuke",
     "workers_dev": true,
     "preview_urls": true,
     "routes": [],
@@ -13,7 +13,7 @@
     }
   },
   "resolved": {
-    "name": "quick-ledger",
+    "name": "tsuke",
     "workers_dev": true,
     "preview_urls": true,
     "routes": [],
@@ -34,5 +34,5 @@
     ],
     "compatibility_date": "2026-02-24"
   },
-  "text": "{\n  \"name\": \"quick-ledger\",\n  \"workers_dev\": true,\n  \"preview_urls\": true,\n  \"routes\": [],\n  \"observability\": {\n    \"logs\": {\n      \"enabled\": true,\n      \"invocation_logs\": true\n    }\n  },\n  \"account_id\": \"083aedbcc1eba2b5feea87d824d5c8d8\",\n  \"d1_databases\": [\n    {\n      \"binding\": \"DB\",\n      \"database_name\": \"quick-ledger-db\",\n      \"database_id\": \"f07e46e6-6216-48f3-8e02-31da90239f4f\",\n      \"migrations_dir\": \"./db/migrations\"\n    }\n  ],\n  \"compatibility_date\": \"2026-02-24\"\n}\n"
+  "text": "{\n  \"name\": \"tsuke\",\n  \"workers_dev\": true,\n  \"preview_urls\": true,\n  \"routes\": [],\n  \"observability\": {\n    \"logs\": {\n      \"enabled\": true,\n      \"invocation_logs\": true\n    }\n  },\n  \"account_id\": \"083aedbcc1eba2b5feea87d824d5c8d8\",\n  \"d1_databases\": [\n    {\n      \"binding\": \"DB\",\n      \"database_name\": \"quick-ledger-db\",\n      \"database_id\": \"f07e46e6-6216-48f3-8e02-31da90239f4f\",\n      \"migrations_dir\": \"./db/migrations\"\n    }\n  ],\n  \"compatibility_date\": \"2026-02-24\"\n}\n"
 }

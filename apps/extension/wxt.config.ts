@@ -8,7 +8,7 @@ export default defineConfig({
   imports: false,
   modules: ["@wxt-dev/module-react"],
   manifest: {
-    name: "Quick Zaim",
+    name: "Tsuke",
     description: "Zaimへの支出を素早く記録するChrome拡張機能",
     permissions: ["storage", "sidePanel", "tabs", "identity", "scripting"],
     host_permissions: ["<all_urls>"],
