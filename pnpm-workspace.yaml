@@ -29,6 +29,8 @@ catalog:
   "@void/react": 1.2.1
   csv-parse: 7.0.3
   drizzle-orm: 0.45.4
+  "@tailwindcss/vite": ^4.2.4
+  tailwindcss: ^4.2.4
 
 catalogMode: prefer
 overrides:
