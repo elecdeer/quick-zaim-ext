@@ -1,5 +1,5 @@
 /**
- * 自動入力（支払いの抽出）の評価スクリプト。apps/server から移したもの。
+ * 自動入力（支払いの抽出）の評価スクリプト。
  *
  * `scripts/eval-fixtures/*.json` の事例を複数のモデルで台帳の `runExtractPayment` に通し、
  * 項目ごとの一致率・所要時間・トークン数をまとめて表示する。結果の全体は `scripts/eval-results/` に JSON で書く。

@@ -61,6 +61,4 @@ storybook-static/
 !**/__screenshots__/*.test.browser.tsx/*-chromium-linux.png
 
 .gitignore
-packages/zaim-api/src/generated/
-packages/zaim-api/tsp-output/
 .vitest/

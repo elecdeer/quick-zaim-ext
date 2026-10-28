@@ -1,5 +1,5 @@
 /**
- * LLM によるページからの支払い情報の抽出。apps/server/src/features/llm から移したもの。
+ * LLM によるページからの支払い情報の抽出。
  * Workers AI の呼び出しは structuredChat.ts にまとめている。
  */
 import { toJsonSchema } from "@valibot/to-json-schema";
