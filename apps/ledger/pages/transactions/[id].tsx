@@ -1,8 +1,7 @@
 import { action, Link } from "@void/react";
-import { ArrowDown, ArrowLeft, ArrowUp, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Info, Plus, Trash2, TriangleAlert } from "lucide-react";
 import { useId, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogClose,
@@ -21,7 +20,8 @@ import type { TransactionMode } from "@/ledger/transactions";
 import { actionErrorMessage } from "@/web/actionError";
 import { categoryValueOf } from "@/web/categoryValue";
 import { CategoryOptions } from "@/web/components/CategoryOptions";
-import { formatYen } from "@/web/format";
+import { Section } from "@/web/components/Section";
+import { formatAmount } from "@/web/format";
 import { AGGREGATION_LABELS, MODE_LABELS } from "@/web/labels";
 import {
   draftFromTransaction,
@@ -32,24 +32,43 @@ import {
   type TransactionDraft,
 } from "@/web/transactionDraft";
 import { transactionsHref } from "@/web/transactionsHref";
+import { cn } from "@/lib/utils";
 import type { Props } from "./[id].server";
 
 type Accounts = Props["accounts"];
 
 /**
- * ラベル付きの入力欄。
+ * 品目の列。広い画面では品目を 1 行に並べ、列の名前は表の見出しに 1 度だけ出す。
+ * 支出は並べ替え・削除のボタンの列を持ち、振替・残高調整はカテゴリの列を持たない。
+ */
+const ITEM_COLUMNS: Record<TransactionMode, string> = {
+  payment: "sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_7rem_5.5rem]",
+  income: "sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_7rem]",
+  transfer: "sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_7rem]",
+  adjustment: "sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_7rem]",
+};
+
+/**
+ * ラベル付きの入力欄。labelClassName でラベルを隠す（見出しのある表の中など）こともできる。
  */
 const FormField = ({
   label,
   children,
   htmlFor,
+  labelClassName,
 }: {
   label: string;
   htmlFor: string;
   children: ReactNode;
+  labelClassName?: string;
 }) => (
-  <div className="flex flex-col gap-1.5">
-    <Label htmlFor={htmlFor}>{label}</Label>
+  <div className="flex min-w-0 flex-col gap-0.5">
+    <Label
+      htmlFor={htmlFor}
+      className={cn("text-xs font-normal text-muted-foreground", labelClassName)}
+    >
+      {label}
+    </Label>
     {children}
   </div>
 );
@@ -208,9 +227,19 @@ const ItemFields = ({
     );
 
   return (
-    <div className="grid gap-3 rounded-lg border p-3 sm:grid-cols-2">
+    <div
+      className={cn(
+        // 広い画面では入力欄の下線が行の区切りを兼ねるので、行の罫線は狭い画面（欄を積むとき）だけに引く
+        "grid grid-cols-2 gap-x-4 gap-y-2 border-b py-3 sm:items-end sm:border-b-0 sm:py-2",
+        ITEM_COLUMNS[mode],
+      )}
+    >
       {hasCategory && (
-        <FormField label={mode === "payment" ? "内訳" : "カテゴリ"} htmlFor={ids.category}>
+        <FormField
+          label={mode === "payment" ? "内訳" : "カテゴリ"}
+          htmlFor={ids.category}
+          labelClassName="sm:sr-only"
+        >
           <NativeSelect
             id={ids.category}
             className="w-full"
@@ -234,7 +263,21 @@ const ItemFields = ({
           </NativeSelect>
         </FormField>
       )}
-      <FormField label="金額" htmlFor={ids.amount}>
+      <FormField label="品目名" htmlFor={ids.name} labelClassName="sm:sr-only">
+        <Input
+          id={ids.name}
+          value={item.name}
+          onChange={(event) => onChange({ name: event.target.value })}
+        />
+      </FormField>
+      <FormField label="メモ" htmlFor={ids.memo} labelClassName="sm:sr-only">
+        <Input
+          id={ids.memo}
+          value={item.memo}
+          onChange={(event) => onChange({ memo: event.target.value })}
+        />
+      </FormField>
+      <FormField label="金額" htmlFor={ids.amount} labelClassName="sm:sr-only">
         <Input
           id={ids.amount}
           inputMode="numeric"
@@ -243,22 +286,8 @@ const ItemFields = ({
           onChange={(event) => onChange({ amount: event.target.value })}
         />
       </FormField>
-      <FormField label="品目名" htmlFor={ids.name}>
-        <Input
-          id={ids.name}
-          value={item.name}
-          onChange={(event) => onChange({ name: event.target.value })}
-        />
-      </FormField>
-      <FormField label="メモ" htmlFor={ids.memo}>
-        <Input
-          id={ids.memo}
-          value={item.memo}
-          onChange={(event) => onChange({ memo: event.target.value })}
-        />
-      </FormField>
       {mode === "payment" && (
-        <div className="flex justify-end gap-1 sm:col-span-2">
+        <div className="col-span-2 flex justify-end gap-0.5 sm:col-span-1">
           <Button
             variant="ghost"
             size="icon-sm"
@@ -293,6 +322,16 @@ const ItemFields = ({
 };
 
 /**
+ * 入力の誤りや保存の失敗の知らせ。色だけに頼らず、アイコンを添える。
+ */
+const ErrorMessage = ({ message }: { message: string }) => (
+  <p role="alert" className="flex items-center gap-1.5 text-sm text-destructive">
+    <TriangleAlert className="size-4 shrink-0" aria-hidden="true" />
+    {message}
+  </p>
+);
+
+/**
  * 取引を消す確認のダイアログ。
  */
 const DeleteButton = ({ id }: { id: number }) => {
@@ -311,7 +350,7 @@ const DeleteButton = ({ id }: { id: number }) => {
 
   return (
     <Dialog>
-      <DialogTrigger render={<Button variant="destructive" />}>
+      <DialogTrigger render={<Button variant="ghost" className="text-destructive" />}>
         <Trash2 />
         削除
       </DialogTrigger>
@@ -320,7 +359,7 @@ const DeleteButton = ({ id }: { id: number }) => {
           <DialogTitle>この取引を削除しますか？</DialogTitle>
           <DialogDescription>品目もすべて消え、元に戻せません。</DialogDescription>
         </DialogHeader>
-        {error !== null && <p className="text-sm text-destructive">{error}</p>}
+        {error !== null && <ErrorMessage message={error} />}
         <DialogFooter>
           <DialogClose render={<Button variant="outline" />}>やめる</DialogClose>
           <Button variant="destructive" disabled={pending} onClick={() => void remove()}>
@@ -384,17 +423,14 @@ const EditForm = ({
 
   return (
     <form
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-10"
       onSubmit={(event) => {
         event.preventDefault();
         void save();
       }}
     >
-      <Card>
-        <CardHeader>
-          <CardTitle>{MODE_LABELS[mode]}</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
+      <Section label={<h1 className="text-2xl font-semibold">{MODE_LABELS[mode]}</h1>}>
+        <div className="grid gap-x-6 gap-y-4 border-t border-foreground pt-3 sm:grid-cols-2">
           <FormField label="日付" htmlFor={ids.date}>
             <Input
               id={ids.date}
@@ -441,17 +477,26 @@ const EditForm = ({
               </datalist>
             </FormField>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </Section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-baseline justify-between">
-            <span>品目</span>
-            <span className="tabular-nums">{formatYen(total)}</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
+      <Section label="品目">
+        <div
+          aria-hidden="true"
+          className={cn(
+            "hidden gap-x-4 border-b border-foreground pb-1.5 text-xs text-muted-foreground sm:grid",
+            ITEM_COLUMNS[mode],
+          )}
+        >
+          {(mode === "payment" || mode === "income") && (
+            <span>{mode === "payment" ? "内訳" : "カテゴリ"}</span>
+          )}
+          <span>品目名</span>
+          <span>メモ</span>
+          <span className="text-right">金額</span>
+        </div>
+        {/* 狭い画面では見出しを出さないので、表の始まりの線をここで引く */}
+        <div className="border-t border-foreground sm:border-t-0">
           {draft.items.map((item, index) => (
             <ItemFields
               key={item.key}
@@ -465,43 +510,54 @@ const EditForm = ({
               onRemove={() => update({ items: draft.items.filter((_, i) => i !== index) })}
             />
           ))}
-          {mode === "payment" && (
-            <Button
-              variant="outline"
-              className="self-start"
-              onClick={() => {
-                update({ items: [...draft.items, emptyItem(nextKey)] });
-                setNextKey(nextKey + 1);
-              }}
-            >
-              <Plus />
-              品目を足す
-            </Button>
-          )}
-        </CardContent>
-      </Card>
-
-      {transaction.source === "zaim_csv" && (
-        <p className="text-xs text-muted-foreground">
-          Zaim
-          から取り込んだ取引です。拡張機能を台帳に切り替える前に直すと、切り替えのときの再取り込みで元に戻ります。
-        </p>
-      )}
-      {error !== null && (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
-      )}
-
-      <div className="flex items-center gap-3">
-        <Button type="submit" disabled={pending}>
-          保存
-        </Button>
-        {saved && <span className="text-sm text-muted-foreground">保存しました</span>}
-        <div className="ml-auto">
-          <DeleteButton id={transaction.id} />
         </div>
-      </div>
+        {mode === "payment" && (
+          <Button
+            variant="ghost"
+            className="mt-1 -ml-2.5 text-muted-foreground"
+            onClick={() => {
+              update({ items: [...draft.items, emptyItem(nextKey)] });
+              setNextKey(nextKey + 1);
+            }}
+          >
+            <Plus />
+            品目を足す
+          </Button>
+        )}
+        <div className="mt-3 flex items-baseline justify-between border-t border-foreground pt-2">
+          <span className="text-xs text-muted-foreground">合計</span>
+          <span className="text-2xl font-semibold tracking-tight tabular-nums">
+            {formatAmount(total)}
+          </span>
+        </div>
+      </Section>
+
+      <Section label="">
+        <div className="flex flex-col gap-4">
+          {transaction.source === "zaim_csv" && (
+            <p className="flex gap-1.5 text-xs text-muted-foreground">
+              <Info className="mt-px size-3.5 shrink-0" aria-hidden="true" />
+              Zaim
+              から取り込んだ取引です。拡張機能を台帳に切り替える前に直すと、切り替えのときの再取り込みで元に戻ります。
+            </p>
+          )}
+          {error !== null && <ErrorMessage message={error} />}
+          <div className="flex items-center gap-4">
+            <Button type="submit" size="lg" disabled={pending}>
+              保存
+            </Button>
+            {saved && (
+              <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                <Check className="size-4" aria-hidden="true" />
+                保存しました
+              </span>
+            )}
+            <div className="ml-auto">
+              <DeleteButton id={transaction.id} />
+            </div>
+          </div>
+        </div>
+      </Section>
     </form>
   );
 };
@@ -513,13 +569,12 @@ const TransactionEditPage = (props: Props) => {
   // 別の取引の画面へ移っても「保存しました」が残らないよう、保存した取引の ID で持つ
   const [savedId, setSavedId] = useState<number | null>(null);
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <Link
         href={transactionsHref({ month: monthOf(props.transaction.date) })}
-        className="flex items-center gap-1 self-start text-sm text-muted-foreground hover:text-foreground"
+        className="self-start text-xs text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="size-4" />
-        取引の一覧へ
+        ← {Number(props.transaction.date.slice(5, 7))}月の取引
       </Link>
       {/* 保存すると loader の値が変わるので、key を変えて入力中の値を保存した内容で作り直す */}
       <EditForm

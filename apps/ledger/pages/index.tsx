@@ -1,8 +1,8 @@
 import { Link } from "@void/react";
 import { ChevronRight } from "lucide-react";
-import { formatMonth, shiftMonth } from "@/ledger/dates";
 import type { CategoryTotal, ModeSummary } from "@/ledger/summary";
 import { cn } from "@/lib/utils";
+import { MonthHeading } from "@/web/components/MonthHeading";
 import { Section } from "@/web/components/Section";
 import { formatAmount, formatPercent, formatSignedAmount } from "@/web/format";
 import { transactionsHref } from "@/web/transactionsHref";
@@ -12,34 +12,6 @@ type Mode = "payment" | "income";
 
 /** 名前・割合・金額の 3 列。カテゴリの行と内訳の行で列をそろえる */
 const ROW_COLUMNS = "grid grid-cols-[minmax(0,1fr)_4rem_7rem] items-baseline gap-x-4";
-
-/**
- * 「10月」の形で月だけを書く。前後の月へのリンクは年をまたいでも月だけで足りる。
- */
-const monthLabel = (month: string): string => `${Number(month.slice(5))}月`;
-
-/**
- * 集計の月。年の下に月を大きく出し、前後の月へのリンクを添える。
- */
-const MonthHeading = ({ month }: { month: string }) => {
-  const [year, monthNumber] = month.split("-").map(Number);
-  return (
-    <div className="flex flex-col gap-1">
-      <div className="flex gap-4 text-xs text-muted-foreground">
-        <Link href={`/?month=${shiftMonth(month, -1)}`} className="hover:text-foreground">
-          ← {monthLabel(shiftMonth(month, -1))}
-        </Link>
-        <Link href={`/?month=${shiftMonth(month, 1)}`} className="hover:text-foreground">
-          {monthLabel(shiftMonth(month, 1))} →
-        </Link>
-      </div>
-      <h1 aria-label={formatMonth(month)} className="flex flex-col">
-        <span className="text-xs text-muted-foreground">{year}</span>
-        <span className="text-6xl leading-none font-semibold tracking-tighter">{monthNumber}</span>
-      </h1>
-    </div>
-  );
-};
 
 /**
  * 支出・収入・収支の合計。収支はこの画面で一番見てほしい数字なので、アクセントの色で出す。
@@ -190,7 +162,7 @@ const SummaryPage = ({ month, summary }: Props) => (
   <div className="flex flex-col gap-12">
     <div className="grid gap-x-4 gap-y-6 md:grid-cols-12 md:items-end">
       <div className="md:col-span-3">
-        <MonthHeading month={month} />
+        <MonthHeading month={month} hrefOf={(target) => `/?month=${target}`} />
       </div>
       <div className="md:col-span-9">
         <Totals payment={summary.payment.total} income={summary.income.total} />

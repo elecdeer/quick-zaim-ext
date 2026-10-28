@@ -1,5 +1,12 @@
 import { describe, expect, test } from "vite-plus/test";
-import { formatAmount, formatDay, formatPercent, formatSignedAmount, formatYen } from "./format.ts";
+import {
+  formatAmount,
+  formatDay,
+  formatDayOfMonth,
+  formatPercent,
+  formatSignedAmount,
+  formatYen,
+} from "./format.ts";
 
 describe("formatYen", () => {
   test("3 桁ごとに区切って円記号を付ける", () => {
@@ -48,5 +55,11 @@ describe("formatSignedAmount", () => {
 
   test("0 には符号を付けない", () => {
     expect(formatSignedAmount(0)).toBe("0");
+  });
+});
+
+describe("formatDayOfMonth", () => {
+  test("日と曜日だけを書く", () => {
+    expect(formatDayOfMonth("2026-10-28")).toBe("28 水");
   });
 });

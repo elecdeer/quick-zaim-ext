@@ -32,3 +32,11 @@ export const formatDay = (date: string): string => {
   const weekday = "日月火水木金土"[parsed.getUTCDay()];
   return `${parsed.getUTCMonth() + 1}/${parsed.getUTCDate()}（${weekday}）`;
 };
+
+/**
+ * YYYY-MM-DD の日付を「28 水」の形で書く。月がほかの所で分かる一覧の、日付の列で使う。
+ */
+export const formatDayOfMonth = (date: string): string => {
+  const parsed = new Date(`${date}T00:00:00Z`);
+  return `${parsed.getUTCDate()} ${"日月火水木金土"[parsed.getUTCDay()]}`;
+};
