@@ -1,9 +1,12 @@
-import { http, HttpResponse } from "msw";
 import preview from "#storybook/preview";
 import { setupBrowserMock } from "../../test-utils/browser-mock.ts";
+import {
+  masterHandlers,
+  meHandler,
+  MOCK_SERVER_URL,
+  unauthenticatedHandler,
+} from "../../test-utils/ledgerMocks.ts";
 import App from "./App.tsx";
-
-const MOCK_SERVER_URL = "http://mock-server.test";
 
 const meta = preview.meta({
   title: "Sidebar/App",
@@ -23,23 +26,16 @@ export const UnauthedState = meta.story({
   name: "未認証画面",
   parameters: {
     msw: {
-      handlers: [http.get(`${MOCK_SERVER_URL}/me`, () => new HttpResponse(null, { status: 401 }))],
+      handlers: [unauthenticatedHandler, ...masterHandlers],
     },
   },
 });
 
 export const MainState = meta.story({
-  name: "メイン画面（Zaim連携済み）",
+  name: "メイン画面（ログイン済み）",
   parameters: {
     msw: {
-      handlers: [
-        http.get(`${MOCK_SERVER_URL}/me`, () =>
-          HttpResponse.json({ email: "user@example.com", id: "user@example.com" }),
-        ),
-        http.get(`${MOCK_SERVER_URL}/zaim/auth/status`, () =>
-          HttpResponse.json({ connected: true, zaimUserId: "zaim_user_123456" }),
-        ),
-      ],
+      handlers: [meHandler, ...masterHandlers],
     },
   },
 });

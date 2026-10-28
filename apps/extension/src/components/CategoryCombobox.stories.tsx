@@ -1,36 +1,13 @@
-import { http, HttpResponse } from "msw";
+import { delay, http, HttpResponse } from "msw";
 import { useState } from "react";
 import preview from "#storybook/preview";
+import {
+  categoriesHandler,
+  MOCK_SERVER_URL,
+  mockCategories,
+  mockUrl,
+} from "../test-utils/ledgerMocks.ts";
 import { CategoryCombobox, type CategorySelection } from "./CategoryCombobox.tsx";
-
-const MOCK_SERVER_URL = "http://mock-server.test";
-
-const mockCategoriesResponse = {
-  fetchedAt: "2024-01-01T00:00:00Z",
-  categories: [
-    {
-      id: 101,
-      name: "食費",
-      mode: "payment",
-      subCategories: [
-        { id: 1001, name: "食料品" },
-        { id: 1002, name: "外食" },
-      ],
-    },
-    {
-      id: 102,
-      name: "交通費",
-      mode: "payment",
-      subCategories: [{ id: 1003, name: "電車・バス" }],
-    },
-    {
-      id: 201,
-      name: "給与",
-      mode: "income",
-      subCategories: [{ id: 2001, name: "給料" }],
-    },
-  ],
-};
 
 const ControlledWrapper = ({ serverUrl }: { serverUrl: string }) => {
   const [value, setValue] = useState<CategorySelection | null>(null);
@@ -67,11 +44,7 @@ export const Default = meta.story({
   name: "カテゴリ選択",
   parameters: {
     msw: {
-      handlers: [
-        http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, () =>
-          HttpResponse.json(mockCategoriesResponse),
-        ),
-      ],
+      handlers: [categoriesHandler],
     },
   },
 });
@@ -81,9 +54,9 @@ export const Loading = meta.story({
   parameters: {
     msw: {
       handlers: [
-        http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, async () => {
-          await new Promise((resolve) => setTimeout(resolve, 60000));
-          return HttpResponse.json(mockCategoriesResponse);
+        http.get(mockUrl("/api/categories"), async () => {
+          await delay("infinite");
+          return HttpResponse.json(mockCategories);
         }),
       ],
     },
@@ -95,10 +68,7 @@ export const Error = meta.story({
   parameters: {
     msw: {
       handlers: [
-        http.get(
-          `${MOCK_SERVER_URL}/api/zaim/categories`,
-          () => new HttpResponse(null, { status: 500 }),
-        ),
+        http.get(mockUrl("/api/categories"), () => new HttpResponse(null, { status: 500 })),
       ],
     },
   },

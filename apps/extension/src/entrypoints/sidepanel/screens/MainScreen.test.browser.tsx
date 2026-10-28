@@ -1,76 +1,45 @@
+import type { LedgerInput, LedgerOutput } from "ledger/client";
 import { http, HttpResponse } from "msw";
-import { describe, expect, test as baseTest, vi } from "vite-plus/test";
+import { describe, expect, vi } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser";
 import { render } from "vitest-browser-react";
+import type { collectFromActiveTab } from "../../../page-collector/collectFromActiveTab.ts";
 import { test } from "../../../test-utils/browser-test.ts";
-import { AllFilled, Default } from "./MainScreen.stories";
+import { masterHandlers, mockUrl, noDuplicatesHandler } from "../../../test-utils/ledgerMocks.ts";
+import { Default } from "./MainScreen.stories";
 
-const MOCK_SERVER_URL = "http://mock-server.test";
+vi.mock("../../../page-collector/collectFromActiveTab.ts", () => ({
+  collectFromActiveTab: vi.fn<typeof collectFromActiveTab>(async () => ({
+    ok: true,
+    url: "https://shop.example.com/order/1",
+    title: "ご注文ありがとうございます",
+    ariaSnapshot: "heading: ご注文内容",
+    ariaTree: { role: "heading", name: "ご注文内容", children: [] },
+    collectedAt: "2024-01-10T12:00:00.000Z",
+  })),
+}));
 
-const mockCategoriesResponse = {
-  fetchedAt: "2024-01-01T00:00:00Z",
-  categories: [
-    {
-      id: 101,
-      name: "食費",
-      mode: "payment",
-      subCategories: [
-        { id: 1001, name: "食料品" },
-        { id: 1002, name: "外食" },
-      ],
-    },
-    {
-      id: 102,
-      name: "交通費",
-      mode: "payment",
-      subCategories: [{ id: 1003, name: "電車・バス" }],
-    },
-  ],
-};
+type PaymentBody = LedgerInput<"/api/transactions", "POST">["body"];
+type DuplicatesResponse = LedgerOutput<"/api/transactions/duplicates", "POST">;
 
-const mockAccountsResponse = {
-  fetchedAt: "2024-01-01T00:00:00Z",
-  accounts: [
-    {
-      id: 1,
-      name: "現金",
-      active: 1,
-      sort: 1,
-      modified: "2024-01-01",
-      localId: 0,
-      websiteId: 0,
-      parentAccountId: 0,
-    },
-    {
-      id: 2,
-      name: "クレジットカード",
-      active: 1,
-      sort: 2,
-      modified: "2024-01-01",
-      localId: 0,
-      websiteId: 0,
-      parentAccountId: 0,
-    },
-  ],
-};
+const commonHandlers = masterHandlers;
 
-const mockStoresResponse = {
-  fetchedAt: "2024-01-01T00:00:00Z",
-  stores: [{ place: "スーパーA", placeUid: "uid-001", latestDate: "2024-01-10", count: 5 }],
-};
+/** 登録のリクエストの本文を記録し、登録できたことにする */
+const recordPayment = (onBody: (body: PaymentBody) => void) =>
+  http.post<never, PaymentBody>(mockUrl("/api/transactions"), async ({ request }) => {
+    onBody(await request.json());
+    return HttpResponse.json({ id: 999 });
+  });
 
-const noDuplicateHandler = http.get(`${MOCK_SERVER_URL}/api/zaim/payment/duplicate`, () =>
-  HttpResponse.json({ duplicates: [] }),
-);
+/** 1 品目目に重複の候補を返す */
+const duplicateHandler = http.post(mockUrl("/api/transactions/duplicates"), () => {
+  const response: DuplicatesResponse = {
+    duplicates: [[{ transactionId: 1, date: "2024-01-09", amount: 1000, placeName: "スーパーA" }]],
+  };
+  return HttpResponse.json(response);
+});
 
-const commonHandlers = [
-  http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, () =>
-    HttpResponse.json(mockCategoriesResponse),
-  ),
-  http.get(`${MOCK_SERVER_URL}/api/zaim/accounts`, () => HttpResponse.json(mockAccountsResponse)),
-  http.get(`${MOCK_SERVER_URL}/api/zaim/stores`, () => HttpResponse.json(mockStoresResponse)),
-  noDuplicateHandler,
-];
+const withoutNoDuplicates = commonHandlers.filter((h) => h !== noDuplicatesHandler);
 
 /** 編集モーダルを開いて 金額・カテゴリを入力し閉じる共通セットアップ（1行目） */
 const fillMinimumForm = async () => {
@@ -141,15 +110,9 @@ describe("MainScreen", () => {
     await expect.element(page.getByRole("button", { name: "登録" })).toBeEnabled();
   });
 
-  test("登録ボタン押下でPOST APIが品目ごとのカテゴリで呼ばれる", async ({ worker }) => {
-    const postHandler = vi.fn<(body: unknown) => void>();
-    worker.use(
-      ...commonHandlers,
-      http.post(`${MOCK_SERVER_URL}/api/zaim/payment`, async ({ request }) => {
-        postHandler(await request.json());
-        return HttpResponse.json({ id: 999, modified: "2024-01-01T00:00:00Z" }, { status: 201 });
-      }),
-    );
+  test("登録ボタン押下で取引の登録 API が 1 回呼ばれる", async ({ worker }) => {
+    const postHandler = vi.fn<(body: PaymentBody) => void>();
+    worker.use(...commonHandlers, recordPayment(postHandler));
 
     await render(<Default.Component />);
 
@@ -158,17 +121,36 @@ describe("MainScreen", () => {
 
     await vi.waitFor(() => {
       expect(postHandler).toHaveBeenCalledWith(
-        expect.objectContaining({ category_id: 101, genre_id: 1001, amount: 1000 }),
+        expect.objectContaining({
+          fromAccountId: null,
+          placeName: null,
+          items: [{ genreId: 1001, name: null, memo: null, amount: 1000 }],
+        }),
       );
+    });
+    expect(postHandler).toHaveBeenCalledTimes(1);
+  });
+
+  test("選んだ店舗は店舗名で送る", async ({ worker }) => {
+    const postHandler = vi.fn<(body: PaymentBody) => void>();
+    worker.use(...commonHandlers, recordPayment(postHandler));
+
+    await render(<Default.Component />);
+
+    await page.getByRole("combobox", { name: "店舗" }).click();
+    await page.getByRole("option", { name: "コンビニB" }).click();
+    await fillMinimumForm();
+    await page.getByRole("button", { name: "登録" }).click();
+
+    await vi.waitFor(() => {
+      expect(postHandler).toHaveBeenCalledWith(expect.objectContaining({ placeName: "コンビニB" }));
     });
   });
 
   test("登録成功時に成功メッセージが表示されフォームがリセットされる", async ({ worker }) => {
     worker.use(
       ...commonHandlers,
-      http.post(`${MOCK_SERVER_URL}/api/zaim/payment`, () =>
-        HttpResponse.json({ id: 999, modified: "2024-01-01T00:00:00Z" }, { status: 201 }),
-      ),
+      http.post(mockUrl("/api/transactions"), () => HttpResponse.json({ id: 999 })),
     );
 
     await render(<Default.Component />);
@@ -183,14 +165,7 @@ describe("MainScreen", () => {
   });
 
   test("重複検出時に警告と「重複があっても登録」ボタンが表示される", async ({ worker }) => {
-    worker.use(
-      ...commonHandlers.filter((h) => h !== noDuplicateHandler),
-      http.get(`${MOCK_SERVER_URL}/api/zaim/payment/duplicate`, () =>
-        HttpResponse.json({
-          duplicates: [{ id: 1, date: "2024-01-09", amount: 1000 }],
-        }),
-      ),
-    );
+    worker.use(...withoutNoDuplicates, duplicateHandler);
 
     await render(<Default.Component />);
 
@@ -202,19 +177,8 @@ describe("MainScreen", () => {
   });
 
   test("警告状態で再度ボタン押下するとPOSTが呼ばれる", async ({ worker }) => {
-    const postHandler = vi.fn<(body: unknown) => void>();
-    worker.use(
-      ...commonHandlers.filter((h) => h !== noDuplicateHandler),
-      http.get(`${MOCK_SERVER_URL}/api/zaim/payment/duplicate`, () =>
-        HttpResponse.json({
-          duplicates: [{ id: 1, date: "2024-01-09", amount: 1000 }],
-        }),
-      ),
-      http.post(`${MOCK_SERVER_URL}/api/zaim/payment`, async ({ request }) => {
-        postHandler(await request.json());
-        return HttpResponse.json({ id: 999, modified: "2024-01-01T00:00:00Z" }, { status: 201 });
-      }),
-    );
+    const postHandler = vi.fn<(body: PaymentBody) => void>();
+    worker.use(...withoutNoDuplicates, duplicateHandler, recordPayment(postHandler));
 
     await render(<Default.Component />);
 
@@ -226,20 +190,15 @@ describe("MainScreen", () => {
 
     await vi.waitFor(() => {
       expect(postHandler).toHaveBeenCalledWith(
-        expect.objectContaining({ amount: 1000, genre_id: 1001 }),
+        expect.objectContaining({
+          items: [expect.objectContaining({ genreId: 1001, amount: 1000 })],
+        }),
       );
     });
   });
 
   test("警告表示中に金額を変更すると警告がクリアされる", async ({ worker }) => {
-    worker.use(
-      ...commonHandlers.filter((h) => h !== noDuplicateHandler),
-      http.get(`${MOCK_SERVER_URL}/api/zaim/payment/duplicate`, () =>
-        HttpResponse.json({
-          duplicates: [{ id: 1, date: "2024-01-09", amount: 1000 }],
-        }),
-      ),
-    );
+    worker.use(...withoutNoDuplicates, duplicateHandler);
 
     await render(<Default.Component />);
 
@@ -258,9 +217,8 @@ describe("MainScreen", () => {
   test("登録失敗時にエラーメッセージが表示される", async ({ worker }) => {
     worker.use(
       ...commonHandlers,
-      http.post(
-        `${MOCK_SERVER_URL}/api/zaim/payment`,
-        () => new HttpResponse(null, { status: 502 }),
+      http.post(mockUrl("/api/transactions"), () =>
+        HttpResponse.json({ error: "登録できませんでした" }, { status: 502 }),
       ),
     );
 
@@ -304,15 +262,9 @@ describe("MainScreen", () => {
       .toMatchTextContent("特売");
   });
 
-  test("品目ごとに異なるカテゴリを選んで登録できる", async ({ worker }) => {
-    const postHandler = vi.fn<(body: unknown) => void>();
-    worker.use(
-      ...commonHandlers,
-      http.post(`${MOCK_SERVER_URL}/api/zaim/payment`, async ({ request }) => {
-        postHandler(await request.json());
-        return HttpResponse.json({ id: 999, modified: "2024-01-01T00:00:00Z" }, { status: 201 });
-      }),
-    );
+  test("品目ごとに異なるカテゴリを選んで 1 回の登録にまとめる", async ({ worker }) => {
+    const postHandler = vi.fn<(body: PaymentBody) => void>();
+    worker.use(...commonHandlers, recordPayment(postHandler));
 
     await render(<Default.Component />);
 
@@ -335,39 +287,133 @@ describe("MainScreen", () => {
 
     await vi.waitFor(() => {
       expect(postHandler).toHaveBeenCalledWith(
-        expect.objectContaining({ genre_id: 1001, amount: 1000 }),
+        expect.objectContaining({
+          items: [
+            expect.objectContaining({ genreId: 1001, amount: 1000 }),
+            expect.objectContaining({ genreId: 1003, amount: 500 }),
+          ],
+        }),
       );
-      expect(postHandler).toHaveBeenCalledWith(
-        expect.objectContaining({ genre_id: 1003, amount: 500 }),
-      );
+    });
+    expect(postHandler).toHaveBeenCalledTimes(1);
+  });
+
+  test("重複チェックは品目をまとめて 1 回で問い合わせる", async ({ worker }) => {
+    const checked = vi.fn<(body: unknown) => void>();
+    worker.use(
+      ...withoutNoDuplicates,
+      http.post(mockUrl("/api/transactions/duplicates"), async ({ request }) => {
+        checked(await request.json());
+        const response: DuplicatesResponse = { duplicates: [[], []] };
+        return HttpResponse.json(response);
+      }),
+      http.post(mockUrl("/api/transactions"), () => HttpResponse.json({ id: 999 })),
+    );
+
+    await render(<Default.Component />);
+
+    await fillMinimumForm();
+    await page.getByRole("button", { name: "+ 品目を追加" }).click();
+    await page.getByRole("button", { name: "品名を編集" }).nth(1).click();
+    await page.getByRole("spinbutton", { name: "金額" }).fill("500");
+    await page.getByRole("button", { name: "完了" }).click();
+    await page.getByRole("button", { name: "登録" }).click();
+
+    await expect.element(page.getByRole("status")).toMatchTextContent("登録しました");
+    expect(checked).toHaveBeenCalledTimes(1);
+    expect(checked).toHaveBeenCalledWith({
+      date: expect.any(String),
+      items: [
+        { genreId: 1001, amount: 1000 },
+        { genreId: 1001, amount: 500 },
+      ],
     });
   });
 
-  /** 指定した店舗名を返す自動入力ハンドラー。品目は 1 件（食料品・250 円） */
-  const extractPaymentHandler = (place: string) =>
-    http.post(`${MOCK_SERVER_URL}/api/llm/extract-payment`, () =>
-      HttpResponse.json({
-        date: "2026-06-13",
-        accountId: 2,
-        place,
-        items: [{ name: "牛乳", amount: 250, comment: null, genreId: 1001 }],
-        confidence: "high",
-        reasoning: "",
+  test("自動入力はページの内容だけを送り、返ってきた内容をフォームに入れる", async ({ worker }) => {
+    const extractBody = vi.fn<(body: unknown) => void>();
+    const extracted: LedgerOutput<"/api/transactions/extract", "POST"> = {
+      date: "2024-01-10",
+      accountId: 2,
+      placeName: "はじめての店",
+      items: [
+        { name: "おにぎり", amount: 160, memo: "鮭", genreId: 1001 },
+        { name: "電車代", amount: 200, memo: null, genreId: 1003 },
+      ],
+      confidence: "high",
+      reasoning: "レシートの明細から読み取った",
+    };
+    worker.use(
+      ...commonHandlers,
+      http.post(mockUrl("/api/transactions/extract"), async ({ request }) => {
+        extractBody(await request.json());
+        return HttpResponse.json(extracted);
       }),
     );
 
-  // AllFilled は collectFromActiveTab が使う chrome.* をスタブする decorator を持つ
-  test("自動入力の店舗が最近の店舗に一致すれば選択し place_uid で登録する", async ({ worker }) => {
-    const postHandler = vi.fn<(body: unknown) => void>();
+    await render(<Default.Component />);
+
+    await page.getByRole("button", { name: "このページから自動入力" }).click();
+
+    await expect
+      .element(page.getByRole("button", { name: "品名を編集" }).first())
+      .toMatchTextContent("おにぎり");
+    expect(extractBody).toHaveBeenCalledWith({
+      pageContent: {
+        url: "https://shop.example.com/order/1",
+        title: "ご注文ありがとうございます",
+        ariaSnapshot: "heading: ご注文内容",
+        collectedAt: "2024-01-10T12:00:00.000Z",
+      },
+    });
+    await expect
+      .element(page.getByRole("combobox", { name: "口座" }))
+      .toMatchTextContent("クレジットカード");
+    await expect
+      .element(page.getByRole("combobox", { name: "店舗" }))
+      .toMatchTextContent("はじめての店");
+    await expect
+      .element(page.getByRole("combobox", { name: "カテゴリ" }).nth(1))
+      .toMatchTextContent("交通費 > 電車・バス");
+    await expect.element(page.getByText("¥360")).toBeVisible();
+  });
+
+  test("自動入力に失敗したら状態コード付きのエラーを表示する", async ({ worker }) => {
     worker.use(
       ...commonHandlers,
-      extractPaymentHandler("スーパーA"),
-      http.post(`${MOCK_SERVER_URL}/api/zaim/payment`, async ({ request }) => {
-        postHandler(await request.json());
-        return HttpResponse.json({ id: 999, modified: "2024-01-01T00:00:00Z" }, { status: 201 });
-      }),
+      http.post(mockUrl("/api/transactions/extract"), () =>
+        HttpResponse.json({ error: "LLM failed" }, { status: 502 }),
+      ),
     );
-    await render(<AllFilled.Component />);
+
+    await render(<Default.Component />);
+
+    await page.getByRole("button", { name: "このページから自動入力" }).click();
+
+    await expect
+      .element(page.getByRole("alert"))
+      .toMatchTextContent("自動入力に失敗しました（502）");
+  });
+
+  /** 指定した店舗名を返す自動入力ハンドラー。品目は 1 件（食料品・250 円） */
+  const extractPaymentHandler = (placeName: string) =>
+    http.post(mockUrl("/api/transactions/extract"), () => {
+      const extracted: LedgerOutput<"/api/transactions/extract", "POST"> = {
+        date: "2026-06-13",
+        accountId: 2,
+        placeName,
+        items: [{ name: "牛乳", amount: 250, memo: null, genreId: 1001 }],
+        confidence: "high",
+        reasoning: "",
+      };
+      return HttpResponse.json(extracted);
+    });
+
+  test("自動入力の店舗が一覧にあれば選択し、店舗名で登録する", async ({ worker }) => {
+    const postHandler = vi.fn<(body: PaymentBody) => void>();
+    worker.use(...commonHandlers, extractPaymentHandler("スーパーA"), recordPayment(postHandler));
+
+    await render(<Default.Component />);
 
     await page.getByRole("button", { name: "このページから自動入力" }).click();
     await expect
@@ -376,52 +422,55 @@ describe("MainScreen", () => {
     await page.getByRole("button", { name: "登録" }).click();
 
     await vi.waitFor(() => {
-      expect(postHandler).toHaveBeenCalledWith(expect.objectContaining({ place_uid: "uid-001" }));
+      expect(postHandler).toHaveBeenCalledWith(expect.objectContaining({ placeName: "スーパーA" }));
     });
-    expect(postHandler.mock.calls[0]?.[0]).not.toHaveProperty("place");
   });
 
-  test("自動入力の店舗が最近の店舗に一致しなければ店舗を選択しない", async ({ worker }) => {
-    const postHandler = vi.fn<(body: unknown) => void>();
-    worker.use(
-      ...commonHandlers,
-      extractPaymentHandler("初めての店"),
-      http.post(`${MOCK_SERVER_URL}/api/zaim/payment`, async ({ request }) => {
-        postHandler(await request.json());
-        return HttpResponse.json({ id: 999, modified: "2024-01-01T00:00:00Z" }, { status: 201 });
-      }),
-    );
-    await render(<AllFilled.Component />);
+  test("自動入力の店舗が一覧になくても、その店舗名で登録する", async ({ worker }) => {
+    const postHandler = vi.fn<(body: PaymentBody) => void>();
+    worker.use(...commonHandlers, extractPaymentHandler("初めての店"), recordPayment(postHandler));
+
+    await render(<Default.Component />);
 
     await page.getByRole("button", { name: "このページから自動入力" }).click();
     await expect.element(page.getByText("牛乳")).toBeVisible();
-    await expect
-      .element(page.getByRole("combobox", { name: "店舗" }))
-      .toHaveTextContent("店舗を選択（任意）");
     await page.getByRole("button", { name: "登録" }).click();
 
     await vi.waitFor(() => {
-      expect(postHandler).toHaveBeenCalledTimes(1);
+      expect(postHandler).toHaveBeenCalledWith(
+        expect.objectContaining({ placeName: "初めての店" }),
+      );
     });
-    expect(postHandler.mock.calls[0]?.[0]).not.toHaveProperty("place");
-    expect(postHandler.mock.calls[0]?.[0]).not.toHaveProperty("place_uid");
   });
 });
 
 describe("MainScreen visual regression", () => {
-  baseTest("初期状態", async () => {
+  /** 口座・店舗・カテゴリの選択欄が読み込まれるまで待つ（読み込み中や失敗の表示を撮らないため） */
+  const waitForMasters = async () => {
+    await expect.element(page.getByRole("combobox", { name: "口座" })).toBeVisible();
+    await expect.element(page.getByRole("combobox", { name: "店舗" })).toBeVisible();
+    await expect.element(page.getByRole("combobox", { name: "カテゴリ" }).first()).toBeVisible();
+  };
+
+  test("初期状態", async ({ worker }) => {
+    worker.use(...commonHandlers);
     await render(<Default.Component />);
+    await waitForMasters();
     await expect(page.elementLocator(document.body)).toMatchScreenshot("main-screen-initial");
   });
 
-  baseTest("品目追加後", async () => {
+  test("品目追加後", async ({ worker }) => {
+    worker.use(...commonHandlers);
     const screen = await render(<Default.Component />);
+    await waitForMasters();
     await userEvent.click(screen.getByRole("button", { name: "+ 品目を追加" }));
     await expect(page.elementLocator(document.body)).toMatchScreenshot("main-screen-two-items");
   });
 
-  baseTest("金額入力後", async () => {
+  test("金額入力後", async ({ worker }) => {
+    worker.use(...commonHandlers);
     const screen = await render(<Default.Component />);
+    await waitForMasters();
     await userEvent.click(screen.getByRole("button", { name: "金額を編集" }));
     await userEvent.fill(screen.getByRole("spinbutton", { name: "金額" }), "1000");
     await userEvent.click(screen.getByRole("button", { name: "完了" }));

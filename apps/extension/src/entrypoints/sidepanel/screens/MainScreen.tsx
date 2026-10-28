@@ -1,21 +1,23 @@
 import { PencilSimpleIcon } from "@phosphor-icons/react";
+import type { LedgerOutput } from "ledger/client";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AccountCombobox } from "../../../components/AccountCombobox.tsx";
 import { CategoryCombobox, type CategorySelection } from "../../../components/CategoryCombobox.tsx";
 import { DateField } from "../../../components/DateField.tsx";
 import { ItemEditDialog, type ItemEditField } from "../../../components/ItemEditDialog.tsx";
-import { StoreCombobox, type StoreSelection } from "../../../components/StoreCombobox.tsx";
+import { StoreCombobox } from "../../../components/StoreCombobox.tsx";
 import { useToastManager } from "@/components/ui/toast";
 import { useMutation } from "../../../lib/useMutation.ts";
-import { collectExtractionInput, findCategorySelectionByGenreId } from "../../../lib/extraction.ts";
-import { createServerClient } from "../../../lib/serverClient";
+import { collectPageContent, findCategorySelectionByGenreId } from "../../../lib/extraction.ts";
+import { createServerClient, withErrorMessage } from "../../../lib/serverClient";
+import { categoriesQuery, placesQuery } from "../../../queries.ts";
 
 interface Item {
   id: string;
   name: string;
   amount: string;
-  comment: string;
+  memo: string;
   category: CategorySelection | null;
 }
 
@@ -23,14 +25,17 @@ interface Props {
   serverUrl: string;
 }
 
-type DuplicateInfo = { id: number; date: string; amount: number };
+type DuplicateInfo = LedgerOutput<
+  "/api/transactions/duplicates",
+  "POST"
+>["duplicates"][number][number];
 type DuplicateState = "unchecked" | "checking" | "warned";
 
 const newItem = (category: CategorySelection | null = null): Item => ({
   id: crypto.randomUUID(),
   name: "",
   amount: "",
-  comment: "",
+  memo: "",
   category,
 });
 
@@ -88,9 +93,9 @@ const ItemRow = ({ item, serverUrl, onEdit, onCategoryChange, onRemove }: ItemRo
             aria-hidden="true"
           />
           <span
-            className={`min-w-0 truncate text-[11px] ${item.comment ? "text-foreground" : "text-muted-foreground"}`}
+            className={`min-w-0 truncate text-[11px] ${item.memo ? "text-foreground" : "text-muted-foreground"}`}
           >
-            {item.comment || "メモ"}
+            {item.memo || "メモ"}
           </span>
         </Button>
         <Button
@@ -124,7 +129,7 @@ export default function MainScreen({ serverUrl }: Props) {
   const [items, setItems] = useState<Item[]>([newItem()]);
   const [date, setDate] = useState(localDateString);
   const [accountId, setAccountId] = useState<number | null>(null);
-  const [storeSelection, setStoreSelection] = useState<StoreSelection | null>(null);
+  const [placeName, setPlaceName] = useState<string | null>(null);
   const [duplicateState, setDuplicateState] = useState<DuplicateState>("unchecked");
   const [duplicatesByItemId, setDuplicatesByItemId] = useState<Record<string, DuplicateInfo[]>>({});
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -159,35 +164,30 @@ export default function MainScreen({ serverUrl }: Props) {
 
   const extractMutation = useMutation({
     mutationFn: async () => {
-      const client = createServerClient(serverUrl);
-      const input = await collectExtractionInput(client);
-      const extractRes = await client.api.llm["extract-payment"].$post({ json: input });
-      if (!extractRes.ok) {
-        throw new Error(`自動入力に失敗しました（${extractRes.status}）`);
-      }
-      const extracted = await extractRes.json();
-      return {
-        extracted,
-        recentStores: input.recentStores,
-        categories: input.categories,
-      };
+      const pageContent = await collectPageContent();
+      // 内訳から親カテゴリを引くためにカテゴリの一覧も使う。カテゴリの選択欄が読み込み済みならキャッシュを使う
+      const [extracted, { categories }] = await Promise.all([
+        withErrorMessage(
+          "自動入力",
+          createServerClient(serverUrl)("/api/transactions/extract", "POST", {
+            body: { pageContent },
+          }),
+        ),
+        withErrorMessage("カテゴリの取得", categoriesQuery.prefetch(serverUrl)),
+      ]);
+      return { extracted, categories };
     },
-    onSuccess: ({ extracted, recentStores, categories }) => {
+    onSuccess: ({ extracted, categories }) => {
       if (extracted.date !== null) setDate(extracted.date);
       if (extracted.accountId !== null) setAccountId(extracted.accountId);
-      if (extracted.place !== null) {
-        // Zaim API は店舗を既存の place_uid でしか指定できないため、最近の店舗に一致しない
-        // 店舗名は使わない
-        const matched = recentStores.find((s) => s.place === extracted.place);
-        setStoreSelection(matched ? { place: matched.place, placeUid: matched.placeUid } : null);
-      }
+      if (extracted.placeName !== null) setPlaceName(extracted.placeName);
       if (extracted.items.length > 0) {
         setItems(
           extracted.items.map((item) => ({
             id: crypto.randomUUID(),
             name: item.name ?? "",
             amount: item.amount !== null ? String(item.amount) : "",
-            comment: item.comment ?? "",
+            memo: item.memo ?? "",
             category:
               item.genreId !== null
                 ? findCategorySelectionByGenreId(categories, item.genreId)
@@ -200,32 +200,32 @@ export default function MainScreen({ serverUrl }: Props) {
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const client = createServerClient(serverUrl);
-      for (const item of items) {
+      const paymentItems = items.map((item) => {
         if (!item.category) throw new Error("カテゴリが選択されていません");
-        const res = await client.api.zaim.payment.$post({
-          json: {
-            category_id: item.category.categoryId,
-            genre_id: item.category.genreId,
-            amount: parseInt(item.amount, 10),
-            date,
-            ...(accountId !== null && { from_account_id: accountId }),
-            ...(item.name && { name: item.name }),
-            ...(item.comment && { comment: item.comment }),
-            ...(storeSelection && { place_uid: storeSelection.placeUid }),
-          },
-        });
-        if (!res.ok) throw new Error(`登録に失敗しました（${res.status}）`);
-      }
+        return {
+          genreId: item.category.genreId,
+          name: item.name || null,
+          memo: item.memo || null,
+          amount: parseInt(item.amount, 10),
+        };
+      });
+      await withErrorMessage(
+        "登録",
+        createServerClient(serverUrl)("/api/transactions", "POST", {
+          body: { date, fromAccountId: accountId, placeName, items: paymentItems },
+        }),
+      );
     },
     onSuccess: () => {
       setItems([newItem()]);
       setDate(localDateString());
       setAccountId(null);
-      setStoreSelection(null);
+      setPlaceName(null);
       setDuplicateState("unchecked");
       setDuplicatesByItemId({});
       toastManager.add({ description: "登録しました" });
+      // 新しい店舗が増えたり並び順が変わったりするので取り直す。失敗しても今の一覧を使い続ける
+      placesQuery.refetch(serverUrl).catch(() => {});
     },
   });
 
@@ -239,28 +239,24 @@ export default function MainScreen({ serverUrl }: Props) {
     }
 
     setDuplicateState("checking");
-    const client = createServerClient(serverUrl);
 
     try {
-      const results = await Promise.all(
-        items.map(async (item) => {
-          if (!item.category) throw new Error("カテゴリが選択されていません");
-          const res = await client.api.zaim.payment.duplicate.$get({
-            query: {
-              date,
-              amount: String(parseInt(item.amount, 10)),
-              genre_id: String(item.category.genreId),
-            },
-          });
-          if (!res.ok) throw new Error(`重複チェックに失敗しました（${res.status}）`);
-          const body = (await res.json()) as { duplicates: DuplicateInfo[] };
-          return { itemId: item.id, duplicates: body.duplicates };
-        }),
+      const checkedItems = items.map((item) => {
+        if (!item.category) throw new Error("カテゴリが選択されていません");
+        return { genreId: item.category.genreId, amount: parseInt(item.amount, 10) };
+      });
+      const { duplicates } = await createServerClient(serverUrl)(
+        "/api/transactions/duplicates",
+        "POST",
+        { body: { date, items: checkedItems } },
       );
 
-      const map = Object.fromEntries(results.map((r) => [r.itemId, r.duplicates]));
+      // duplicates は送った items と同じ順に並ぶ
+      const map = Object.fromEntries(
+        items.map((item, index) => [item.id, duplicates[index] ?? []]),
+      );
       setDuplicatesByItemId(map);
-      const hasDup = results.some((r) => r.duplicates.length > 0);
+      const hasDup = duplicates.some((candidates) => candidates.length > 0);
       if (hasDup) {
         setDuplicateState("warned");
       } else {
@@ -305,7 +301,7 @@ export default function MainScreen({ serverUrl }: Props) {
       </div>
       <DateField value={date} onChange={setDate} required />
       <AccountCombobox serverUrl={serverUrl} value={accountId} onChange={setAccountId} />
-      <StoreCombobox serverUrl={serverUrl} value={storeSelection} onChange={setStoreSelection} />
+      <StoreCombobox serverUrl={serverUrl} value={placeName} onChange={setPlaceName} />
       <section className="flex flex-col gap-3">
         {items.map((item) => (
           <ItemRow

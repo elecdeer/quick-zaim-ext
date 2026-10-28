@@ -879,6 +879,30 @@ describe("race conditions", () => {
 
     expect(query.getData(undefined)).toBe("refreshed");
   });
+
+  it("resetAll より前に始まった取得の結果は、リセット後のキャッシュに書き込まない", async () => {
+    const deferreds: Array<{ resolve: (v: string) => void }> = [];
+    const query = defineQuery({
+      queryFn: async () =>
+        new Promise<string>((resolve) => {
+          deferreds.push({ resolve });
+        }),
+    });
+
+    const stale = query.prefetch(undefined);
+    const staleRefetch = query.refetch(undefined);
+    query.resetAll();
+    deferreds[0]?.resolve("stale");
+    deferreds[1]?.resolve("stale-refetch");
+    await Promise.all([stale, staleRefetch]);
+
+    expect(query.getData(undefined)).toBeUndefined();
+
+    const fresh = query.prefetch(undefined);
+    deferreds[2]?.resolve("fresh");
+    await expect(fresh).resolves.toBe("fresh");
+    expect(query.getData(undefined)).toBe("fresh");
+  });
 });
 
 describe("refetch behavior", () => {

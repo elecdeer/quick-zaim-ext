@@ -104,3 +104,43 @@ server へのログインとセッション管理は Worker の手前の [Cloudf
 ### ローカル開発
 
 `wrangler dev` には Access がないため、`apps/server/wrangler.jsonc` の `access.dev` で認証済みユーザー（`dev@example.com`）を再現している。ログイン操作は不要。未ログイン状態を試すときは `access.dev` を一時的に外す。
+
+## ledger（Zaim API の置き換え）
+
+Zaim API は 2026-12-07 に提供が終わるため、支払いを自前の台帳に記録する `apps/ledger` を [Void](https://void.cloud/) で作っている（現在はスパイク）。Cloudflare Workers 上の D1 と Drizzle を使い、`quick-zaim-server` とは別の Worker `quick-ledger` にデプロイする。
+
+- URL: `https://quick-ledger.<subdomain>.workers.dev`
+- API は `routes/`、Web 画面は `pages/`、スキーマは `db/schema.ts`（`void db generate` でマイグレーションを作る）
+- 拡張機能は台帳の API だけを呼ぶ（`quick-zaim-server` には向けられない）。`ledger/client` の `createLedgerClient` で型付きで呼ぶ。Void の `void/client` の fetch は `credentials` を指定できず Access の Cookie を送れないため使わない
+- 拡張機能向けの型は `vp run ledger#build:types` で `dist/types` に出す（`vp pack` だと Void が生成する型を読めず `any` になる）。拡張機能の `build` は先にこれを実行する。型チェックの前にも必要なので、CI では `vp check` の前に実行している
+
+### デプロイ
+
+```bash
+pnpm -F ledger exec void deploy
+```
+
+- 初回はチェックアウトごとに `pnpm -F ledger exec void connect --platform cloudflare` でデプロイ先を選ぶ（選択は `.void/` に保存され Git には入らない）
+- デプロイ時に D1 のマイグレーションが適用される。適用前の復元ポイントと `void db restore` のコマンドが表示される
+- Void は Workers Previews に対応していないため、ブランチごとの Preview はない
+- Void は Worker の公開設定（`workers_dev`・`preview_urls`・`routes`）がダッシュボード側とずれているとデプロイを止めるので、`void.config.ts` に今の値を書いている
+- 破壊的なマイグレーション（`DROP TABLE` など）は、ファイルに `-- void:allow-destructive` の行がないと適用されない
+- デプロイの最後に Void が新しい版の準備確認をするが、Access に止められる。手元からデプロイするときは Access の短期トークンを渡す（取れないときは新しい版が有効にならず、前の版のまま動く）
+
+```bash
+cf access login https://quick-ledger.<subdomain>.workers.dev
+CF_ACCESS_TOKEN="$(cf access token https://quick-ledger.<subdomain>.workers.dev)" pnpm -F ledger exec void deploy
+```
+
+### 認証
+
+- Access アプリケーションは Worker 単位（destination の type が `worker`）で作り、ポリシーは `quick-zaim-server` と共有している
+- Void のアプリは静的アセットを持つため、Access のルーターが `ctx.access` を Worker に渡さない。本番では常に `Cf-Access-Jwt-Assertion` の JWT 検証で認証するので、`ACCESS_AUD` シークレットが必須（未設定だと全リクエストが 401 になる）
+
+```bash
+pnpm -F ledger exec void secret put ACCESS_AUD
+```
+
+- ローカル開発では、開発サーバー（`import.meta.env.DEV`）のときだけ `dev@example.com` として通す。`void.config.ts` に `cloudflare.access.dev` を書く方法は、デプロイ時に Worker の設定としてアップロードされ、シークレットと一緒に送れずに失敗するため使わない
+- コンテキスト変数の `user` は Void の認証機能（Better Auth）が型を予約しているため、`accessUser` を使う
+- 自動入力（`POST /api/transactions/extract`）が使う Workers AI にはローカルの模擬環境がなく、開発サーバーは Access の後ろにある `quick-ledger` 経由でリモートの AI につなぐ。そのため Access のサービストークン（`CLOUDFLARE_ACCESS_CLIENT_ID` と `CLOUDFLARE_ACCESS_CLIENT_SECRET`）がないと開発サーバーが起動しない。AI 以外を試すだけなら、`void.config.ts` に一時的に `inference: { bindings: { ai: false } }` を足す

@@ -16,14 +16,9 @@ import {
 import { ErrorBoundary } from "@/lib/ErrorBoundary";
 import { useSuspenseQuery } from "@/lib/query";
 import { cn } from "@/lib/utils";
-import { accountsQuery } from "../queries";
+import { accountsQuery, type AccountsResponse } from "../queries";
 
-type Account = {
-  id: number;
-  name: string;
-  active: number;
-  sort: number;
-};
+type Account = AccountsResponse["accounts"][number];
 
 interface Props {
   serverUrl: string;
@@ -33,7 +28,7 @@ interface Props {
 
 /**
  * 口座選択の combobox コンポーネント。
- * アクティブな口座（active === 1）のみ表示し、使用頻度順（sort）で並び替える。
+ * 台帳が返す順（アーカイブしていない口座を並び順で）に表示する。
  */
 export const AccountCombobox = ({ serverUrl, value, onChange }: Props) => {
   if (!serverUrl) return null;
@@ -71,11 +66,8 @@ const AccountComboboxContent = ({
 }: { serverUrl: string } & Pick<Props, "value" | "onChange">) => {
   const { data } = useSuspenseQuery(accountsQuery, serverUrl);
 
-  const accounts = (data?.accounts ?? [])
-    .filter((a: Account) => a.active === 1)
-    .sort((a: Account, b: Account) => a.sort - b.sort);
-
-  const selectedAccount = accounts.find((a: Account) => a.id === value) ?? null;
+  const accounts = data.accounts;
+  const selectedAccount = accounts.find((a) => a.id === value) ?? null;
 
   return (
     <div className="flex items-center gap-2">

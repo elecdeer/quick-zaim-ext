@@ -49,8 +49,8 @@ interface Props {
 }
 
 /**
- * カテゴリ（大カテゴリでグループ化されたサブカテゴリ）の combobox コンポーネント。
- * paymentモードのカテゴリのみ対象。1つの Popover 内でカテゴリごとにグループ表示する。
+ * カテゴリ（カテゴリでグループ化された内訳）の combobox コンポーネント。
+ * 支出のカテゴリのみ対象。1つの Popover 内でカテゴリごとにグループ表示する。
  */
 export const CategoryCombobox = ({
   serverUrl,
@@ -96,19 +96,20 @@ const CategoryComboboxContent = ({
 }: { serverUrl: string } & Pick<Props, "value" | "onChange" | "size" | "label">) => {
   const { data } = useSuspenseQuery(categoriesQuery, serverUrl);
 
-  const groups = useMemo<GenreGroup[]>(() => {
-    const categories = (data?.categories ?? []).filter((c) => c.mode === "payment");
-    return categories.map((c) => ({
-      categoryId: c.id,
-      categoryName: c.name,
-      items: c.subCategories.map((sc) => ({
+  const groups = useMemo<GenreGroup[]>(
+    () =>
+      data.categories.map((c) => ({
         categoryId: c.id,
         categoryName: c.name,
-        genreId: sc.id,
-        genreName: sc.name,
+        items: c.genres.map((genre) => ({
+          categoryId: c.id,
+          categoryName: c.name,
+          genreId: genre.id,
+          genreName: genre.name,
+        })),
       })),
-    }));
-  }, [data]);
+    [data],
+  );
 
   const selectedItem = useMemo<GenreItem | null>(() => {
     if (!value) return null;

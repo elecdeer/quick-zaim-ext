@@ -36,6 +36,10 @@ catalog:
   vitest-browser-react: ^2.2.0
   vite-plus: 1.4.0
   wrangler: ^4.152.0
+  void: 1.2.1
+  "@void/react": 1.2.1
+  csv-parse: 7.0.3
+  drizzle-orm: 0.45.4
 
 catalogMode: prefer
 overrides:

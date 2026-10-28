@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test, vi } from "vite-plus/test";
-import { accessAwareFetch, createServerClient } from "./serverClient";
+import { LedgerFetchError } from "ledger/client";
+import { accessAwareFetch, createServerClient, withErrorMessage } from "./serverClient";
 
 /**
  * redirect: "manual" で Access のログイン画面へのリダイレクトを受けたときの Response を作る。
@@ -49,11 +50,44 @@ describe("accessAwareFetch", () => {
 });
 
 describe("createServerClient", () => {
-  test("未ログインで Access にリダイレクトされた API 呼び出しは 401 になる", async () => {
+  test("未ログインで Access にリダイレクトされた API 呼び出しは 401 のエラーになる", async () => {
     vi.stubGlobal("fetch", vi.fn<typeof fetch>().mockResolvedValue(createOpaqueRedirectResponse()));
 
-    const res = await createServerClient("https://server.example.com").me.$get();
+    const request = createServerClient("https://server.example.com")("/me", "GET");
 
-    expect(res.status).toBe(401);
+    await expect(request).rejects.toMatchObject({ name: "LedgerFetchError", status: 401 });
+  });
+
+  test("Cookie を送る設定で台帳 API を呼び、JSON を返す", async () => {
+    const mockFetch = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(Response.json({ email: "user@example.com", id: "user@example.com" }));
+    vi.stubGlobal("fetch", mockFetch);
+
+    const me = await createServerClient("https://server.example.com")("/me", "GET");
+
+    expect(me).toEqual({ email: "user@example.com", id: "user@example.com" });
+    expect(mockFetch).toHaveBeenCalledWith(
+      new URL("https://server.example.com/me"),
+      expect.objectContaining({ method: "GET", credentials: "include", redirect: "manual" }),
+    );
+  });
+});
+
+describe("withErrorMessage", () => {
+  test("成功したらそのまま値を返す", async () => {
+    await expect(withErrorMessage("登録", Promise.resolve(1))).resolves.toBe(1);
+  });
+
+  test("台帳がエラーを返したら状態コード付きのメッセージにする", async () => {
+    const request = Promise.reject(new LedgerFetchError(502, { error: "upstream" }));
+
+    await expect(withErrorMessage("登録", request)).rejects.toThrow("登録に失敗しました（502）");
+  });
+
+  test("通信できなかったときは状態コードなしのメッセージにする", async () => {
+    const request = Promise.reject(new TypeError("Failed to fetch"));
+
+    await expect(withErrorMessage("登録", request)).rejects.toThrow("登録に失敗しました");
   });
 });

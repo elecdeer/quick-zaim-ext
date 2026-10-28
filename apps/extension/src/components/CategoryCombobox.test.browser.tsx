@@ -1,39 +1,16 @@
-import { http, HttpResponse } from "msw";
+import { delay, http, HttpResponse } from "msw";
 import { useState } from "react";
 import { describe, expect, vi } from "vite-plus/test";
 import { page } from "vite-plus/test/browser";
 import { render } from "vitest-browser-react";
 import { test } from "../test-utils/browser-test.ts";
+import {
+  categoriesHandler,
+  MOCK_SERVER_URL,
+  mockCategories,
+  mockUrl,
+} from "../test-utils/ledgerMocks.ts";
 import { CategoryCombobox, type CategorySelection } from "./CategoryCombobox.tsx";
-
-const MOCK_SERVER_URL = "http://mock-server.test";
-
-const mockCategoriesResponse = {
-  fetchedAt: "2024-01-01T00:00:00Z",
-  categories: [
-    {
-      id: 101,
-      name: "食費",
-      mode: "payment",
-      subCategories: [
-        { id: 1001, name: "食料品" },
-        { id: 1002, name: "外食" },
-      ],
-    },
-    {
-      id: 102,
-      name: "交通費",
-      mode: "payment",
-      subCategories: [{ id: 1003, name: "電車・バス" }],
-    },
-    {
-      id: 201,
-      name: "給与",
-      mode: "income",
-      subCategories: [{ id: 2001, name: "給料" }],
-    },
-  ],
-};
 
 const ControlledCategoryCombobox = ({
   onChange,
@@ -56,9 +33,9 @@ const ControlledCategoryCombobox = ({
 describe("CategoryCombobox", () => {
   test("ローディング中はスケルトンが表示される", async ({ worker }) => {
     worker.use(
-      http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, async () => {
-        await new Promise((resolve) => setTimeout(resolve, 60000));
-        return HttpResponse.json(mockCategoriesResponse);
+      http.get(mockUrl("/api/categories"), async () => {
+        await delay("infinite");
+        return HttpResponse.json(mockCategories);
       }),
     );
 
@@ -67,18 +44,19 @@ describe("CategoryCombobox", () => {
     await expect.element(page.getByRole("status", { name: "カテゴリを読み込み中" })).toBeVisible();
   });
 
-  test("paymentモードのサブカテゴリだけがグループ化されて表示される", async ({ worker }) => {
+  test("支出のカテゴリを取得し、内訳をカテゴリごとにグループ化して表示する", async ({ worker }) => {
+    const requestedModes: (string | null)[] = [];
     worker.use(
-      http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, () =>
-        HttpResponse.json(mockCategoriesResponse),
-      ),
+      http.get(mockUrl("/api/categories"), ({ request }) => {
+        requestedModes.push(new URL(request.url).searchParams.get("mode"));
+        return HttpResponse.json(mockCategories);
+      }),
     );
 
     await render(<ControlledCategoryCombobox />);
 
     await page.getByRole("combobox", { name: "カテゴリ" }).click();
 
-    // payment モードのサブカテゴリは表示される
     await expect.element(page.getByRole("option", { name: "食料品" })).toBeVisible();
     await expect.element(page.getByRole("option", { name: "外食" })).toBeVisible();
     await expect.element(page.getByRole("option", { name: "電車・バス" })).toBeVisible();
@@ -87,16 +65,11 @@ describe("CategoryCombobox", () => {
     await expect.element(page.getByText("食費")).toBeVisible();
     await expect.element(page.getByText("交通費")).toBeVisible();
 
-    // income モードのサブカテゴリは表示されない
-    await expect.element(page.getByRole("option", { name: "給料" })).not.toBeInTheDocument();
+    expect(requestedModes).toEqual(["payment"]);
   });
 
-  test("サブカテゴリを選択するとonChangeがcategoryIdとgenreIdで呼ばれる", async ({ worker }) => {
-    worker.use(
-      http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, () =>
-        HttpResponse.json(mockCategoriesResponse),
-      ),
-    );
+  test("内訳を選択するとonChangeがcategoryIdとgenreIdで呼ばれる", async ({ worker }) => {
+    worker.use(categoriesHandler);
 
     const onChange = vi.fn<(value: CategorySelection | null) => void>();
     await render(<ControlledCategoryCombobox onChange={onChange} />);
@@ -108,12 +81,7 @@ describe("CategoryCombobox", () => {
   });
 
   test("カテゴリ取得エラー時にエラーメッセージが表示される", async ({ worker }) => {
-    worker.use(
-      http.get(
-        `${MOCK_SERVER_URL}/api/zaim/categories`,
-        () => new HttpResponse(null, { status: 500 }),
-      ),
-    );
+    worker.use(http.get(mockUrl("/api/categories"), () => new HttpResponse(null, { status: 500 })));
 
     await render(<CategoryCombobox serverUrl={MOCK_SERVER_URL} value={null} onChange={() => {}} />);
 

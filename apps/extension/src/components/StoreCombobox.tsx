@@ -16,17 +16,13 @@ import {
 import { ErrorBoundary } from "@/lib/ErrorBoundary";
 import { useSuspenseQuery } from "@/lib/query";
 import { cn } from "@/lib/utils";
-import { storesQuery } from "../queries";
-
-export type StoreSelection = {
-  place: string;
-  placeUid: string;
-};
+import { placesQuery, type PlacesResponse } from "../queries";
 
 interface Props {
   serverUrl: string;
-  value: StoreSelection | null;
-  onChange: (value: StoreSelection | null) => void;
+  /** 選んだ店舗の名前。一覧にない名前（自動入力で読み取った新しい店舗など）も持てる */
+  value: string | null;
+  onChange: (value: string | null) => void;
   /** ボタンのサイズ。省略時は `default`。 */
   size?: "sm" | "default";
   /** 先頭の店舗アイコンを出すか。行内に並べるときは false にする。 */
@@ -35,7 +31,7 @@ interface Props {
 
 /**
  * 店舗選択の combobox コンポーネント。
- * 過去の支払い履歴から店舗候補を表示し、一覧から選択する。
+ * 台帳の店舗を最後に使った日の新しい順に表示し、一覧から選択する。
  */
 export const StoreCombobox = ({
   serverUrl,
@@ -82,10 +78,7 @@ export const StoreCombobox = ({
   );
 };
 
-type Store = {
-  place: string;
-  placeUid: string;
-};
+type Place = PlacesResponse["places"][number];
 
 const StoreComboboxContent = ({
   serverUrl,
@@ -94,27 +87,23 @@ const StoreComboboxContent = ({
   size,
   icon,
 }: { serverUrl: string; icon: React.ReactNode } & Pick<Props, "value" | "onChange" | "size">) => {
-  const { data } = useSuspenseQuery(storesQuery, serverUrl);
+  const { data } = useSuspenseQuery(placesQuery, serverUrl);
 
-  const stores = data?.stores ?? [];
-  const selectedStore = stores.find((s) => s.placeUid === value?.placeUid) ?? null;
+  const places = data.places;
+  const selectedPlace = places.find((p) => p.name === value) ?? null;
 
   return (
     <div className="flex items-center gap-2">
       {icon}
       <div className="flex min-w-0 flex-1 items-center gap-1">
         <Combobox
-          items={stores}
-          value={selectedStore}
-          onValueChange={(next: Store | null) => {
-            if (next && next.placeUid === value?.placeUid) {
-              onChange(null);
-            } else {
-              onChange(next ? { place: next.place, placeUid: next.placeUid } : null);
-            }
+          items={places}
+          value={selectedPlace}
+          onValueChange={(next: Place | null) => {
+            onChange(next && next.name === value ? null : (next?.name ?? null));
           }}
-          isItemEqualToValue={(a: Store | null, b: Store | null) => a?.placeUid === b?.placeUid}
-          itemToStringLabel={(s: Store | null) => s?.place ?? ""}
+          isItemEqualToValue={(a: Place | null, b: Place | null) => a?.id === b?.id}
+          itemToStringLabel={(p: Place | null) => p?.name ?? ""}
         >
           <ComboboxTrigger
             render={
@@ -128,9 +117,9 @@ const StoreComboboxContent = ({
             }
           >
             <ComboboxValue>
-              {(v: Store | null) => (
-                <span className={cn("truncate", !v && "text-muted-foreground")}>
-                  {v?.place ?? "店舗を選択（任意）"}
+              {(v: Place | null) => (
+                <span className={cn("truncate", !v && !value && "text-muted-foreground")}>
+                  {v?.name ?? value ?? "店舗を選択（任意）"}
                 </span>
               )}
             </ComboboxValue>
@@ -145,9 +134,9 @@ const StoreComboboxContent = ({
             <ComboboxInput placeholder="店舗を検索" />
             <ComboboxEmpty>店舗が見つかりません</ComboboxEmpty>
             <ComboboxList>
-              {(item: Store) => (
-                <ComboboxItem key={item.placeUid || item.place} value={item}>
-                  {item.place}
+              {(item: Place) => (
+                <ComboboxItem key={item.id} value={item}>
+                  {item.name}
                 </ComboboxItem>
               )}
             </ComboboxList>

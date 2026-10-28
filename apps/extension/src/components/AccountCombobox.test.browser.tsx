@@ -1,48 +1,16 @@
-import { http, HttpResponse } from "msw";
+import { delay, http, HttpResponse } from "msw";
 import { useState } from "react";
 import { describe, expect, vi } from "vite-plus/test";
 import { page } from "vite-plus/test/browser";
 import { render } from "vitest-browser-react";
 import { test } from "../test-utils/browser-test.ts";
+import {
+  accountsHandler,
+  MOCK_SERVER_URL,
+  mockAccounts,
+  mockUrl,
+} from "../test-utils/ledgerMocks.ts";
 import { AccountCombobox } from "./AccountCombobox.tsx";
-
-const MOCK_SERVER_URL = "http://mock-server.test";
-
-const mockAccountsResponse = {
-  fetchedAt: "2024-01-01T00:00:00Z",
-  accounts: [
-    {
-      id: 1,
-      name: "現金",
-      active: 1,
-      sort: 1,
-      modified: "2024-01-01",
-      localId: 0,
-      websiteId: 0,
-      parentAccountId: 0,
-    },
-    {
-      id: 2,
-      name: "クレジットカード",
-      active: 1,
-      sort: 2,
-      modified: "2024-01-01",
-      localId: 0,
-      websiteId: 0,
-      parentAccountId: 0,
-    },
-    {
-      id: 3,
-      name: "銀行口座（無効）",
-      active: 0,
-      sort: 3,
-      modified: "2024-01-01",
-      localId: 0,
-      websiteId: 0,
-      parentAccountId: 0,
-    },
-  ],
-};
 
 const ControlledAccountCombobox = ({ onChange }: { onChange?: (v: number | null) => void }) => {
   const [value, setValue] = useState<number | null>(null);
@@ -61,9 +29,9 @@ const ControlledAccountCombobox = ({ onChange }: { onChange?: (v: number | null)
 describe("AccountCombobox", () => {
   test("ローディング中はスケルトンが表示される", async ({ worker }) => {
     worker.use(
-      http.get(`${MOCK_SERVER_URL}/api/zaim/accounts`, async () => {
-        await new Promise((resolve) => setTimeout(resolve, 60000));
-        return HttpResponse.json(mockAccountsResponse);
+      http.get(mockUrl("/api/accounts"), async () => {
+        await delay("infinite");
+        return HttpResponse.json(mockAccounts);
       }),
     );
 
@@ -72,12 +40,8 @@ describe("AccountCombobox", () => {
     await expect.element(page.getByRole("status", { name: "口座を読み込み中" })).toBeVisible();
   });
 
-  test("アクティブな口座のみ表示される", async ({ worker }) => {
-    worker.use(
-      http.get(`${MOCK_SERVER_URL}/api/zaim/accounts`, () =>
-        HttpResponse.json(mockAccountsResponse),
-      ),
-    );
+  test("台帳の口座が一覧に表示される", async ({ worker }) => {
+    worker.use(accountsHandler);
 
     await render(<ControlledAccountCombobox />);
 
@@ -85,19 +49,11 @@ describe("AccountCombobox", () => {
 
     await expect.element(page.getByRole("option", { name: "現金" })).toBeVisible();
     await expect.element(page.getByRole("option", { name: "クレジットカード" })).toBeVisible();
-
-    // inactive な口座は表示されない
-    await expect
-      .element(page.getByRole("option", { name: "銀行口座（無効）" }))
-      .not.toBeInTheDocument();
+    await expect.element(page.getByRole("option", { name: "Suica" })).toBeVisible();
   });
 
   test("口座を選択するとonChangeがidで呼ばれる", async ({ worker }) => {
-    worker.use(
-      http.get(`${MOCK_SERVER_URL}/api/zaim/accounts`, () =>
-        HttpResponse.json(mockAccountsResponse),
-      ),
-    );
+    worker.use(accountsHandler);
 
     const onChange = vi.fn<(value: number | null) => void>();
     await render(<ControlledAccountCombobox onChange={onChange} />);
@@ -109,11 +65,7 @@ describe("AccountCombobox", () => {
   });
 
   test("クリアするとonChangeがnullで呼ばれる", async ({ worker }) => {
-    worker.use(
-      http.get(`${MOCK_SERVER_URL}/api/zaim/accounts`, () =>
-        HttpResponse.json(mockAccountsResponse),
-      ),
-    );
+    worker.use(accountsHandler);
 
     const onChange = vi.fn<(value: number | null) => void>();
     await render(<ControlledAccountCombobox onChange={onChange} />);
@@ -129,12 +81,7 @@ describe("AccountCombobox", () => {
   });
 
   test("口座取得エラー時にエラーメッセージが表示される", async ({ worker }) => {
-    worker.use(
-      http.get(
-        `${MOCK_SERVER_URL}/api/zaim/accounts`,
-        () => new HttpResponse(null, { status: 500 }),
-      ),
-    );
+    worker.use(http.get(mockUrl("/api/accounts"), () => new HttpResponse(null, { status: 500 })));
 
     await render(<AccountCombobox serverUrl={MOCK_SERVER_URL} value={null} onChange={() => {}} />);
 

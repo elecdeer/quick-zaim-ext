@@ -1,73 +1,18 @@
-import { http, HttpResponse } from "msw";
+import type { LedgerOutput } from "ledger/client";
+import { delay, http, HttpResponse } from "msw";
 import { userEvent, within } from "storybook/test";
 import preview from "#storybook/preview";
 import { Toaster, ToastProvider } from "@/components/ui/toast";
+import {
+  accountsHandler,
+  masterHandlers,
+  MOCK_SERVER_URL,
+  mockCategories,
+  mockUrl,
+  noDuplicatesHandler,
+  placesHandler,
+} from "../../../test-utils/ledgerMocks.ts";
 import MainScreen from "./MainScreen.tsx";
-
-const MOCK_SERVER_URL = "http://mock-server.test";
-
-const mockAccountsResponse = {
-  fetchedAt: "2024-01-01T00:00:00Z",
-  accounts: [
-    {
-      id: 1,
-      name: "現金",
-      active: 1,
-      sort: 1,
-      modified: "2024-01-01",
-      localId: 0,
-      websiteId: 0,
-      parentAccountId: 0,
-    },
-    {
-      id: 2,
-      name: "クレジットカード",
-      active: 1,
-      sort: 2,
-      modified: "2024-01-01",
-      localId: 0,
-      websiteId: 0,
-      parentAccountId: 0,
-    },
-    {
-      id: 3,
-      name: "Suica",
-      active: 1,
-      sort: 3,
-      modified: "2024-01-01",
-      localId: 0,
-      websiteId: 0,
-      parentAccountId: 0,
-    },
-  ],
-};
-
-const mockCategoriesResponse = {
-  fetchedAt: "2024-01-01T00:00:00Z",
-  categories: [
-    {
-      id: 101,
-      name: "食費",
-      mode: "payment",
-      subCategories: [
-        { id: 1001, name: "食料品" },
-        { id: 1002, name: "外食" },
-      ],
-    },
-    {
-      id: 102,
-      name: "交通費",
-      mode: "payment",
-      subCategories: [{ id: 1003, name: "電車・バス" }],
-    },
-    {
-      id: 201,
-      name: "給与",
-      mode: "income",
-      subCategories: [{ id: 2001, name: "給料" }],
-    },
-  ],
-};
 
 const meta = preview.meta({
   title: "Sidebar/Screens/MainScreen",
@@ -90,41 +35,21 @@ const meta = preview.meta({
 
 export default meta;
 
-const mockStoresResponse = {
-  fetchedAt: "2024-01-01T00:00:00Z",
-  stores: [
-    { place: "スーパーA", placeUid: "uid-001", latestDate: "2024-01-10", count: 5 },
-    { place: "コンビニB", placeUid: "uid-002", latestDate: "2024-01-05", count: 3 },
+const mockExtracted: LedgerOutput<"/api/transactions/extract", "POST"> = {
+  date: "2026-06-13",
+  accountId: 2,
+  placeName: "スーパーA",
+  items: [
+    { name: "牛乳 1L パック", amount: 250, memo: null, genreId: 1001 },
+    { name: "食パン 6枚切り 国産小麦", amount: 198, memo: "朝食用", genreId: 1001 },
+    { name: "卵 10個入り 特売", amount: 298, memo: null, genreId: 1001 },
   ],
+  confidence: "high",
+  reasoning: "レシートの明細から読み取った",
 };
 
-const accountsHandler = http.get(`${MOCK_SERVER_URL}/api/zaim/accounts`, () =>
-  HttpResponse.json(mockAccountsResponse),
-);
-
-const storesHandler = http.get(`${MOCK_SERVER_URL}/api/zaim/stores`, () =>
-  HttpResponse.json(mockStoresResponse),
-);
-
-const noDuplicateHandler = http.get(`${MOCK_SERVER_URL}/api/zaim/payment/duplicate`, () =>
-  HttpResponse.json({ duplicates: [] }),
-);
-
-const categoriesHandler = http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, () =>
-  HttpResponse.json(mockCategoriesResponse),
-);
-
-const extractPaymentHandler = http.post(`${MOCK_SERVER_URL}/api/llm/extract-payment`, () =>
-  HttpResponse.json({
-    date: "2026-06-13",
-    accountId: 2,
-    place: "スーパーA",
-    items: [
-      { name: "牛乳 1L パック", amount: 250, comment: null, genreId: 1001 },
-      { name: "食パン 6枚切り 国産小麦", amount: 198, comment: "朝食用", genreId: 1001 },
-      { name: "卵 10個入り 特売", amount: 298, comment: null, genreId: 1001 },
-    ],
-  }),
+const extractPaymentHandler = http.post(mockUrl("/api/transactions/extract"), () =>
+  HttpResponse.json(mockExtracted),
 );
 
 /**
@@ -150,7 +75,7 @@ export const Default = meta.story({
   name: "支払いフォーム",
   parameters: {
     msw: {
-      handlers: [categoriesHandler, accountsHandler, storesHandler, noDuplicateHandler],
+      handlers: masterHandlers,
     },
   },
 });
@@ -159,13 +84,7 @@ export const AllFilled = meta.story({
   name: "全項目入力済み",
   parameters: {
     msw: {
-      handlers: [
-        categoriesHandler,
-        accountsHandler,
-        storesHandler,
-        noDuplicateHandler,
-        extractPaymentHandler,
-      ],
+      handlers: [...masterHandlers, extractPaymentHandler],
     },
   },
   decorators: [
@@ -187,13 +106,13 @@ export const CategoriesLoading = meta.story({
   parameters: {
     msw: {
       handlers: [
-        http.get(`${MOCK_SERVER_URL}/api/zaim/categories`, async () => {
-          await new Promise((resolve) => setTimeout(resolve, 60000));
-          return HttpResponse.json(mockCategoriesResponse);
+        http.get(mockUrl("/api/categories"), async () => {
+          await delay("infinite");
+          return HttpResponse.json(mockCategories);
         }),
         accountsHandler,
-        storesHandler,
-        noDuplicateHandler,
+        placesHandler,
+        noDuplicatesHandler,
       ],
     },
   },
@@ -204,13 +123,10 @@ export const CategoriesError = meta.story({
   parameters: {
     msw: {
       handlers: [
-        http.get(
-          `${MOCK_SERVER_URL}/api/zaim/categories`,
-          () => new HttpResponse(null, { status: 500 }),
-        ),
+        http.get(mockUrl("/api/categories"), () => new HttpResponse(null, { status: 500 })),
         accountsHandler,
-        storesHandler,
-        noDuplicateHandler,
+        placesHandler,
+        noDuplicatesHandler,
       ],
     },
   },
