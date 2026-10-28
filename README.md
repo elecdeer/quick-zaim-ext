@@ -42,6 +42,8 @@ vp run dev
 
 台帳の URL をブラウザで開くと、月ごとの集計（`/`）、取引の一覧と編集（`/transactions`）、口座の残高（`/accounts`）が見られる。設計は [phase3-design.md](apps/ledger/docs/phase3-design.md)。
 
+紙のレシートは `/receipts/new` で撮影して登録する。AI が読み取った内容を確かめてから登録する。スマートフォンではホーム画面に追加すると、この画面から開く（PWA）。設計は [phase5-design.md](apps/ledger/docs/phase5-design.md)。
+
 - UI 部品は拡張機能と同じ shadcn（base-ui 版）と Tailwind CSS。`apps/ledger` で `pnpm exec shadcn add <名前>` を実行すると `src/components/ui/` に入る。shadcn の CLI が `cn` パッケージを入れて `from "cn"` と書くので、`@/lib/utils` に直して `cn` パッケージは外す
 - 表示するデータはページの `loader`、変更はページの `actions` で扱い、`/api/*`（拡張機能のための API）には足さない
 - ローカルの D1 に本物の記録を取り込んでいる場合は、架空のデータで画面を確かめられる。`LEDGER_PERSIST_TO` に別の場所を指定して開発サーバーを起動すると、ローカルの D1 などがそこに作られる（マイグレーションも適用される）。そこに `scripts/sample-data.sql` を入れる

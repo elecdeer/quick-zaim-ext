@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { href: "/", label: "集計" },
   { href: "/transactions", label: "取引" },
   { href: "/accounts", label: "口座" },
+  { href: "/receipts/new", label: "レシート" },
 ] as const;
 
 /**
