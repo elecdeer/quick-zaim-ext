@@ -2,18 +2,15 @@ import { Link, useRouter } from "@void/react";
 import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  NativeSelect,
-  NativeSelectOptGroup,
-  NativeSelectOption,
-} from "@/components/ui/native-select";
-import type { CategoryWithGenres } from "@/ledger/masters";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import type {
   TransactionFilter,
   TransactionListItem,
   TransactionMode,
 } from "@/ledger/transactions";
 import { cn } from "@/lib/utils";
+import { categoryValueOf, parseCategoryValue } from "@/web/categoryValue";
+import { CategoryOptions } from "@/web/components/CategoryOptions";
 import { MonthNavigation } from "@/web/components/MonthNavigation";
 import { formatDay, formatYen } from "@/web/format";
 import { MODE_LABELS } from "@/web/labels";
@@ -21,51 +18,6 @@ import { transactionsHref } from "@/web/transactionsHref";
 import type { Props } from "./index.server";
 
 const MODES: TransactionMode[] = ["payment", "income", "transfer", "adjustment"];
-
-/**
- * カテゴリ・内訳の選択肢の値。カテゴリは `c:ID`、内訳は `g:カテゴリID:ID` にして 1 つの選択で両方を選べるようにする。
- */
-const categoryValue = (filter: TransactionFilter): string => {
-  if (filter.genreId !== undefined) return `g:${filter.categoryId ?? ""}:${filter.genreId}`;
-  if (filter.categoryId !== undefined) return `c:${filter.categoryId}`;
-  return "";
-};
-
-/**
- * カテゴリ・内訳の選択肢の値を、絞り込みの条件に戻す。
- */
-const parseCategoryValue = (value: string): Pick<TransactionFilter, "categoryId" | "genreId"> => {
-  const [kind, first, second] = value.split(":");
-  if (kind === "c") return { categoryId: Number(first), genreId: undefined };
-  if (kind === "g") {
-    return { categoryId: first ? Number(first) : undefined, genreId: Number(second) };
-  }
-  return { categoryId: undefined, genreId: undefined };
-};
-
-/**
- * カテゴリと内訳の選択肢。
- */
-const CategoryOptions = ({
-  label,
-  categories,
-}: {
-  label: string;
-  categories: CategoryWithGenres[];
-}) => (
-  <NativeSelectOptGroup label={label}>
-    {categories.map((category) => [
-      <NativeSelectOption key={`c${category.id}`} value={`c:${category.id}`}>
-        {category.name}
-      </NativeSelectOption>,
-      ...category.genres.map((genre) => (
-        <NativeSelectOption key={`g${genre.id}`} value={`g:${category.id}:${genre.id}`}>
-          {`　${genre.name}`}
-        </NativeSelectOption>
-      )),
-    ])}
-  </NativeSelectOptGroup>
-);
 
 /**
  * 種類・口座・カテゴリの絞り込み。選ぶとすぐにその条件の一覧へ移る。
@@ -117,8 +69,11 @@ const Filters = ({
       <NativeSelect
         size="sm"
         aria-label="カテゴリ"
-        value={categoryValue(filter)}
-        onChange={(event) => visit(parseCategoryValue(event.target.value))}
+        value={categoryValueOf(filter.categoryId ?? null, filter.genreId ?? null)}
+        onChange={(event) => {
+          const { categoryId, genreId } = parseCategoryValue(event.target.value);
+          visit({ categoryId: categoryId ?? undefined, genreId: genreId ?? undefined });
+        }}
       >
         <NativeSelectOption value="">すべてのカテゴリ</NativeSelectOption>
         <CategoryOptions label="支出" categories={categories.payment} />

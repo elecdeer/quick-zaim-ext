@@ -1,0 +1,104 @@
+import type { TransactionDetail, TransactionUpdate } from "../ledger/transactionEdit.ts";
+import { categoryValueOf, parseCategoryValue } from "./categoryValue.ts";
+
+/**
+ * 編集画面の入力中の値。入力欄に合わせてすべて文字列で持つ。
+ *
+ * - 口座は口座の ID、なければ空文字
+ * - 品目の `category` は、カテゴリだけなら `c:カテゴリID`、内訳なら `g:カテゴリID:内訳ID`、なければ空文字
+ */
+export type TransactionDraft = {
+  date: string;
+  aggregation: TransactionUpdate["aggregation"];
+  fromAccountId: string;
+  toAccountId: string;
+  placeName: string;
+  items: ItemDraft[];
+};
+
+export type ItemDraft = {
+  /** React の key。品目を並べ替えても入力欄が入れ替わらないようにする */
+  key: number;
+  category: string;
+  name: string;
+  memo: string;
+  amount: string;
+};
+
+/**
+ * 空の品目を作る。
+ */
+export const emptyItem = (key: number): ItemDraft => ({
+  key,
+  category: "",
+  name: "",
+  memo: "",
+  amount: "",
+});
+
+/**
+ * 保存されている取引から、入力中の値を作る。
+ */
+export const draftFromTransaction = (transaction: TransactionDetail): TransactionDraft => ({
+  date: transaction.date,
+  aggregation: transaction.aggregation,
+  fromAccountId: transaction.fromAccountId === null ? "" : String(transaction.fromAccountId),
+  toAccountId: transaction.toAccountId === null ? "" : String(transaction.toAccountId),
+  placeName: transaction.placeName ?? "",
+  items: transaction.items.map((item, index) => ({
+    key: index,
+    category: categoryValueOf(item.categoryId, item.genreId),
+    name: item.name ?? "",
+    memo: item.memo ?? "",
+    amount: String(item.amount),
+  })),
+});
+
+const AMOUNT_PATTERN = /^-?\d+$/;
+
+/**
+ * 入力中の値を保存の入力にする。金額が整数でない品目があれば理由を返す。
+ *
+ * 金額の 3 桁区切りのカンマと前後の空白は取り除く。
+ */
+export const updateFromDraft = (
+  draft: TransactionDraft,
+): { ok: true; input: TransactionUpdate } | { ok: false; error: string } => {
+  const items: TransactionUpdate["items"] = [];
+  for (const [index, item] of draft.items.entries()) {
+    const amountText = item.amount.replaceAll(",", "").trim();
+    if (!AMOUNT_PATTERN.test(amountText)) {
+      return { ok: false, error: `${index + 1} 件目の金額を整数で入れてください` };
+    }
+    items.push({
+      ...parseCategoryValue(item.category),
+      name: item.name,
+      memo: item.memo,
+      amount: Number(amountText),
+    });
+  }
+  return {
+    ok: true,
+    input: {
+      date: draft.date,
+      aggregation: draft.aggregation,
+      fromAccountId: draft.fromAccountId === "" ? null : Number(draft.fromAccountId),
+      toAccountId: draft.toAccountId === "" ? null : Number(draft.toAccountId),
+      placeName: draft.placeName,
+      items,
+    },
+  };
+};
+
+/**
+ * 配列の index の要素を offset だけ動かした配列を返す。範囲の外へは動かさない。
+ */
+export const moveItem = <T>(items: T[], index: number, offset: number): T[] => {
+  const target = index + offset;
+  if (target < 0 || target >= items.length) return items;
+  const moved = [...items];
+  const [item] = moved.splice(index, 1);
+  if (item === undefined) return items;
+  moved.splice(target, 0, item);
+  return moved;
+};
