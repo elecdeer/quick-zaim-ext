@@ -10,9 +10,7 @@ export default defineConfig({
     projects: [
       "apps/extension/vitest.config.ts",
       "apps/extension/vitest.config.browser.ts",
-      "apps/server",
       "apps/ledger/vitest.config.ts",
-      "packages/zaim-api",
     ],
   },
 });

@@ -11,7 +11,8 @@
   },
   "scripts": {
     "postinstall": "void prepare",
-    "build:types": "tsc -p tsconfig.json --noEmit false --declaration --emitDeclarationOnly --outDir dist/types"
+    "build:types": "tsc -p tsconfig.json --noEmit false --declaration --emitDeclarationOnly --outDir dist/types",
+    "eval:extract-payment": "vpx scripts/eval-extract-payment.ts"
   },
   "dependencies": {
     "@valibot/to-json-schema": "catalog:",

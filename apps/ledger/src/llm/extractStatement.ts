@@ -1,5 +1,5 @@
 /**
- * LLM によるカード明細ページからの利用行の抽出。apps/server/src/features/llm の明細抽出を台帳に合わせて移したもの。
+ * LLM によるカード明細ページからの利用行の抽出。
  */
 import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";

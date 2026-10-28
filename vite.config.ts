@@ -53,14 +53,6 @@ export default defineConfig({
           "jsx-a11y/label-has-associated-control": "off",
         },
       },
-      {
-        files: ["apps/server/**"],
-        plugins: ["node", "promise", "vitest"],
-      },
-      {
-        files: ["packages/zaim-api/**"],
-        plugins: ["import", "promise", "vitest"],
-      },
     ],
   },
   run: {
