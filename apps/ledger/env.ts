@@ -6,5 +6,5 @@ export default defineEnv({
   // Worker を保護している Access アプリケーションの AUD タグ。未設定なら JWT 検証は行わない
   ACCESS_AUD: string().optional(),
   // 自動入力に使う Workers AI のモデル ID
-  LLM_MODEL: string().default("openai/gpt-5.4-mini"),
+  LLM_MODEL: string().default("openai/gpt-6-luna"),
 });

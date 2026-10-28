@@ -156,7 +156,7 @@ export const buildPrompt = (input: ExtractPaymentContext): { system: string; pro
 };
 
 /** `ExtractedPaymentSchema` を OpenAI 互換の JSON Schema に変換した結果 */
-const EXTRACTED_PAYMENT_JSON_SCHEMA = toJsonSchema(ExtractedPaymentSchema);
+export const EXTRACTED_PAYMENT_JSON_SCHEMA = toJsonSchema(ExtractedPaymentSchema);
 
 /**
  * Workers AI binding を使って支払い情報を抽出する。
