@@ -1,6 +1,15 @@
 import { defineConfig } from "void/config";
 
 export default defineConfig({
+  head: {
+    title: "台帳",
+    titleTemplate: "%s | 台帳",
+    htmlAttrs: { lang: "ja" },
+    meta: [
+      { charset: "utf-8" },
+      { name: "viewport", content: "width=device-width, initial-scale=1" },
+    ],
+  },
   worker: {
     compatibility_date: "2026-04-13",
     compatibility_flags: ["nodejs_compat"],

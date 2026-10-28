@@ -45,8 +45,15 @@ export default defineConfig({
         },
       },
       {
+        files: ["apps/ledger/{pages,src}/**/*.tsx"],
+        plugins: ["react", "react-perf", "jsx-a11y"],
+      },
+      {
         // shadcn/ui が自動生成するコンポーネントは関数宣言スタイルなのでルールを緩める
-        files: ["apps/extension/src/components/ui/**/*.{ts,tsx}"],
+        files: [
+          "apps/extension/src/components/ui/**/*.{ts,tsx}",
+          "apps/ledger/src/components/ui/**/*.{ts,tsx}",
+        ],
         plugins: ["react", "react-perf", "jsx-a11y", "vitest"],
         rules: {
           "func-style": "off",
