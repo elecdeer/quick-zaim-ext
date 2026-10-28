@@ -1,51 +1,77 @@
 import { Link } from "@void/react";
 import { ChevronRight } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatMonth, shiftMonth } from "@/ledger/dates";
 import type { CategoryTotal, ModeSummary } from "@/ledger/summary";
 import { cn } from "@/lib/utils";
-import { MonthNavigation } from "@/web/components/MonthNavigation";
-import { formatPercent, formatYen } from "@/web/format";
+import { Section } from "@/web/components/Section";
+import { formatAmount, formatPercent, formatSignedAmount } from "@/web/format";
 import { transactionsHref } from "@/web/transactionsHref";
 import type { Props } from "./index.server";
 
+type Mode = "payment" | "income";
+
+/** 名前・割合・金額の 3 列。カテゴリの行と内訳の行で列をそろえる */
+const ROW_COLUMNS = "grid grid-cols-[minmax(0,1fr)_4rem_7rem] items-baseline gap-x-4";
+
 /**
- * 支出・収入・収支の合計。
+ * 「10月」の形で月だけを書く。前後の月へのリンクは年をまたいでも月だけで足りる。
  */
-const Totals = ({ payment, income }: { payment: number; income: number }) => {
-  const balance = income - payment;
-  const items = [
-    { label: "支出", amount: payment, className: "" },
-    { label: "収入", amount: income, className: "" },
-    {
-      label: "収支",
-      amount: balance,
-      className: balance < 0 ? "text-destructive" : "",
-    },
-  ];
+const monthLabel = (month: string): string => `${Number(month.slice(5))}月`;
+
+/**
+ * 集計の月。年の下に月を大きく出し、前後の月へのリンクを添える。
+ */
+const MonthHeading = ({ month }: { month: string }) => {
+  const [year, monthNumber] = month.split("-").map(Number);
   return (
-    <div className="grid grid-cols-3 gap-3">
-      {items.map((item) => (
-        <Card key={item.label} size="sm">
-          <CardHeader>
-            <CardTitle className="text-sm font-normal text-muted-foreground">
-              {item.label}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className={cn("text-lg font-semibold tabular-nums sm:text-2xl", item.className)}>
-              {formatYen(item.amount)}
-            </p>
-          </CardContent>
-        </Card>
-      ))}
+    <div className="flex flex-col gap-1">
+      <div className="flex gap-4 text-xs text-muted-foreground">
+        <Link href={`/?month=${shiftMonth(month, -1)}`} className="hover:text-foreground">
+          ← {monthLabel(shiftMonth(month, -1))}
+        </Link>
+        <Link href={`/?month=${shiftMonth(month, 1)}`} className="hover:text-foreground">
+          {monthLabel(shiftMonth(month, 1))} →
+        </Link>
+      </div>
+      <h1 aria-label={formatMonth(month)} className="flex flex-col">
+        <span className="text-xs text-muted-foreground">{year}</span>
+        <span className="text-6xl leading-none font-semibold tracking-tighter">{monthNumber}</span>
+      </h1>
     </div>
   );
 };
 
-const GENRE_ROW_CLASS = "flex items-baseline gap-2 rounded-md px-2 py-1.5 text-sm";
+/**
+ * 支出・収入・収支の合計。収支はこの画面で一番見てほしい数字なので、アクセントの色で出す。
+ */
+const Totals = ({ payment, income }: { payment: number; income: number }) => {
+  const items = [
+    { label: "支出", value: formatAmount(payment), accent: false },
+    { label: "収入", value: formatAmount(income), accent: false },
+    { label: "収支", value: formatSignedAmount(income - payment), accent: true },
+  ];
+  return (
+    <dl className="grid grid-cols-3 gap-x-4">
+      {items.map((item) => (
+        <div
+          key={item.label}
+          className={cn(
+            "flex flex-col gap-1 border-t pt-1.5",
+            item.accent ? "border-primary text-primary" : "border-foreground",
+          )}
+        >
+          <dt className={cn("text-xs", !item.accent && "text-muted-foreground")}>{item.label}</dt>
+          <dd className="text-xl font-semibold tracking-tight tabular-nums sm:text-3xl">
+            {item.value}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+};
 
 /**
- * カテゴリ 1 つ分の行。開くと内訳ごとの合計が出る。
+ * カテゴリ 1 つ分の行。開くと内訳ごとの合計と、そのカテゴリの取引の一覧へのリンクが出る。
  */
 const CategoryRow = ({
   category,
@@ -56,35 +82,39 @@ const CategoryRow = ({
   category: CategoryTotal;
   total: number;
   month: string;
-  mode: "payment" | "income";
+  mode: Mode;
 }) => {
   const ratio = total > 0 ? Math.max(category.amount / total, 0) : 0;
   return (
-    <details className="group border-b last:border-b-0">
-      <summary className="flex cursor-pointer list-none flex-col gap-1.5 px-1 py-3 hover:bg-muted/50">
-        <div className="flex items-baseline gap-2">
-          <ChevronRight className="size-3.5 shrink-0 self-center text-muted-foreground transition-transform group-open:rotate-90" />
-          <span className="font-medium">{category.name}</span>
-          <span className="ml-auto text-xs text-muted-foreground tabular-nums">
-            {formatPercent(category.amount, total)}
-          </span>
-          <span className="w-28 text-right font-medium tabular-nums">
-            {formatYen(category.amount)}
-          </span>
-        </div>
-        <div className="ml-5.5 h-1.5 overflow-hidden rounded-full bg-muted">
-          <div className="h-full rounded-full bg-primary" style={{ width: `${ratio * 100}%` }} />
-        </div>
+    <details className="group border-b">
+      <summary
+        className={cn(
+          ROW_COLUMNS,
+          "cursor-pointer list-none py-2.5 hover:bg-muted/60 [&::-webkit-details-marker]:hidden",
+        )}
+      >
+        <span className="flex min-w-0 items-center gap-1.5">
+          <ChevronRight className="size-3.5 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" />
+          <span className="truncate">{category.name}</span>
+        </span>
+        <span className="text-right text-xs text-muted-foreground tabular-nums">
+          {formatPercent(category.amount, total)}
+        </span>
+        <span className="text-right tabular-nums">{formatAmount(category.amount)}</span>
+        {/* 合計に対する割合。幅だけで比べられるよう、地の線は引かない */}
+        <span className="col-span-3 mt-1.5 h-0.5">
+          <span className="block h-full bg-foreground" style={{ width: `${ratio * 100}%` }} />
+        </span>
       </summary>
-      <ul className="pb-2 pl-6">
+      <ul className="pb-2 text-sm">
         {category.genres.map((genre) => {
           const content = (
             <>
-              <span>{genre.name}</span>
-              <span className="ml-auto text-xs text-muted-foreground tabular-nums">
+              <span className="truncate pl-5">{genre.name}</span>
+              <span className="text-right text-xs text-muted-foreground tabular-nums">
                 {formatPercent(genre.amount, category.amount)}
               </span>
-              <span className="w-28 text-right tabular-nums">{formatYen(genre.amount)}</span>
+              <span className="text-right tabular-nums">{formatAmount(genre.amount)}</span>
             </>
           );
           return (
@@ -98,12 +128,12 @@ const CategoryRow = ({
                     categoryId: category.categoryId,
                     genreId: genre.genreId,
                   })}
-                  className={cn(GENRE_ROW_CLASS, "hover:bg-muted")}
+                  className={cn(ROW_COLUMNS, "py-1.5 hover:bg-muted/60")}
                 >
                   {content}
                 </Link>
               ) : (
-                <div className={GENRE_ROW_CLASS}>{content}</div>
+                <div className={cn(ROW_COLUMNS, "py-1.5")}>{content}</div>
               )}
             </li>
           );
@@ -112,9 +142,9 @@ const CategoryRow = ({
           <li>
             <Link
               href={transactionsHref({ month, mode, categoryId: category.categoryId })}
-              className="block px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:underline"
+              className="inline-block py-1.5 pl-5 text-xs text-muted-foreground hover:text-foreground"
             >
-              {category.name}の取引を見る
+              {category.name}の取引 →
             </Link>
           </li>
         )}
@@ -127,59 +157,51 @@ const CategoryRow = ({
  * 支出か収入のカテゴリ別の合計。
  */
 const CategoryBreakdown = ({
-  title,
   summary,
   month,
   mode,
 }: {
-  title: string;
   summary: ModeSummary;
   month: string;
-  mode: "payment" | "income";
-}) => (
-  <Card>
-    <CardHeader>
-      <CardTitle>{title}</CardTitle>
-    </CardHeader>
-    <CardContent>
-      {summary.categories.length === 0 ? (
-        <p className="text-sm text-muted-foreground">この月の記録はありません</p>
-      ) : (
-        <div>
-          {summary.categories.map((category) => (
-            <CategoryRow
-              key={category.categoryId ?? "none"}
-              category={category}
-              total={summary.total}
-              month={month}
-              mode={mode}
-            />
-          ))}
-        </div>
-      )}
-    </CardContent>
-  </Card>
-);
+  mode: Mode;
+}) =>
+  summary.categories.length === 0 ? (
+    <p className="border-t border-foreground py-2.5 text-sm text-muted-foreground">
+      この月の記録はありません
+    </p>
+  ) : (
+    <div className="border-t border-foreground">
+      {summary.categories.map((category) => (
+        <CategoryRow
+          key={category.categoryId ?? "none"}
+          category={category}
+          total={summary.total}
+          month={month}
+          mode={mode}
+        />
+      ))}
+    </div>
+  );
 
 /**
  * 月ごとの集計の画面。
  */
 const SummaryPage = ({ month, summary }: Props) => (
-  <div className="flex flex-col gap-6">
-    <MonthNavigation month={month} hrefOf={(target) => `/?month=${target}`} />
-    <Totals payment={summary.payment.total} income={summary.income.total} />
-    <CategoryBreakdown
-      title="支出のカテゴリ別"
-      summary={summary.payment}
-      month={month}
-      mode="payment"
-    />
-    <CategoryBreakdown
-      title="収入のカテゴリ別"
-      summary={summary.income}
-      month={month}
-      mode="income"
-    />
+  <div className="flex flex-col gap-12">
+    <div className="grid gap-x-4 gap-y-6 md:grid-cols-12 md:items-end">
+      <div className="md:col-span-3">
+        <MonthHeading month={month} />
+      </div>
+      <div className="md:col-span-9">
+        <Totals payment={summary.payment.total} income={summary.income.total} />
+      </div>
+    </div>
+    <Section label="支出">
+      <CategoryBreakdown summary={summary.payment} month={month} mode="payment" />
+    </Section>
+    <Section label="収入">
+      <CategoryBreakdown summary={summary.income} month={month} mode="income" />
+    </Section>
   </div>
 );
 

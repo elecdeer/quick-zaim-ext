@@ -17,6 +17,8 @@ const isActive = (path: string, href: string): boolean =>
 
 /**
  * 台帳の画面に共通のヘッダー（ナビゲーションとログイン中のユーザー）。
+ *
+ * ヘッダーも本文と同じ 12 列のグリッドに載せ、ナビを本文の中身の列（右の 9 列）にそろえる。
  */
 const Layout = ({ children }: { children: ReactNode }) => {
   const { email } = useShared();
@@ -25,31 +27,33 @@ const Layout = ({ children }: { children: ReactNode }) => {
   return (
     <div className="min-h-dvh bg-background">
       <header className="border-b">
-        <div className="mx-auto flex max-w-4xl items-center gap-4 px-4 py-2">
-          <span className="font-semibold">台帳</span>
-          <nav className="flex gap-1">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted",
-                  isActive(path, item.href) && "bg-muted font-medium text-foreground",
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-          <div className="ml-auto flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="hidden sm:inline">{email}</span>
-            <a href="/logout" className="hover:text-foreground hover:underline">
-              ログアウト
-            </a>
+        <div className="mx-auto grid max-w-5xl grid-cols-[auto_1fr] items-end gap-x-4 px-4 pt-3 md:grid-cols-12">
+          <span className="pb-2 text-sm font-semibold md:col-span-3">台帳</span>
+          <div className="flex items-end gap-6 md:col-span-9">
+            <nav className="flex gap-6">
+              {NAV_ITEMS.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "-mb-px border-b-2 border-transparent pb-2 text-sm text-muted-foreground hover:text-foreground",
+                    isActive(path, item.href) && "border-primary font-medium text-foreground",
+                  )}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+            <div className="ml-auto flex items-center gap-4 pb-2 text-xs text-muted-foreground">
+              <span className="hidden sm:inline">{email}</span>
+              <a href="/logout" className="hover:text-foreground">
+                ログアウト
+              </a>
+            </div>
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-4xl px-4 py-6">{children}</main>
+      <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
     </div>
   );
 };

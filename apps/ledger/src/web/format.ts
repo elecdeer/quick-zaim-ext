@@ -7,6 +7,18 @@ export const formatYen = (amount: number): string =>
   `${amount < 0 ? "-" : ""}¥${yenFormat.format(Math.abs(amount))}`;
 
 /**
+ * 金額を「1,234」の形で書く。円の記号は付けない（見出しや列の名前で金額だと分かる所で使う）。負の金額は「−1,234」にする。
+ */
+export const formatAmount = (amount: number): string =>
+  `${amount < 0 ? "−" : ""}${yenFormat.format(Math.abs(amount))}`;
+
+/**
+ * 金額を符号付きで書く。正なら「+1,234」、負なら「−1,234」、0 なら「0」にする。収支のようにお金の向きを示す所で使う。
+ */
+export const formatSignedAmount = (amount: number): string =>
+  amount > 0 ? `+${formatAmount(amount)}` : formatAmount(amount);
+
+/**
  * 全体に対する割合を「12.3%」の形で書く。全体が 0 以下なら空にする。
  */
 export const formatPercent = (part: number, whole: number): string =>
