@@ -15,8 +15,6 @@ RUN pnpm fetch
 COPY package.json ./
 COPY apps/extension/package.json apps/extension/
 COPY apps/ledger/package.json apps/ledger/
-COPY apps/server/package.json apps/server/
-COPY packages/zaim-api/package.json packages/zaim-api/
 
 RUN CI=true pnpm install --offline --frozen-lockfile
 

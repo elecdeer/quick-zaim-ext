@@ -45,8 +45,7 @@ const AccessIdentitySchema = v.looseObject({
 /**
  * メールアドレスから AccessUser を作る。
  *
- * ID にはメールアドレスを使う。ワンタイム PIN や外部 IdP のどれでログインしても同じ値になり、
- * IdP を切り替えても KV 上の Zaim 連携を引き継げるため。
+ * ID にはメールアドレスを使う。ワンタイム PIN や外部 IdP のどれでログインしても同じ値になるため。
  */
 const toAccessUser = (email: string): AccessUser => ({ id: email, email });
 

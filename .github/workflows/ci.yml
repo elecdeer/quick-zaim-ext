@@ -26,7 +26,6 @@ jobs:
         working-directory: apps/extension
       - run: vp exec playwright install --with-deps chromium
         working-directory: apps/extension
-      - run: vp run "@repo/zaim-api#generate"
       # 拡張機能が使う台帳 API クライアントの型宣言を出力する
       - run: vp run "ledger#build:types"
       - run: vp check

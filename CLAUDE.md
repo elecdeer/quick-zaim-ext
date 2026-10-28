@@ -29,26 +29,3 @@ release. Add a tool name to select part of the graph. For example, run
 - [ ] If setup, runtime, or package-manager behavior looks wrong, run `vp env doctor` and include its output when asking for help.
 
 <!--VITE PLUS END-->
-
-## Server (Hono) Coding Conventions
-
-- **Query/body parameter parsing:** Always use `sValidator` from `@hono/standard-validator` with `valibot` schemas. Do not use `c.req.query()` or `c.req.json()` directly for validated input. Access validated values via `c.req.valid("query")` or `c.req.valid("json")`.
-
-```ts
-import { sValidator } from "@hono/standard-validator";
-import * as v from "valibot";
-
-const QuerySchema = v.object({
-  foo: v.optional(v.string()),
-});
-
-app.get(
-  "/path",
-  sValidator("query", QuerySchema, (result, c) => {
-    if (!result.success) return c.json({ error: "Invalid query parameters" }, 400);
-  }),
-  async (c) => {
-    const { foo } = c.req.valid("query");
-  },
-);
-```
