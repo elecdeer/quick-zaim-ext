@@ -107,12 +107,27 @@ server へのログインとセッション管理は Worker の手前の [Cloudf
 
 ## ledger（Zaim API の置き換え）
 
-Zaim API は 2026-12-07 に提供が終わるため、支払いを自前の台帳に記録する `apps/ledger` を [Void](https://void.cloud/) で作っている（現在はスパイク）。Cloudflare Workers 上の D1 と Drizzle を使い、`quick-zaim-server` とは別の Worker `quick-ledger` にデプロイする。
+Zaim API は 2026-12-07 に提供が終わるため、支払いを自前の台帳に記録する `apps/ledger` を [Void](https://void.cloud/) で作っている。Cloudflare Workers 上の D1 と Drizzle を使い、`quick-zaim-server` とは別の Worker `quick-ledger` にデプロイする。
 
 - URL: `https://quick-ledger.<subdomain>.workers.dev`
 - API は `routes/`、Web 画面は `pages/`、スキーマは `db/schema.ts`（`void db generate` でマイグレーションを作る）
 - 拡張機能は台帳の API だけを呼ぶ（`quick-zaim-server` には向けられない）。`ledger/client` の `createLedgerClient` で型付きで呼ぶ。Void の `void/client` の fetch は `credentials` を指定できず Access の Cookie を送れないため使わない
 - 拡張機能向けの型は `vp run ledger#build:types` で `dist/types` に出す（`vp pack` だと Void が生成する型を読めず `any` になる）。拡張機能の `build` は先にこれを実行する。型チェックの前にも必要なので、CI では `vp check` の前に実行している
+
+### Web 画面
+
+台帳の URL をブラウザで開くと、月ごとの集計（`/`）、取引の一覧と編集（`/transactions`）、口座の残高（`/accounts`）が見られる。設計は [phase3-design.md](apps/ledger/docs/phase3-design.md)。
+
+- UI 部品は拡張機能と同じ shadcn（base-ui 版）と Tailwind CSS。`apps/ledger` で `pnpm exec shadcn add <名前>` を実行すると `src/components/ui/` に入る。shadcn の CLI が `cn` パッケージを入れて `from "cn"` と書くので、`@/lib/utils` に直して `cn` パッケージは外す
+- 表示するデータはページの `loader`、変更はページの `actions` で扱い、`/api/*`（拡張機能のための API）には足さない
+- ローカルの D1 に本物の記録を取り込んでいる場合は、架空のデータで画面を確かめられる。`LEDGER_PERSIST_TO` に別の場所を指定して開発サーバーを起動すると、ローカルの D1 などがそこに作られる（マイグレーションも適用される）。そこに `scripts/sample-data.sql` を入れる
+
+```bash
+LEDGER_PERSIST_TO=/tmp/ledger-sample pnpm -F ledger exec vp dev
+sqlite3 "$(ls /tmp/ledger-sample/v3/d1/miniflare-D1DatabaseObject/*.sqlite | grep -v metadata)" < apps/ledger/scripts/sample-data.sql
+```
+
+- 開発サーバーが新しい依存を見つけて最適化し直すと、React が 2 つ読み込まれて `Invalid hook call` で画面が出なくなることがある。開発サーバーを起動し直すと直る
 
 ### デプロイ
 
