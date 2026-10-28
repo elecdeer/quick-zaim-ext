@@ -24,7 +24,7 @@ const meta = preview.meta({
     (Story) => (
       <ToastProvider>
         <div className="flex min-h-screen flex-col gap-4 bg-gray-50 p-4">
-          <h1 className="text-lg font-bold text-gray-900">Quick Zaim</h1>
+          <h1 className="text-lg font-bold text-gray-900">Tsuke</h1>
           <Story />
           <Toaster />
         </div>

@@ -30,9 +30,9 @@ vp run dev
 
 ## ledger
 
-支払いは自前の台帳 `apps/ledger` に記録する（Zaim API が 2026-12-07 に提供を終えるため、Zaim から移行した）。[Void](https://void.cloud/) で作り、Cloudflare Workers 上の D1 と Drizzle を使う。Worker `quick-ledger` にデプロイする。
+支払いは自前の台帳 `apps/ledger` に記録する（Zaim API が 2026-12-07 に提供を終えるため、Zaim から移行した）。[Void](https://void.cloud/) で作り、Cloudflare Workers 上の D1 と Drizzle を使う。Worker `tsuke` にデプロイする。
 
-- URL: `https://quick-ledger.<subdomain>.workers.dev`
+- URL: `https://tsuke.<subdomain>.workers.dev`
 - 拡張機能を台帳に切り替えた後に、Zaim と Cloudflare に残っているもの（`quick-zaim-server`・KV・Zaim のアプリなど）を消す。手順は [phase4-design.md](apps/ledger/docs/phase4-design.md) の「切り替えの後の手順」。2027-01-07 までに済ませる
 - API は `routes/`、Web 画面は `pages/`、スキーマは `db/schema.ts`（`void db generate` でマイグレーションを作る）
 - 拡張機能は台帳の API を `ledger/client` の `createLedgerClient` で型付きで呼ぶ。Void の `void/client` の fetch は `credentials` を指定できず Access の Cookie を送れないため使わない
@@ -67,8 +67,8 @@ pnpm -F ledger exec void deploy
 - デプロイの最後に Void が新しい版の準備確認をするが、Access に止められる。手元からデプロイするときは Access の短期トークンを渡す（取れないときは新しい版が有効にならず、前の版のまま動く）
 
 ```bash
-cf access login https://quick-ledger.<subdomain>.workers.dev
-CF_ACCESS_TOKEN="$(cf access token https://quick-ledger.<subdomain>.workers.dev)" pnpm -F ledger exec void deploy
+cf access login https://tsuke.<subdomain>.workers.dev
+CF_ACCESS_TOKEN="$(cf access token https://tsuke.<subdomain>.workers.dev)" pnpm -F ledger exec void deploy
 ```
 
 ### 認証
@@ -84,7 +84,7 @@ pnpm -F ledger exec void secret put ACCESS_AUD
 
 - ローカル開発では、開発サーバー（`import.meta.env.DEV`）のときだけ `dev@example.com` として通す。`void.config.ts` に `cloudflare.access.dev` を書く方法は、デプロイ時に Worker の設定としてアップロードされ、シークレットと一緒に送れずに失敗するため使わない
 - コンテキスト変数の `user` は Void の認証機能（Better Auth）が型を予約しているため、`accessUser` を使う
-- 自動入力（`POST /api/transactions/extract`）が使う Workers AI にはローカルの模擬環境がなく、開発サーバーは Access の後ろにある `quick-ledger` 経由でリモートの AI につなぐ。そのため Access のサービストークン（`CLOUDFLARE_ACCESS_CLIENT_ID` と `CLOUDFLARE_ACCESS_CLIENT_SECRET`）がないと開発サーバーが起動しない。AI 以外を試すだけなら、`void.config.ts` に一時的に `inference: { bindings: { ai: false } }` を足す
+- 自動入力（`POST /api/transactions/extract`）が使う Workers AI にはローカルの模擬環境がなく、開発サーバーは Access の後ろにある `tsuke` 経由でリモートの AI につなぐ。そのため Access のサービストークン（`CLOUDFLARE_ACCESS_CLIENT_ID` と `CLOUDFLARE_ACCESS_CLIENT_SECRET`）がないと開発サーバーが起動しない。AI 以外を試すだけなら、`void.config.ts` に一時的に `inference: { bindings: { ai: false } }` を足す
 
 ### 自動入力の評価
 

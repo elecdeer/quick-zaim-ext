@@ -12,7 +12,7 @@ Zaim の画面で見ていたもの（月ごとの集計、記録の一覧と修
 
 ## 前提
 
-- 同じ Worker `quick-ledger` で動かす。Cloudflare Access の後ろにあるので、画面にもログインの処理は要らない（`middleware/02.access.ts` が `accessUser` を設定する）
+- 同じ Worker `tsuke` で動かす。Cloudflare Access の後ろにあるので、画面にもログインの処理は要らない（`middleware/02.access.ts` が `accessUser` を設定する）
 - 利用者は自分だけ。スマートフォンのブラウザでも見るので、狭い幅でも崩れないようにする
 - 取引の数は 3,600 件ほど、月に 100 件前後。1 か月分なら一覧を一度に出してもよい
 
