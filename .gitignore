@@ -31,7 +31,7 @@ dist-ssr
 .env
 
 # LLM eval script outputs
-apps/server/scripts/eval-results/
+apps/ledger/scripts/eval-results/
 
 # AI agent worktrees
 .claude/worktrees/

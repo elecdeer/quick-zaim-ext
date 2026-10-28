@@ -31,7 +31,7 @@ Zaim API は 2026-12-07 に提供を終え、API で取得したデータとト�
 
 - 抽出は台帳の `runExtractPayment`（`src/llm/extractPayment.ts`）を呼ぶ。プロンプトと出力の形は台帳のものになる
 - 事例の入力は台帳の `ExtractPaymentContext` の形（ページの内容と、口座・カテゴリ・店舗の候補）にする。今の事例は Zaim のカテゴリ ID を使っているので、事例の中だけで使う台帳の ID に書き換える。期待する値も同じ ID に合わせる
-- Workers AI は wrangler の `getPlatformProxy` ではなく、Workers AI の REST API（`/accounts/{account_id}/ai/run/{model}`）で呼ぶ。台帳には wrangler の設定がなく、Void の開発サーバーのリモート接続は Access のサービストークンが要るため。`AiRunner`（`src/llm/structuredChat.ts`）と同じ形の関数を REST API で作って渡す。認証は `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID`
+- Workers AI は wrangler の `getPlatformProxy` ではなく、Cloudflare の AI の REST API（`/accounts/{account_id}/ai/run`）で呼ぶ。台帳には wrangler の設定がなく、Void の開発サーバーのリモート接続は Access のサービストークンが要るため。`AiRunner`（`src/llm/structuredChat.ts`）と同じ形の関数を REST API で作って渡す。認証は `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID`
 - `package.json` に `eval:extract-payment` のスクリプトを置く。結果の出力先（`scripts/eval-results/`）は Git に入れない
 
 ## 切り替えの後の手順
