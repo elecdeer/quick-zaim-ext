@@ -25,7 +25,7 @@
 
 - `<input type="file" accept="image/*" capture="environment">` で端末のカメラを開く。カメラを独自に組まない（ピント・露出は OS のカメラの方が良く、ライブラリも要らない）
 - 撮った画像はブラウザで canvas に描き、長辺 1600px の JPEG（品質 0.8）に縮めてから data URL で送る。スマートフォンの写真（数 MB）をそのまま送ると遅く、AI の入力トークンも増えるため。1600px あればレシートの小さい文字も読める
-- 画像はページのアクションに JSON で送り、サーバーは AI に渡したら捨てる
+- 画像は `POST /api/receipts/extract` に JSON で送り、サーバーは AI に渡したら捨てる
 
 ### 読み取り（AI）
 
@@ -39,9 +39,8 @@
 
 - 新しいページ `/receipts/new`（`pages/receipts/new.tsx` と `new.server.ts`）
   - `loader`：口座・支出のカテゴリ・店舗の候補
-  - `actions.extract`：画像を受け取り、読み取った結果を返す
-  - `actions.duplicates`：`findDuplicates` で重複の候補を返す
-  - `actions.create`：`createPayment` で登録し、登録した取引の編集画面（`/transactions/[id]`）へ移る
+  - `action`：`createPayment` で登録し、登録した取引の編集画面（`/transactions/[id]`）へ移る
+- 読み取りは `POST /api/receipts/extract`、重複の確かめは拡張機能と同じ `POST /api/transactions/duplicates` を `createLedgerClient` で呼ぶ。Void のページのアクションは値を返せず（loader を走らせ直すかリダイレクトするだけ）、読み取った結果を画面に返せないため。同じ origin なので Access の Cookie はそのまま送られる
 - フォームは取引の編集画面（`pages/transactions/[id].tsx`）の入力部品（品目の行・カテゴリの選択・口座の選択など）を `src/web/components/` に切り出して共有する。支出だけなので、向きや振替の欄は出さない
 - 読み取りの結果は `src/web/transactionDraft.ts` の下書きに変換してフォームに入れる。読み取れなかった項目（`null`）は空のままにし、カテゴリが決まらない品目は登録の前に選ばせる
 - 重複の候補があれば、拡張機能と同じくフォームの中に警告を出す（登録は止めない）
