@@ -6,10 +6,16 @@ import { useId, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { CategoryWithGenres } from "@/ledger/masters";
 import type { TransactionMode } from "@/ledger/transactions";
-import { categoryValueOf } from "@/web/categoryValue";
+import { categoryLabels, categoryValueOf } from "@/web/categoryValue";
 import { CategoryOptions } from "@/web/components/CategoryOptions";
 import { formatAmount } from "@/web/format";
 import { emptyItem, moveItem, type ItemDraft } from "@/web/transactionDraft";
@@ -18,14 +24,15 @@ import { cn } from "@/lib/utils";
 export type AccountOption = { id: number; name: string };
 
 /**
- * 品目の列。広い画面では品目を 1 行に並べ、列の名前は表の見出しに 1 度だけ出す。
+ * 品目の列。広いところでは品目を 1 行に並べ、列の名前は表の見出しに 1 度だけ出す。
+ * 取引の一覧のサイドパネルのような狭い場所にも置くので、画面の幅ではなく Section の幅（コンテナクエリ）で切り替える。
  * 支出は並べ替え・削除のボタンの列を持ち、振替・残高調整はカテゴリの列を持たない。
  */
 const ITEM_COLUMNS: Record<TransactionMode, string> = {
-  payment: "sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_7rem_5.5rem]",
-  income: "sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_7rem]",
-  transfer: "sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_7rem]",
-  adjustment: "sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_7rem]",
+  payment: "@xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_7rem_5.5rem]",
+  income: "@xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_7rem]",
+  transfer: "@xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_7rem]",
+  adjustment: "@xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_7rem]",
 };
 
 /**
@@ -68,27 +75,30 @@ export const AccountSelect = ({
   accounts: AccountOption[];
   allowEmpty: boolean;
   onChange: (value: string) => void;
-}) => (
-  <NativeSelect
-    id={id}
-    className="w-full"
-    value={value}
-    onChange={(event) => onChange(event.target.value)}
-  >
-    {allowEmpty && <NativeSelectOption value="">なし</NativeSelectOption>}
-    {!allowEmpty && value === "" && (
-      <NativeSelectOption value="">選んでください</NativeSelectOption>
-    )}
-    {value !== "" && !accounts.some((account) => String(account.id) === value) && (
-      <NativeSelectOption value={value}>一覧にない口座（#{value}）</NativeSelectOption>
-    )}
-    {accounts.map((account) => (
-      <NativeSelectOption key={account.id} value={String(account.id)}>
-        {account.name}
-      </NativeSelectOption>
-    ))}
-  </NativeSelect>
-);
+}) => {
+  const unknown = value !== "" && !accounts.some((account) => String(account.id) === value);
+  const items: Record<string, string> = {
+    "": allowEmpty ? "なし" : "選んでください",
+    ...(unknown ? { [value]: `一覧にない口座（#${value}）` } : {}),
+    ...Object.fromEntries(accounts.map((account) => [String(account.id), account.name])),
+  };
+  return (
+    <Select items={items} value={value} onValueChange={(next) => onChange(next ?? "")}>
+      <SelectTrigger id={id} className="w-full">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {allowEmpty && <SelectItem value="">なし</SelectItem>}
+        {unknown && <SelectItem value={value}>{items[value]}</SelectItem>}
+        {accounts.map((account) => (
+          <SelectItem key={account.id} value={String(account.id)}>
+            {account.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+};
 
 /**
  * 店舗（取引先）の入力欄。過去の店舗を候補に出しつつ、新しい名前も入れられる。
@@ -170,7 +180,7 @@ const ItemFields = ({
     <div
       className={cn(
         // 広い画面では入力欄の下線が行の区切りを兼ねるので、行の罫線は狭い画面（欄を積むとき）だけに引く
-        "grid grid-cols-2 gap-x-4 gap-y-2 border-b py-3 sm:items-end sm:border-b-0 sm:py-2",
+        "grid grid-cols-2 gap-x-4 gap-y-2 border-b py-3 @xl:items-end @xl:border-b-0 @xl:py-2",
         ITEM_COLUMNS[mode],
       )}
     >
@@ -178,46 +188,52 @@ const ItemFields = ({
         <FormField
           label={mode === "payment" ? "内訳" : "カテゴリ"}
           htmlFor={ids.category}
-          labelClassName="sm:sr-only"
+          labelClassName="@xl:sr-only"
         >
-          <NativeSelect
-            id={ids.category}
-            className="w-full"
+          <Select
+            items={{
+              "": "未分類",
+              ...(known ? {} : { [item.category]: "一覧にないカテゴリ" }),
+              ...categoryLabels(categories),
+            }}
             value={item.category}
-            onChange={(event) => onChange({ category: event.target.value })}
+            onValueChange={(value) => onChange({ category: value ?? "" })}
           >
-            <NativeSelectOption value="">未分類</NativeSelectOption>
-            {!known && (
-              <NativeSelectOption value={item.category}>一覧にないカテゴリ</NativeSelectOption>
-            )}
-            {mode === "income" ? (
-              // 収入は内訳を持たないので、カテゴリだけを並べる
-              categories.map((category) => (
-                <NativeSelectOption key={category.id} value={categoryValueOf(category.id, null)}>
-                  {category.name}
-                </NativeSelectOption>
-              ))
-            ) : (
-              <CategoryOptions label="支出" categories={categories} />
-            )}
-          </NativeSelect>
+            <SelectTrigger id={ids.category} className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">未分類</SelectItem>
+              {!known && <SelectItem value={item.category}>一覧にないカテゴリ</SelectItem>}
+              {mode === "income" ? (
+                // 収入は内訳を持たないので、カテゴリだけを並べる
+                categories.map((category) => (
+                  <SelectItem key={category.id} value={categoryValueOf(category.id, null)}>
+                    {category.name}
+                  </SelectItem>
+                ))
+              ) : (
+                <CategoryOptions label="支出" categories={categories} />
+              )}
+            </SelectContent>
+          </Select>
         </FormField>
       )}
-      <FormField label="品目名" htmlFor={ids.name} labelClassName="sm:sr-only">
+      <FormField label="品目名" htmlFor={ids.name} labelClassName="@xl:sr-only">
         <Input
           id={ids.name}
           value={item.name}
           onChange={(event) => onChange({ name: event.target.value })}
         />
       </FormField>
-      <FormField label="メモ" htmlFor={ids.memo} labelClassName="sm:sr-only">
+      <FormField label="メモ" htmlFor={ids.memo} labelClassName="@xl:sr-only">
         <Input
           id={ids.memo}
           value={item.memo}
           onChange={(event) => onChange({ memo: event.target.value })}
         />
       </FormField>
-      <FormField label="金額" htmlFor={ids.amount} labelClassName="sm:sr-only">
+      <FormField label="金額" htmlFor={ids.amount} labelClassName="@xl:sr-only">
         <Input
           id={ids.amount}
           inputMode="numeric"
@@ -227,7 +243,7 @@ const ItemFields = ({
         />
       </FormField>
       {mode === "payment" && (
-        <div className="col-span-2 flex justify-end gap-0.5 sm:col-span-1">
+        <div className="col-span-2 flex justify-end gap-0.5 @xl:col-span-1">
           <Button
             variant="ghost"
             size="icon-sm"
@@ -289,7 +305,7 @@ export const ItemsFields = ({
       <div
         aria-hidden="true"
         className={cn(
-          "hidden gap-x-4 border-b border-foreground pb-1.5 text-xs text-muted-foreground sm:grid",
+          "hidden gap-x-4 border-b border-foreground pb-1.5 text-xs text-muted-foreground @xl:grid",
           ITEM_COLUMNS[mode],
         )}
       >
@@ -301,7 +317,7 @@ export const ItemsFields = ({
         <span className="text-right">金額</span>
       </div>
       {/* 狭い画面では見出しを出さないので、表の始まりの線をここで引く */}
-      <div className="border-t border-foreground sm:border-t-0">
+      <div className="border-t border-foreground @xl:border-t-0">
         {items.map((item, index) => (
           <ItemFields
             key={item.key}

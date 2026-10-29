@@ -124,3 +124,28 @@
     @apply bg-background font-sans text-foreground antialiased;
   }
 }
+
+/*
+ * 画面の移動中にヘッダーの上端を左から右へ流れる進行バー（pages/layout.tsx）。
+ * すぐ終わる移動でちらつかないよう、少し待ってから出す
+ */
+@keyframes nav-progress {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+.nav-progress {
+  animation: nav-progress 1s ease-in-out 150ms infinite backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* 動きを減らす設定なら流さず、全幅の線を出すだけにする */
+  .nav-progress {
+    width: 100%;
+    animation: none;
+  }
+}

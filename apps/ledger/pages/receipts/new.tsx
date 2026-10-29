@@ -296,7 +296,13 @@ const ReceiptNewPage = ({ accounts, categories, placeNames, today }: Props) => {
           <DuplicateWarning byItem={duplicates} />
           {error !== null && <ErrorMessage message={error} />}
           <div>
-            <Button type="submit" size="lg" disabled={pending || reading}>
+            <Button
+              type="submit"
+              size="lg"
+              // この画面で押すのはほぼこのボタンだけなので、スマホでは幅いっぱいにして親指で押しやすくする
+              className="h-12 w-full text-base sm:h-11 sm:w-auto sm:px-10"
+              disabled={pending || reading}
+            >
               登録
             </Button>
           </div>

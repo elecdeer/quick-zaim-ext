@@ -20,3 +20,19 @@ export const parseCategoryValue = (
   }
   return { categoryId: null, genreId: null };
 };
+
+/**
+ * カテゴリと内訳の選択肢の値から、選んだときに表示する名前を引けるようにする。内訳は「カテゴリ / 内訳」にする。
+ */
+export const categoryLabels = (
+  categories: ReadonlyArray<{ id: number; name: string; genres: { id: number; name: string }[] }>,
+): Record<string, string> =>
+  Object.fromEntries(
+    categories.flatMap((category) => [
+      [categoryValueOf(category.id, null), category.name],
+      ...category.genres.map((genre) => [
+        categoryValueOf(category.id, genre.id),
+        `${category.name} / ${genre.name}`,
+      ]),
+    ]),
+  );
