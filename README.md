@@ -55,6 +55,13 @@ sqlite3 "$(ls /tmp/ledger-sample/v3/d1/miniflare-D1DatabaseObject/*.sqlite | gre
 
 ### デプロイ
 
+`main` に push（PR をマージ）すると、CI のチェックとビルドが通った後に GitHub Actions が台帳をデプロイする（`.github/workflows/ci.yml` の `deploy` ジョブ）。リポジトリ（または `production` Environment）に次のシークレットが要る。
+
+- `CLOUDFLARE_API_TOKEN`: Workers Scripts の編集、D1 の編集、Workers AI の読み取りなどデプロイに使う権限を持つ API トークン
+- `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET`: デプロイ最後の準備確認を Access に通すためのサービストークン。Access アプリケーションのポリシーで Service Auth として許可しておく
+
+手元からデプロイするときは次のコマンドを使う。
+
 ```bash
 pnpm -F ledger exec void deploy
 ```

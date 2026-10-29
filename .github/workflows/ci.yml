@@ -43,3 +43,31 @@ jobs:
         with:
           cache: true
       - run: vp run -r build
+
+  # main への push（PR のマージ）で、チェックとビルドが通ったら台帳を本番にデプロイする
+  deploy:
+    name: Deploy ledger
+    needs: [check, build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    environment: production
+    # D1 のマイグレーション中に止まらないよう、実行中のデプロイは取り消さずに順番待ちさせる
+    concurrency:
+      group: deploy-ledger-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: voidzero-dev/setup-vp@313600b80b104eadebb9111787d37a2e83e014ca # v1.17.0
+        with:
+          cache: true
+      - name: Deploy
+        working-directory: apps/ledger
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          # Void がデプロイの最後に行う準備確認が Access に止められないよう、サービストークンを渡す
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+        run: vp exec void deploy --platform cloudflare
