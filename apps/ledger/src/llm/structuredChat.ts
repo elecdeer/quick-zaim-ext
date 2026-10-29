@@ -61,13 +61,30 @@ const extractAssistantPayload = (output: WorkersAiChatResponse): unknown => {
   throw new Error(`Workers AI returned no usable content: ${JSON.stringify(output)}`);
 };
 
+/** LLM に渡すプロンプト。`images` は画像の data URL で、user メッセージの本文の後に添える */
+export type StructuredPrompt = { system: string; prompt: string; images?: string[] };
+
+/**
+ * user メッセージの content を作る。画像がなければ文字列のまま、あれば OpenAI 互換の content parts にする。
+ */
+export const buildUserContent = (
+  prompt: string,
+  images: string[] = [],
+): string | Array<Record<string, unknown>> =>
+  images.length === 0
+    ? prompt
+    : [
+        { type: "text", text: prompt },
+        ...images.map((url) => ({ type: "image_url", image_url: { url } })),
+      ];
+
 /**
  * 出力スキーマを強制して chat を投げ、スキーマで検証した結果を返す。
  */
 export const runStructuredChat = async <TSchema extends v.GenericSchema>(params: {
   ai: AiRunner;
   model: string;
-  buildPrompt: () => { system: string; prompt: string };
+  buildPrompt: () => StructuredPrompt;
   schemaName: string;
   /** `schema` を `toJsonSchema` で変換したもの。呼び出しごとに変換しないよう呼び出し側で持つ */
   jsonSchema: unknown;
@@ -75,13 +92,13 @@ export const runStructuredChat = async <TSchema extends v.GenericSchema>(params:
   abortSignal?: AbortSignal;
 }): Promise<{ object: v.InferOutput<TSchema>; usage: unknown; timing: ExtractTiming }> => {
   const tStart = performance.now();
-  const { system, prompt } = params.buildPrompt();
+  const { system, prompt, images } = params.buildPrompt();
   const tAfterPrompt = performance.now();
 
   const inputs: Record<string, unknown> = {
     messages: [
       { role: "system", content: system },
-      { role: "user", content: prompt },
+      { role: "user", content: buildUserContent(prompt, images) },
     ],
     response_format: {
       type: "json_schema",

@@ -29,7 +29,7 @@ const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const FIXTURES_DIR = join(SCRIPT_DIR, "eval-fixtures");
 const RESULTS_DIR = join(SCRIPT_DIR, "eval-results");
 
-const DEFAULT_MODELS = ["openai/gpt-5.4-mini"];
+const DEFAULT_MODELS = ["openai/gpt-6-luna"];
 
 const NullableString = v.nullable(v.string());
 const NullableNumber = v.nullable(v.number());
