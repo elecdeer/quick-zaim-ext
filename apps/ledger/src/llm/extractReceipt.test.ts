@@ -41,10 +41,31 @@ describe("buildReceiptPrompt", () => {
 
   test("今日の日付と、カテゴリ・口座・店舗の候補を本文に並べる", () => {
     const { prompt } = buildReceiptPrompt(baseInput());
-    expect(prompt.startsWith("Today: 2026-10-29\n")).toBe(true);
+    expect(prompt).toContain("Today: 2026-10-29\n");
     expect(prompt).toContain("101=食費: 10101=食料品");
     expect(prompt).toContain("1=現金, 2=楽天カード");
     expect(prompt).toContain("スーパーA [5x, 2026-10-20]");
+  });
+
+  test("キャッシュが効くよう、変わりにくい候補を前に、日付と店舗を後ろに並べる", () => {
+    const { prompt } = buildReceiptPrompt(baseInput());
+    const positions = ["## Categories", "## Accounts", "Today:", "## Recent stores"].map((label) =>
+      prompt.indexOf(label),
+    );
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+    expect(positions[0]).toBe(0);
+  });
+
+  test("日付や店舗の使用回数が違っても、カテゴリと口座までのプロンプトは同じになる", () => {
+    const before = buildReceiptPrompt(baseInput()).prompt;
+    const after = buildReceiptPrompt(
+      baseInput({
+        today: "2026-10-30",
+        places: [{ id: 1, name: "スーパーA", lastUsedOn: "2026-10-30", useCount: 6 }],
+      }),
+    ).prompt;
+    const stablePrefix = before.slice(0, before.indexOf("Today:"));
+    expect(after.startsWith(stablePrefix)).toBe(true);
   });
 
   test("合計・お預り・お釣りの行を品目にしないよう指示する", () => {

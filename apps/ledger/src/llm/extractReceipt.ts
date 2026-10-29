@@ -74,14 +74,16 @@ export const buildReceiptPrompt = (input: ExtractReceiptContext): StructuredProm
     "- `items` is never empty; include at least one entry even if every field is null.",
   ].join("\n");
 
+  // プロンプトキャッシュは先頭から一致する部分にしか効かないので、変わりにくい順に並べる。
+  // カテゴリ・口座はめったに変わらず、今日の日付は日ごとに、店舗の使用回数は登録のたびに変わる
   const prompt = [
-    `Today: ${input.today}`,
-    "",
     "## Categories (format: `categoryId=name: genreId=name, ...`)",
     formatCategoriesForPrompt(input.categories),
     "",
     "## Accounts (format: `accountId=name, ...`)",
     formatAccountsForPrompt(input.accounts),
+    "",
+    `Today: ${input.today}`,
     "",
     "## Recent stores (format: `name [count, lastUsedOn]`)",
     formatRecentPlacesForPrompt(input.places),
