@@ -26,6 +26,12 @@ import {
  */
 const RECEIPT_IMAGE_MAX_LENGTH = 4_000_000;
 
+/**
+ * レシートの読み取りでの推論量。既定のままだと出力の 3/4 ほどが推論トークンで、読み取りに 10 秒ほどかかっていた。
+ * 読み取った値は登録前に画面で確かめて直せるので、精度より待ち時間を優先する
+ */
+const RECEIPT_REASONING_EFFORT = "low";
+
 /** レシートの画像（JPEG・PNG・WebP の data URL） */
 export const ReceiptImageSchema = v.pipe(
   v.string(),
@@ -100,5 +106,6 @@ export const runExtractReceipt = (params: {
     schemaName: "ExtractedPayment",
     jsonSchema: EXTRACTED_PAYMENT_JSON_SCHEMA,
     schema: ExtractedPaymentSchema,
+    reasoningEffort: RECEIPT_REASONING_EFFORT,
     abortSignal: params.abortSignal,
   });

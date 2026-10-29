@@ -79,6 +79,20 @@ describe("runExtractReceipt", () => {
       { signal: undefined },
     );
   });
+
+  test("待ち時間を短くするため推論量を low にして送る", async () => {
+    const ai = {
+      run: vi.fn(async () => ({ choices: [{ message: { content: JSON.stringify(extracted) } }] })),
+    };
+
+    await runExtractReceipt({ ai, model: "test-model", input: baseInput() });
+
+    expect(ai.run).toHaveBeenCalledWith(
+      "test-model",
+      expect.objectContaining({ reasoning_effort: "low" }),
+      { signal: undefined },
+    );
+  });
 });
 
 describe("ReceiptImageSchema", () => {

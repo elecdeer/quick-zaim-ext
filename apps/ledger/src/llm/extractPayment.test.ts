@@ -114,6 +114,20 @@ describe("runExtractPayment", () => {
     );
   });
 
+  test("推論量は指定せずモデルの既定に任せる", async () => {
+    const ai = {
+      run: vi.fn(async () => ({ choices: [{ message: { content: JSON.stringify(extracted) } }] })),
+    };
+
+    await runExtractPayment({ ai, model: "test-model", input: baseInput() });
+
+    expect(ai.run).toHaveBeenCalledWith(
+      "test-model",
+      expect.not.objectContaining({ reasoning_effort: expect.anything() }),
+      { signal: undefined },
+    );
+  });
+
   test("response に入ったオブジェクトも受け取れる", async () => {
     const ai = { run: vi.fn(async () => ({ response: extracted })) };
 
