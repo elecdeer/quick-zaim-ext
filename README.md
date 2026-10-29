@@ -42,6 +42,8 @@ vp run dev
 
 台帳の URL をブラウザで開くと、月ごとの集計（`/`）、取引の一覧と編集（`/transactions`）、口座の残高（`/accounts`）が見られる。設計は [phase3-design.md](apps/ledger/docs/phase3-design.md)。
 
+紙のレシートは `/receipts/new` で撮影して登録する。AI が読み取った内容を確かめてから登録する。スマートフォンではホーム画面に追加すると、この画面から開く（PWA）。設計は [phase5-design.md](apps/ledger/docs/phase5-design.md)。
+
 - UI 部品は拡張機能と同じ shadcn（base-ui 版）と Tailwind CSS。`apps/ledger` で `pnpm exec shadcn add <名前>` を実行すると `src/components/ui/` に入る。shadcn の CLI が `cn` パッケージを入れて `from "cn"` と書くので、`@/lib/utils` に直して `cn` パッケージは外す
 - 表示するデータはページの `loader`、変更はページの `actions` で扱い、`/api/*`（拡張機能のための API）には足さない
 - ローカルの D1 に本物の記録を取り込んでいる場合は、架空のデータで画面を確かめられる。`LEDGER_PERSIST_TO` に別の場所を指定して開発サーバーを起動すると、ローカルの D1 などがそこに作られる（マイグレーションも適用される）。そこに `scripts/sample-data.sql` を入れる
@@ -55,10 +57,10 @@ sqlite3 "$(ls /tmp/ledger-sample/v3/d1/miniflare-D1DatabaseObject/*.sqlite | gre
 
 ### デプロイ
 
-`main` に push（PR をマージ）すると、CI のチェックとビルドが通った後に GitHub Actions が台帳をデプロイする（`.github/workflows/ci.yml` の `deploy` ジョブ）。リポジトリ（または `production` Environment）に次のシークレットが要る。
+`main` に push すると、Worker `tsuke` に接続した Workers Builds が `pnpm -F ledger exec void deploy --platform cloudflare` でデプロイする（Workers Builds のプレビューは無効にしている）。
 
-- `CLOUDFLARE_API_TOKEN`: Workers Scripts の編集、D1 の編集、Workers AI の読み取りなどデプロイに使う権限を持つ API トークン
-- `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET`: デプロイ最後の準備確認を Access に通すためのサービストークン。Access アプリケーションのポリシーで Service Auth として許可しておく
+- API トークンは Workers Builds のビルド用トークンが使われる。D1 の書き込み権限がないとマイグレーションと復元ポイントの作成で失敗する
+- デプロイ最後の準備確認を Access に通すため、ビルドのシークレットに Access のサービストークン（`CF_ACCESS_CLIENT_ID`・`CF_ACCESS_CLIENT_SECRET`）を入れている。Access アプリケーションには、そのトークンを許可する Service Auth のポリシーを付けている
 
 手元からデプロイするときは次のコマンドを使う。
 
