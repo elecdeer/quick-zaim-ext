@@ -356,9 +356,6 @@ export default function MainScreen({ serverUrl }: Props) {
 
       <Button
         type="submit"
-        size="lg"
-        // 画面で一番よく押すボタンなので、ほかのボタンより一回り大きくして押しやすくする
-        className="h-10 text-base"
         variant={duplicateState === "warned" ? "destructive" : "default"}
         disabled={!canSubmit || mutation.isPending || duplicateState === "checking"}
       >
