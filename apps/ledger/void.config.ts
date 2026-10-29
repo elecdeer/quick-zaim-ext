@@ -9,6 +9,15 @@ export default defineConfig({
       { charset: "utf-8" },
       // viewport-fit=cover で画面の端まで描き、下のナビを env(safe-area-inset-bottom) でホームバーから避ける
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { name: "theme-color", content: "#ffffff" },
+      { name: "apple-mobile-web-app-title", content: "台帳" },
+    ],
+    // スマートフォンのホーム画面から開けるようにする（PWA）。Service Worker はオフラインで使わないので置かない。
+    // manifest も Access の後ろにあるので、use-credentials で Cookie を送らせる（付けないと Access のログイン画面が返る）
+    link: [
+      { rel: "manifest", href: "/manifest.webmanifest", crossorigin: "use-credentials" },
+      { rel: "icon", href: "/icons/icon.svg", type: "image/svg+xml" },
+      { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png" },
     ],
   },
   worker: {

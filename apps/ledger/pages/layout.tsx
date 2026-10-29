@@ -1,14 +1,15 @@
 import "../src/styles.css";
 import { Link, useNavigation, useRouter, useShared } from "@void/react";
-import { ChartPie, type LucideIcon, ReceiptText, Wallet } from "lucide-react";
+import { Camera, ChartPie, List, type LucideIcon, Wallet } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { isActive, isNavigating, navPath } from "../src/web/nav.ts";
 
 const NAV_ITEMS: ReadonlyArray<{ href: string; label: string; icon: LucideIcon }> = [
   { href: "/", label: "集計", icon: ChartPie },
-  { href: "/transactions", label: "取引", icon: ReceiptText },
+  { href: "/transactions", label: "取引", icon: List },
   { href: "/accounts", label: "口座", icon: Wallet },
+  { href: "/receipts/new", label: "レシート", icon: Camera },
 ];
 
 /**
@@ -19,7 +20,7 @@ const NAV_ITEMS: ReadonlyArray<{ href: string; label: string; icon: LucideIcon }
 const BottomNav = ({ activePath }: { activePath: string }) => (
   <nav
     aria-label="メイン"
-    className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
+    className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
   >
     {NAV_ITEMS.map((item) => {
       const active = isActive(activePath, item.href);

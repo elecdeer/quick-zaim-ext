@@ -1,0 +1,73 @@
+# フェーズ5 設計: 紙のレシートを撮って登録する
+
+## 目的
+
+店で受け取った紙のレシートを、スマートフォンで撮影して支出として登録できるようにする。今は拡張機能（PC のブラウザ）からしか新規に登録できず、紙のレシートは手で打ち込むしかない。
+
+## 前提
+
+- 台帳の Web 画面（`apps/ledger`）を PWA にして、スマートフォンのホーム画面から開けるようにする。別のアプリは作らない
+- 同じ Worker `tsuke` で動かす。Cloudflare Access の後ろにあるので、ログインは今までどおり Access が行う
+- 撮影したら AI が日付・店舗・口座・品目を読み取り、確認フォームに入れる。人が直してから登録する（自動では登録しない）
+- レシートの画像は読み取りに使うだけで、保存しない
+- オフラインでは使わない。通信できるときだけ使う
+
+## 仕組み
+
+### PWA
+
+- `public/manifest.webmanifest` とアイコン（`public/icons/`）を置き、`void.config.ts` の `head` に `<link rel="manifest">`・`apple-touch-icon`・`theme-color` を足す
+- `start_url` はレシートの登録の画面（`/receipts/new`）にする。ホーム画面から開く用途はほぼこれなので
+- Service Worker は置かない。Android の Chrome も iOS の Safari も、manifest があればホーム画面に追加できる。オフラインで使わないので、キャッシュする理由もない
+- manifest とアイコンも Access の後ろにある。manifest の `<link>` に `crossorigin="use-credentials"` を付けて Cookie を送らせる。それでもアイコンが取れない（ホーム画面のアイコンが出ない）場合は、Access に `/manifest.webmanifest` と `/icons/*` を Bypass するアプリケーションを足す（実機で確かめてから決める）
+
+### 撮影と画像の送信
+
+- `<input type="file" accept="image/*" capture="environment">` で端末のカメラを開く。カメラを独自に組まない（ピント・露出は OS のカメラの方が良く、ライブラリも要らない）
+- 撮った画像はブラウザで canvas に描き、長辺 1600px の JPEG（品質 0.8）に縮めてから data URL で送る。スマートフォンの写真（数 MB）をそのまま送ると遅く、AI の入力トークンも増えるため。1600px あればレシートの小さい文字も読める
+- 画像は `POST /api/receipts/extract` に JSON で送り、サーバーは AI に渡したら捨てる
+
+### 読み取り（AI）
+
+- 自動入力のモデルを `openai/gpt-6-luna` に変える（`env.ts` の `LLM_MODEL` の既定値）。拡張機能の自動入力も同じモデルになる
+- `src/llm/extractReceipt.ts` を作る。出力のスキーマは拡張機能の自動入力と同じ `ExtractedPaymentSchema` を使い、プロンプトだけを紙のレシート向けにする（税込・税抜の扱い、値引きの行、合計・お預り・お釣りの行を品目にしない、など）
+- `runStructuredChat` は今は文字のメッセージしか送れないので、user メッセージに画像（`image_url` の data URL）を足せるようにする
+- `openai/gpt-6-luna` が Workers AI の binding で画像の入力と `json_schema` を受け付けるかは、Cloudflare のドキュメントに書かれていない。最初にスパイクで確かめ、だめなら画像に対応したモデルを別に `RECEIPT_LLM_MODEL` で指定する
+- 評価スクリプト（`scripts/eval-extract-payment.ts`）にレシート画像の事例を足すのは今回はしない。実際のレシートで使ってみて、読み取りの誤りが目立ったら足す
+
+### 確認フォームと登録
+
+- 新しいページ `/receipts/new`（`pages/receipts/new.tsx` と `new.server.ts`）
+  - `loader`：口座・支出のカテゴリ・店舗の候補
+  - `action`：`createPayment` で登録し、登録した取引の編集画面（`/transactions/[id]`）へ移る
+- 読み取りは `POST /api/receipts/extract`、重複の確かめは拡張機能と同じ `POST /api/transactions/duplicates` を `createLedgerClient` で呼ぶ。Void のページのアクションは値を返せず（loader を走らせ直すかリダイレクトするだけ）、読み取った結果を画面に返せないため。同じ origin なので Access の Cookie はそのまま送られる
+- フォームは取引の編集画面（`pages/transactions/[id].tsx`）の入力部品（品目の行・カテゴリの選択・口座の選択など）を `src/web/components/` に切り出して共有する。支出だけなので、向きや振替の欄は出さない
+- 読み取りの結果は `src/web/transactionDraft.ts` の下書きに変換してフォームに入れる。読み取れなかった項目（`null`）は空のままにし、カテゴリが決まらない品目は登録の前に選ばせる
+- 重複の候補があれば、拡張機能と同じくフォームの中に警告を出す（登録は止めない）
+- 撮影した画像の縮小版を、フォームの横（狭い画面では上）に出して見比べながら直せるようにする。画像はブラウザの中にだけあり、ページを離れたら消える
+
+### ナビゲーション
+
+- ヘッダーのナビに「レシート」（`/receipts/new`）を足す
+
+## 決めたこと
+
+- **PWA は台帳の Web 画面に入れる。** 別のアプリにすると、Access のログインと CORS を拡張機能と同じように組み直すことになる。同じオリジンならページのアクションをそのまま使える
+- **画像は保存しない。** 取引にレシートを紐付けて見返す必要は今のところない。R2 とスキーマの変更が要らない
+- **Service Worker は置かない。** オフラインで使わず、ホーム画面への追加にも要らないので
+
+## 範囲外
+
+- レシートの画像の保存と、取引からの参照
+- オフラインでの撮影と、後からの送信
+- 1 枚の写真に写った複数のレシート、長いレシートを分けて撮った複数の写真
+- 収入・振替の登録
+- 撮影以外の新規登録（手入力だけのフォーム）。フォームは同じなので、必要になったら写真なしでも開けるようにする
+
+## 作る順
+
+1. スパイク：`openai/gpt-6-luna` に画像と `json_schema` を送れるか確かめる。`LLM_MODEL` の既定値を変える
+2. `runStructuredChat` に画像を足し、`extractReceipt.ts` とテスト
+3. 編集画面の入力部品を `src/web/components/` に切り出す（編集画面の見た目と動きは変えない）
+4. `/receipts/new` のページ（撮影・縮小・読み取り・確認・重複・登録）
+5. PWA（manifest・アイコン・head）とナビ。実機のホーム画面に追加して、Access のログインとアイコンを確かめる
