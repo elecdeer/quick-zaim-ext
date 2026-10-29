@@ -3,6 +3,7 @@ import { ChevronRight } from "lucide-react";
 import type { CategoryTotal, ModeSummary } from "@/ledger/summary";
 import { cn } from "@/lib/utils";
 import { MonthHeading } from "@/web/components/MonthHeading";
+import { MonthSwipe } from "@/web/components/MonthSwipe";
 import { Section } from "@/web/components/Section";
 import { formatAmount, formatPercent, formatSignedAmount } from "@/web/format";
 import { transactionsHref } from "@/web/transactionsHref";
@@ -156,13 +157,18 @@ const CategoryBreakdown = ({
   );
 
 /**
- * 月ごとの集計の画面。
+ * 集計の画面の URL を月から作る。
+ */
+const summaryHref = (month: string): string => `/?month=${month}`;
+
+/**
+ * 月ごとの集計の画面。左右に払うと前後の月へ移る。
  */
 const SummaryPage = ({ month, summary }: Props) => (
-  <div className="flex flex-col gap-12">
+  <MonthSwipe month={month} hrefOf={summaryHref} className="flex flex-col gap-12">
     <div className="grid gap-x-4 gap-y-6 md:grid-cols-12 md:items-end">
       <div className="md:col-span-3">
-        <MonthHeading month={month} hrefOf={(target) => `/?month=${target}`} />
+        <MonthHeading month={month} hrefOf={summaryHref} />
       </div>
       <div className="md:col-span-9">
         <Totals payment={summary.payment.total} income={summary.income.total} />
@@ -174,7 +180,7 @@ const SummaryPage = ({ month, summary }: Props) => (
     <Section label="収入">
       <CategoryBreakdown summary={summary.income} month={month} mode="income" />
     </Section>
-  </div>
+  </MonthSwipe>
 );
 
 export default SummaryPage;
