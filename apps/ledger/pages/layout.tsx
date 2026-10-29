@@ -1,6 +1,6 @@
 import "../src/styles.css";
-import { Link, useNavigation, useRouter, useShared } from "@void/react";
-import { Camera, ChartPie, List, type LucideIcon, Wallet } from "lucide-react";
+import { Link, useNavigation, useRouter } from "@void/react";
+import { Camera, ChartPie, List, type LucideIcon, Settings, Wallet } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { isActive, isNavigating, navPath } from "../src/web/nav.ts";
@@ -44,14 +44,14 @@ const BottomNav = ({ activePath }: { activePath: string }) => (
 );
 
 /**
- * 台帳の画面に共通のヘッダー（ナビゲーションとログイン中のユーザー）。
+ * 台帳の画面に共通のヘッダー（ナビゲーションと設定への入口）。
  *
+ * ヘッダーは画面の上に固定し、スクロールしてもナビと進行バーが見えるようにする。
  * ヘッダーも本文と同じ 12 列のグリッドに載せ、ナビを本文の中身の列（右の 9 列）にそろえる。
  * 狭い画面ではナビをヘッダーから外し、画面の下に固定する（BottomNav）。
  * 画面の移動中は前の画面が残るので、ヘッダーの上端に進行バーを出し、押したタブにすぐ下線を移す。
  */
 const Layout = ({ children }: { children: ReactNode }) => {
-  const { email } = useShared();
   const { path, query } = useRouter();
   const navigation = useNavigation();
   const activePath = navPath(path, navigation);
@@ -60,7 +60,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
 
   return (
     <div className="min-h-dvh bg-background">
-      <header className="relative border-b">
+      <header className="sticky top-0 z-30 h-(--header-height) border-b bg-background">
         {isNavigating(navigation) && (
           // 支援技術には main の aria-busy で伝えるので、バーは飾りとして隠す。
           // <progress> は不定の進み具合を左右に流す見た目にしにくいので使わない
@@ -70,7 +70,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
         )}
         <div
           className={cn(
-            "mx-auto grid max-w-5xl grid-cols-[auto_1fr] items-end gap-x-4 px-4 pt-3 md:grid-cols-12",
+            "mx-auto grid h-full max-w-5xl grid-cols-[auto_1fr] items-end gap-x-4 px-4 transition-[max-width] duration-300 ease-out motion-reduce:transition-none md:grid-cols-12",
             wide && "xl:max-w-7xl",
           )}
         >
@@ -94,12 +94,17 @@ const Layout = ({ children }: { children: ReactNode }) => {
                 );
               })}
             </nav>
-            <div className="ml-auto flex items-center gap-4 pb-2 text-xs text-muted-foreground">
-              <span className="hidden sm:inline">{email}</span>
-              <a href="/logout" className="hover:text-foreground">
-                ログアウト
-              </a>
-            </div>
+            <Link
+              href="/settings"
+              aria-label="設定"
+              aria-current={isActive(activePath, "/settings") ? "page" : undefined}
+              className={cn(
+                "ml-auto mb-1 p-1 text-muted-foreground hover:text-foreground",
+                isActive(activePath, "/settings") && "text-foreground",
+              )}
+            >
+              <Settings className="size-4" aria-hidden="true" />
+            </Link>
           </div>
         </div>
       </header>
@@ -107,7 +112,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
         aria-busy={isNavigating(navigation)}
         // 狭い画面では下のナビに本文の最後が隠れないよう、ナビの高さ分の余白を足す
         className={cn(
-          "mx-auto max-w-5xl px-4 pt-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-8",
+          "mx-auto max-w-5xl px-4 pt-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))] transition-[max-width] duration-300 ease-out motion-reduce:transition-none md:pb-8",
           wide && "xl:max-w-7xl",
         )}
       >
