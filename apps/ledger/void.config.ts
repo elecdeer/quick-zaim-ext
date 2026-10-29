@@ -7,7 +7,8 @@ export default defineConfig({
     htmlAttrs: { lang: "ja" },
     meta: [
       { charset: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      // viewport-fit=cover で画面の端まで描き、下のナビを env(safe-area-inset-bottom) でホームバーから避ける
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
     ],
   },
   worker: {

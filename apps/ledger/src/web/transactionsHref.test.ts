@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vite-plus/test";
-import { transactionsHref } from "./transactionsHref.ts";
+import { isFiltered, transactionsHref } from "./transactionsHref.ts";
 
 describe("transactionsHref", () => {
   test("月だけなら月だけをクエリに入れる", () => {
@@ -17,5 +17,27 @@ describe("transactionsHref", () => {
         placeId: 4,
       }),
     ).toBe("/transactions?month=2026-10&mode=payment&accountId=1&categoryId=2&genreId=3&placeId=4");
+  });
+
+  test("サイドパネルで開く取引を最後に入れる", () => {
+    expect(transactionsHref({ month: "2026-10", accountId: 1 }, 12)).toBe(
+      "/transactions?month=2026-10&accountId=1&selected=12",
+    );
+  });
+});
+
+describe("isFiltered", () => {
+  test("月だけなら false を返す", () => {
+    expect(isFiltered({ month: "2026-10" })).toBe(false);
+  });
+
+  test.each([
+    { mode: "payment" },
+    { accountId: 1 },
+    { categoryId: 2 },
+    { genreId: 3 },
+    { placeId: 4 },
+  ] as const)("月のほかに %o で絞り込んでいれば true を返す", (condition) => {
+    expect(isFiltered({ month: "2026-10", ...condition })).toBe(true);
   });
 });

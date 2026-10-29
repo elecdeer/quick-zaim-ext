@@ -1,4 +1,4 @@
-import { NativeSelectOptGroup, NativeSelectOption } from "@/components/ui/native-select";
+import { SelectGroup, SelectItem, SelectLabel } from "@/components/ui/select";
 import type { CategoryWithGenres } from "@/ledger/masters";
 import { categoryValueOf } from "@/web/categoryValue";
 
@@ -12,16 +12,21 @@ export const CategoryOptions = ({
   label: string;
   categories: CategoryWithGenres[];
 }) => (
-  <NativeSelectOptGroup label={label}>
+  <SelectGroup>
+    <SelectLabel>{label}</SelectLabel>
     {categories.map((category) => [
-      <NativeSelectOption key={`c${category.id}`} value={categoryValueOf(category.id, null)}>
+      <SelectItem key={`c${category.id}`} value={categoryValueOf(category.id, null)}>
         {category.name}
-      </NativeSelectOption>,
+      </SelectItem>,
       ...category.genres.map((genre) => (
-        <NativeSelectOption key={`g${genre.id}`} value={categoryValueOf(category.id, genre.id)}>
-          {`　${genre.name}`}
-        </NativeSelectOption>
+        <SelectItem
+          key={`g${genre.id}`}
+          value={categoryValueOf(category.id, genre.id)}
+          className="pl-5"
+        >
+          {genre.name}
+        </SelectItem>
       )),
     ])}
-  </NativeSelectOptGroup>
+  </SelectGroup>
 );
