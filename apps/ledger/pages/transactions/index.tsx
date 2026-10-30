@@ -1,5 +1,5 @@
 import { Link, useRouter } from "@void/react";
-import { useState } from "react";
+import { type TransitionEvent, useState } from "react";
 import { submitAction } from "void/pages-client";
 import { Maximize2, RotateCcw, TriangleAlert, X } from "lucide-react";
 import {
@@ -20,6 +20,7 @@ import { Section } from "@/web/components/Section";
 import { TransactionEditor } from "@/web/components/TransactionEditor";
 import { CategoryOptions } from "@/web/components/CategoryOptions";
 import { MonthHeading } from "@/web/components/MonthHeading";
+import { MonthSwipe } from "@/web/components/MonthSwipe";
 import { formatAmount, formatDayOfMonth } from "@/web/format";
 import { groupByDate } from "@/web/groupByDate";
 import { MODE_LABELS } from "@/web/labels";
@@ -305,10 +306,13 @@ const TransactionRow = ({
 const SidePanel = ({
   filter,
   selected,
+  closing,
   accounts,
   categories,
 }: Pick<Props, "filter" | "accounts" | "categories"> & {
   selected: NonNullable<Props["selected"]>;
+  /** 閉じるアニメーションの間だけ、閉じる前の取引を出しておく。操作はさせない */
+  closing: boolean;
 }) => {
   const router = useRouter();
   // 別の取引を開いても「保存しました」が残らないよう、保存した取引の ID で持つ
@@ -321,7 +325,11 @@ const SidePanel = ({
   return (
     <aside
       aria-label="取引の編集"
-      className="hidden xl:sticky xl:top-4 xl:flex xl:max-h-[calc(100dvh-2rem)] xl:flex-col xl:gap-4 xl:overflow-y-auto xl:overscroll-contain xl:border-l xl:pl-6"
+      inert={closing}
+      className={cn(
+        "ml-8 flex max-h-[calc(100dvh-var(--header-height)-2rem)] w-md shrink-0 flex-col gap-4 overflow-y-auto overscroll-contain border-l pl-6 transition-opacity duration-300 animate-in fade-in motion-reduce:transition-none motion-reduce:animate-none",
+        closing && "opacity-0",
+      )}
     >
       <div className="flex items-center justify-end gap-1">
         <Link
@@ -380,69 +388,98 @@ const TransactionsPage = ({
   categories,
   placeName,
   selected,
-}: Props) => (
-  <div
-    className={cn(
-      "grid gap-x-8",
-      selected !== null && "xl:grid-cols-[minmax(0,1fr)_28rem] xl:items-start",
-    )}
-  >
-    <div className="flex min-w-0 flex-col gap-8">
-      <div className="grid gap-x-4 gap-y-6 md:grid-cols-12 md:items-end">
-        <div className="md:col-span-3">
-          <MonthHeading
-            month={filter.month}
-            hrefOf={(month) => transactionsHref({ ...filter, month })}
-          />
+}: Props) => {
+  // パネルを閉じても列が縮みきるまでは中身を残すため、最後に開いた取引を持っておく
+  const [shown, setShown] = useState(selected);
+  if (selected !== null && selected !== shown) setShown(selected);
+  const monthHref = (month: string) => transactionsHref({ ...filter, month });
+
+  /**
+   * パネルの列が縮みきったら、残しておいた中身を外す。中の要素のトランジションも届くので、列の幅の変化だけを見る。
+   */
+  const onTransitionEnd = (event: TransitionEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget) return;
+    if (event.propertyName === "grid-template-columns" && selected === null) setShown(null);
+  };
+
+  return (
+    <MonthSwipe
+      month={filter.month}
+      hrefOf={monthHref}
+      // パネルの列は閉じていても 0 幅で置いておき、開け閉めで列の幅を動かす。
+      // 一覧の幅も同時にレイアウトの最大幅のトランジションで広がるので、同じ長さにそろえる
+      className={cn(
+        "grid xl:grid-cols-[minmax(0,1fr)_0rem] xl:items-start xl:transition-[grid-template-columns] xl:duration-300 xl:ease-out motion-reduce:transition-none",
+        selected !== null && "xl:grid-cols-[minmax(0,1fr)_30rem]",
+      )}
+      onTransitionEnd={onTransitionEnd}
+    >
+      <div className="flex min-w-0 flex-col gap-8">
+        <div className="grid gap-x-4 gap-y-6 md:grid-cols-12 md:items-end">
+          <div className="md:col-span-3">
+            <MonthHeading month={filter.month} hrefOf={monthHref} />
+          </div>
+          <div className="flex flex-col gap-3 md:col-span-9">
+            <Filters
+              filter={filter}
+              accounts={accounts}
+              categories={categories}
+              placeName={placeName}
+            />
+            <ListTotals transactions={transactions} />
+          </div>
         </div>
-        <div className="flex flex-col gap-3 md:col-span-9">
-          <Filters
+        {transactions.length === 0 ? (
+          <Section label="">
+            <p className="border-t border-foreground py-2.5 text-sm text-muted-foreground">
+              条件に合う取引はありません
+            </p>
+          </Section>
+        ) : (
+          <div>
+            {groupByDate(transactions).map((group, index) => (
+              <Section
+                key={group.date}
+                className="gap-y-0"
+                label={
+                  <span className="block pt-2.5 text-xs font-normal text-muted-foreground tabular-nums">
+                    {formatDayOfMonth(group.date)}
+                  </span>
+                }
+              >
+                {/* 一覧の始まりにだけ黒の線を引く */}
+                <ul className={cn(index === 0 && "border-t border-foreground")}>
+                  {group.items.map((transaction) => (
+                    <TransactionRow
+                      key={transaction.id}
+                      transaction={transaction}
+                      filter={filter}
+                      selected={selected?.transaction.id === transaction.id}
+                    />
+                  ))}
+                </ul>
+              </Section>
+            ))}
+          </div>
+        )}
+      </div>
+      {/*
+       * 列の幅に合わせて中身を切り取り、右に寄せておくことで、パネルが右から滑り込んで見えるようにする。
+       * overflow: hidden だとスクロールの箱になって sticky が効かなくなるので clip にする
+       */}
+      <div className="hidden xl:sticky xl:top-[calc(var(--header-height)+1rem)] xl:flex xl:justify-end xl:overflow-clip">
+        {shown !== null && (
+          <SidePanel
             filter={filter}
+            selected={shown}
+            closing={selected === null}
             accounts={accounts}
             categories={categories}
-            placeName={placeName}
           />
-          <ListTotals transactions={transactions} />
-        </div>
+        )}
       </div>
-      {transactions.length === 0 ? (
-        <Section label="">
-          <p className="border-t border-foreground py-2.5 text-sm text-muted-foreground">
-            条件に合う取引はありません
-          </p>
-        </Section>
-      ) : (
-        <div>
-          {groupByDate(transactions).map((group, index) => (
-            <Section
-              key={group.date}
-              className="gap-y-0"
-              label={
-                <span className="block pt-2.5 text-xs font-normal text-muted-foreground tabular-nums">
-                  {formatDayOfMonth(group.date)}
-                </span>
-              }
-            >
-              {/* 一覧の始まりにだけ黒の線を引く */}
-              <ul className={cn(index === 0 && "border-t border-foreground")}>
-                {group.items.map((transaction) => (
-                  <TransactionRow
-                    key={transaction.id}
-                    transaction={transaction}
-                    filter={filter}
-                    selected={selected?.transaction.id === transaction.id}
-                  />
-                ))}
-              </ul>
-            </Section>
-          ))}
-        </div>
-      )}
-    </div>
-    {selected !== null && (
-      <SidePanel filter={filter} selected={selected} accounts={accounts} categories={categories} />
-    )}
-  </div>
-);
+    </MonthSwipe>
+  );
+};
 
 export default TransactionsPage;

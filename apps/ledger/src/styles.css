@@ -5,6 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  /* 画面の上に固定するヘッダーの高さ（pages/layout.tsx）。固定して置くものはこの下から並べる */
+  --header-height: 2.75rem;
   /* 角丸は使わない（docs/design.md） */
   --radius: 0;
   --background: oklch(1 0 0);
@@ -119,6 +121,10 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+  html {
+    /* ページ内のリンクやフォーカスで移った先が、固定したヘッダーの下に隠れないようにする */
+    scroll-padding-top: var(--header-height);
   }
   body {
     @apply bg-background font-sans text-foreground antialiased;
