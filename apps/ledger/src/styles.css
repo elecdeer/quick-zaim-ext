@@ -155,3 +155,84 @@
     animation: none;
   }
 }
+
+/*
+ * 前後の月へ移るときの画面送り（src/web/components/MonthHeading.tsx）。
+ * ヘッダーと下のナビは動かさず、本文だけを iOS の画面送りのように横へずらす。
+ * 進むときは新しい月が右から入り、前の月は少し左へ下がりながら薄くなる。戻るときはその逆。
+ * 向きは data-month-slide（src/web/monthSlide.ts）で受け取る
+ */
+:root[data-month-slide] main {
+  view-transition-name: month-page;
+  /* 本文の写しは背景が透けると、重なった前後の月の文字が混ざって見えるので塗っておく */
+  background-color: var(--background);
+}
+
+::view-transition-group(month-page) {
+  /* 横にずらした本文が本文の幅の外にはみ出さないよう切り取る */
+  overflow: clip;
+  animation-duration: 350ms;
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+::view-transition-old(month-page),
+::view-transition-new(month-page) {
+  /* 既定の重ね合わせ（plus-lighter）のまま横にずらすと、重なった所が明るくなる */
+  mix-blend-mode: normal;
+  animation-duration: 350ms;
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+  animation-fill-mode: both;
+}
+
+@keyframes month-slide-in-from-right {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes month-slide-out-to-left {
+  to {
+    transform: translateX(-30%);
+    opacity: 0;
+  }
+}
+
+@keyframes month-slide-in-from-left {
+  from {
+    transform: translateX(-30%);
+    opacity: 0;
+  }
+}
+
+@keyframes month-slide-out-to-right {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+:root[data-month-slide="next"]::view-transition-old(month-page) {
+  animation-name: month-slide-out-to-left;
+}
+
+:root[data-month-slide="next"]::view-transition-new(month-page) {
+  animation-name: month-slide-in-from-right;
+}
+
+/* 戻るときは前の月が上に重なって右へ抜けるので、古い方を手前に出す */
+:root[data-month-slide="prev"]::view-transition-old(month-page) {
+  z-index: 1;
+  animation-name: month-slide-out-to-right;
+}
+
+:root[data-month-slide="prev"]::view-transition-new(month-page) {
+  animation-name: month-slide-in-from-left;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* 動きを減らす設定なら横にずらさず、すぐに入れ替える */
+  ::view-transition-group(month-page),
+  ::view-transition-old(month-page),
+  ::view-transition-new(month-page) {
+    animation: none;
+  }
+}
