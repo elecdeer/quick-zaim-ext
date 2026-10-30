@@ -1,6 +1,7 @@
 import { StorefrontIcon } from "@phosphor-icons/react";
-import { ChevronsUpDownIcon, XIcon } from "lucide-react";
-import { Suspense } from "react";
+import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox";
+import { ChevronsUpDownIcon, PlusIcon, XIcon } from "lucide-react";
+import { Suspense, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Combobox,
@@ -11,12 +12,12 @@ import {
   ComboboxItem,
   ComboboxList,
   ComboboxTrigger,
-  ComboboxValue,
 } from "@/components/ui/combobox";
 import { ErrorBoundary } from "@/lib/ErrorBoundary";
 import { useSuspenseQuery } from "@/lib/query";
 import { cn } from "@/lib/utils";
-import { placesQuery, type PlacesResponse } from "../queries";
+import { placeOptions, type PlaceOption } from "@/lib/placeOptions";
+import { placesQuery } from "../queries";
 
 interface Props {
   serverUrl: string;
@@ -31,7 +32,7 @@ interface Props {
 
 /**
  * 店舗選択の combobox コンポーネント。
- * 台帳の店舗を最後に使った日の新しい順に表示し、一覧から選択する。
+ * 台帳の店舗を最後に使った日の新しい順に表示し、一覧から選ぶか、一覧にない名前を打ち込んで追加する。
  */
 export const StoreCombobox = ({
   serverUrl,
@@ -78,8 +79,6 @@ export const StoreCombobox = ({
   );
 };
 
-type Place = PlacesResponse["places"][number];
-
 const StoreComboboxContent = ({
   serverUrl,
   value,
@@ -88,22 +87,30 @@ const StoreComboboxContent = ({
   icon,
 }: { serverUrl: string; icon: React.ReactNode } & Pick<Props, "value" | "onChange" | "size">) => {
   const { data } = useSuspenseQuery(placesQuery, serverUrl);
+  const [query, setQuery] = useState("");
+  const { contains } = ComboboxPrimitive.useFilter();
 
-  const places = data.places;
-  const selectedPlace = places.find((p) => p.name === value) ?? null;
+  const selected: PlaceOption | null = value === null ? null : { name: value, isNew: false };
 
   return (
     <div className="flex items-center gap-2">
       {icon}
       <div className="flex min-w-0 flex-1 items-center gap-1">
         <Combobox
-          items={places}
-          value={selectedPlace}
-          onValueChange={(next: Place | null) => {
+          items={placeOptions(
+            data.places.map((place) => place.name),
+            query,
+          )}
+          value={selected}
+          onValueChange={(next: PlaceOption | null) => {
             onChange(next && next.name === value ? null : (next?.name ?? null));
           }}
-          isItemEqualToValue={(a: Place | null, b: Place | null) => a?.id === b?.id}
-          itemToStringLabel={(p: Place | null) => p?.name ?? ""}
+          inputValue={query}
+          onInputValueChange={setQuery}
+          isItemEqualToValue={(a: PlaceOption | null, b: PlaceOption | null) => a?.name === b?.name}
+          itemToStringLabel={(option: PlaceOption | null) => option?.name ?? ""}
+          // 追加の候補は入力した名前そのものなので、絞り込みに関わらず常に出す
+          filter={(option: PlaceOption, q: string) => option.isNew || contains(option.name, q)}
         >
           <ComboboxTrigger
             render={
@@ -116,13 +123,9 @@ const StoreComboboxContent = ({
               />
             }
           >
-            <ComboboxValue>
-              {(v: Place | null) => (
-                <span className={cn("truncate", !v && !value && "text-muted-foreground")}>
-                  {v?.name ?? value ?? "店舗を選択（任意）"}
-                </span>
-              )}
-            </ComboboxValue>
+            <span className={cn("truncate", !value && "text-muted-foreground")}>
+              {value ?? "店舗を選択（任意）"}
+            </span>
             <ChevronsUpDownIcon className="ml-2 opacity-50" />
           </ComboboxTrigger>
           <ComboboxClear
@@ -131,12 +134,18 @@ const StoreComboboxContent = ({
             <XIcon />
           </ComboboxClear>
           <ComboboxContent>
-            <ComboboxInput placeholder="店舗を検索" />
+            <ComboboxInput placeholder="店舗を検索・追加" />
             <ComboboxEmpty>店舗が見つかりません</ComboboxEmpty>
             <ComboboxList>
-              {(item: Place) => (
-                <ComboboxItem key={item.id} value={item}>
-                  {item.name}
+              {(option: PlaceOption) => (
+                <ComboboxItem key={`${option.isNew}:${option.name}`} value={option}>
+                  {option.isNew ? (
+                    <>
+                      <PlusIcon aria-hidden="true" />「{option.name}」を追加
+                    </>
+                  ) : (
+                    option.name
+                  )}
                 </ComboboxItem>
               )}
             </ComboboxList>

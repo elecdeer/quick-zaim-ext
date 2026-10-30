@@ -2,8 +2,19 @@
  * 取引の入力欄の部品。取引の編集画面とレシートの登録画面で共有する。
  */
 import { ArrowDown, ArrowUp, Plus, Trash2, TriangleAlert } from "lucide-react";
-import { useId, type ReactNode } from "react";
+import { Combobox as ComboboxPrimitive } from "@base-ui/react";
+import { useId, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Combobox,
+  ComboboxClear,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxTrigger,
+} from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -11,6 +22,7 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
+  selectTriggerClassName,
   SelectValue,
 } from "@/components/ui/select";
 import type { CategoryWithGenres } from "@/ledger/masters";
@@ -18,6 +30,7 @@ import type { TransactionMode } from "@/ledger/transactions";
 import { categoryLabels, categoryValueOf } from "@/web/categoryValue";
 import { CategoryOptions } from "@/web/components/CategoryOptions";
 import { formatAmount } from "@/web/format";
+import { placeOptions, type PlaceOption } from "@/web/placeOptions";
 import { emptyItem, moveItem, type ItemDraft } from "@/web/transactionDraft";
 import { cn } from "@/lib/utils";
 
@@ -101,7 +114,7 @@ export const AccountSelect = ({
 };
 
 /**
- * 店舗（取引先）の入力欄。過去の店舗を候補に出しつつ、新しい名前も入れられる。
+ * 店舗（取引先）の入力欄。過去の店舗から選ぶか、一覧にない名前を打ち込んで追加する。
  */
 export const PlaceInput = ({
   id,
@@ -114,23 +127,58 @@ export const PlaceInput = ({
   placeNames: string[];
   onChange: (value: string) => void;
 }) => {
-  const listId = useId();
+  const [query, setQuery] = useState("");
+  const { contains } = ComboboxPrimitive.useFilter();
+  const selected: PlaceOption | null = value === "" ? null : { name: value, isNew: false };
+
   return (
-    <>
-      <Input
-        id={id}
-        list={listId}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      />
-      <datalist id={listId}>
-        {placeNames.map((name) => (
-          <option key={name} value={name}>
-            {name}
-          </option>
-        ))}
-      </datalist>
-    </>
+    <Combobox
+      items={placeOptions(placeNames, query)}
+      value={selected}
+      onValueChange={(next: PlaceOption | null) => onChange(next?.name ?? "")}
+      inputValue={query}
+      onInputValueChange={setQuery}
+      isItemEqualToValue={(a: PlaceOption, b: PlaceOption) => a.name === b.name}
+      itemToStringLabel={(option: PlaceOption) => option.name}
+      // 追加の候補は入力した名前そのものなので、絞り込みに関わらず常に出す
+      filter={(option: PlaceOption, q: string) => option.isNew || contains(option.name, q)}
+    >
+      <div className="flex min-w-0 items-center gap-0.5">
+        <ComboboxTrigger
+          id={id}
+          data-size="default"
+          className={cn(selectTriggerClassName, "w-full font-normal")}
+        >
+          <span
+            className={cn("line-clamp-1 flex-1 text-left", value === "" && "text-muted-foreground")}
+          >
+            {value === "" ? "なし" : value}
+          </span>
+        </ComboboxTrigger>
+        {value !== "" && (
+          <ComboboxClear
+            render={<Button variant="ghost" size="icon-sm" aria-label="店舗を消す" />}
+          />
+        )}
+      </div>
+      <ComboboxContent>
+        <ComboboxInput placeholder="検索・追加" showTrigger={false} />
+        <ComboboxEmpty>過去の店舗はありません</ComboboxEmpty>
+        <ComboboxList>
+          {(option: PlaceOption) => (
+            <ComboboxItem key={`${option.isNew}:${option.name}`} value={option}>
+              {option.isNew ? (
+                <>
+                  <Plus aria-hidden="true" />「{option.name}」を追加
+                </>
+              ) : (
+                option.name
+              )}
+            </ComboboxItem>
+          )}
+        </ComboboxList>
+      </ComboboxContent>
+    </Combobox>
   );
 };
 
