@@ -57,6 +57,13 @@ sqlite3 "$(ls /tmp/ledger-sample/v3/d1/miniflare-D1DatabaseObject/*.sqlite | gre
 
 ### デプロイ
 
+`main` に push すると、Worker `tsuke` に接続した Workers Builds が `pnpm -F ledger exec void deploy --platform cloudflare` でデプロイする（Workers Builds のプレビューは無効にしている）。
+
+- API トークンは Workers Builds のビルド用トークンが使われる。D1 の書き込み権限がないとマイグレーションと復元ポイントの作成で失敗する
+- デプロイ最後の準備確認を Access に通すため、ビルドのシークレットに Access のサービストークン（`CF_ACCESS_CLIENT_ID`・`CF_ACCESS_CLIENT_SECRET`）を入れている。Access アプリケーションには、そのトークンを許可する Service Auth のポリシーを付けている
+
+手元からデプロイするときは次のコマンドを使う。
+
 ```bash
 pnpm -F ledger exec void deploy
 ```
