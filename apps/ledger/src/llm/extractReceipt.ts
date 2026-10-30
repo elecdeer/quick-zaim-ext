@@ -26,6 +26,12 @@ import {
  */
 const RECEIPT_IMAGE_MAX_LENGTH = 4_000_000;
 
+/**
+ * レシートの読み取りでの推論量。既定のままだと出力の 3/4 ほどが推論トークンで、読み取りに 10 秒ほどかかっていた。
+ * 読み取った値は登録前に画面で確かめて直せるので、精度より待ち時間を優先する
+ */
+const RECEIPT_REASONING_EFFORT = "low";
+
 /** レシートの画像（JPEG・PNG・WebP の data URL） */
 export const ReceiptImageSchema = v.pipe(
   v.string(),
@@ -68,14 +74,16 @@ export const buildReceiptPrompt = (input: ExtractReceiptContext): StructuredProm
     "- `items` is never empty; include at least one entry even if every field is null.",
   ].join("\n");
 
+  // プロンプトキャッシュは先頭から一致する部分にしか効かないので、変わりにくい順に並べる。
+  // カテゴリ・口座はめったに変わらず、今日の日付は日ごとに、店舗の使用回数は登録のたびに変わる
   const prompt = [
-    `Today: ${input.today}`,
-    "",
     "## Categories (format: `categoryId=name: genreId=name, ...`)",
     formatCategoriesForPrompt(input.categories),
     "",
     "## Accounts (format: `accountId=name, ...`)",
     formatAccountsForPrompt(input.accounts),
+    "",
+    `Today: ${input.today}`,
     "",
     "## Recent stores (format: `name [count, lastUsedOn]`)",
     formatRecentPlacesForPrompt(input.places),
@@ -100,5 +108,6 @@ export const runExtractReceipt = (params: {
     schemaName: "ExtractedPayment",
     jsonSchema: EXTRACTED_PAYMENT_JSON_SCHEMA,
     schema: ExtractedPaymentSchema,
+    reasoningEffort: RECEIPT_REASONING_EFFORT,
     abortSignal: params.abortSignal,
   });

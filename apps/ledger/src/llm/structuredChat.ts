@@ -89,6 +89,8 @@ export const runStructuredChat = async <TSchema extends v.GenericSchema>(params:
   /** `schema` を `toJsonSchema` で変換したもの。呼び出しごとに変換しないよう呼び出し側で持つ */
   jsonSchema: unknown;
   schema: TSchema;
+  /** 推論モデルの推論量。受け付ける値はモデルごとに違うので、未指定ならパラメータごと送らずモデルの既定に任せる */
+  reasoningEffort?: string;
   abortSignal?: AbortSignal;
 }): Promise<{ object: v.InferOutput<TSchema>; usage: unknown; timing: ExtractTiming }> => {
   const tStart = performance.now();
@@ -108,6 +110,7 @@ export const runStructuredChat = async <TSchema extends v.GenericSchema>(params:
         schema: params.jsonSchema,
       },
     },
+    ...(params.reasoningEffort === undefined ? {} : { reasoning_effort: params.reasoningEffort }),
   };
   // chat 系モデルは choices か response を持つオブジェクトを返す（取り出しは extractAssistantPayload が確かめる）
   const output = (await params.ai.run(params.model, inputs, {
