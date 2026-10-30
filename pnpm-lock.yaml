@@ -170,6 +170,9 @@ catalogs:
     '@tailwindcss/vite':
       specifier: ^4.2.4
       version: 4.2.4
+    '@types/leaflet':
+      specifier: ^1.9.22
+      version: 1.9.22
     '@valibot/to-json-schema':
       specifier: ^1.7.1
       version: 1.7.1
@@ -200,6 +203,9 @@ catalogs:
     jotai:
       specifier: ^2.20.1
       version: 2.20.1
+    leaflet:
+      specifier: ^1.9.4
+      version: 1.9.4
     lucide-react:
       specifier: ^1.18.0
       version: 1.18.0
@@ -396,6 +402,9 @@ importers:
       hono:
         specifier: ^4.13.14
         version: 4.13.14
+      leaflet:
+        specifier: 'catalog:'
+        version: 1.9.4
       lucide-react:
         specifier: 'catalog:'
         version: 1.18.0(react@19.2.5)
@@ -418,6 +427,9 @@ importers:
       '@tailwindcss/vite':
         specifier: 'catalog:'
         version: 4.2.4(@voidzero-dev/vite-plus-core@1.4.0(@types/node@25.6.0)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1))
+      '@types/leaflet':
+        specifier: 'catalog:'
+        version: 1.9.22
       '@types/react':
         specifier: ^19.2.14
         version: 19.2.14
@@ -2766,8 +2778,14 @@ packages:
   '@types/filewriter@0.0.33':
     resolution: {integrity: sha512-xFU8ZXTw4gd358lb2jw25nxY9QAgqn2+bKKjKOYfNCzN4DKCFetK7sPtrlpg66Ywe3vWY9FNxprZawAh9wfJ3g==}
 
+  '@types/geojson@7946.0.16':
+    resolution: {integrity: sha512-6C8nqWur3j98U6+lXDfTUWIfgvZU+EumvpHKcYjujKH7woYyLj2sUmff0tRhrqM7BohUw7Pz3ZB1jj2gW9Fvmg==}
+
   '@types/har-format@1.2.16':
     resolution: {integrity: sha512-fluxdy7ryD3MV6h8pTfTYpy/xQzCFC7m89nOH9y94cNqJ1mDIDPut7MnRHI3F6qRmh/cT2fUjG1MLdCNb4hE9A==}
+
+  '@types/leaflet@1.9.22':
+    resolution: {integrity: sha512-h3lhECYEKDasG7LFHu+GiHqAvsgLuQvlJvVZzJDGONo3sEL+wUOqSFLnwkZlK0qVxnxbuGFW8iBlJNYs5wgndA==}
 
   '@types/minimatch@3.0.5':
     resolution: {integrity: sha512-Klz949h02Gz2uZCMGwDUSDS1YBlTdDDgbWHi+81l29tQALUtvz4rAYi5uoVhE5Lagoq6DeqAUlbrHvW/mXDgdQ==}
@@ -4565,6 +4583,9 @@ packages:
   latest-version@9.0.0:
     resolution: {integrity: sha512-7W0vV3rqv5tokqkBAFV1LbR7HPOWzXQDpDgEuib/aJ1jsZZx6x3c2mBI+TJhJzOhkGeaLbCKEHXEXLfirtG2JA==}
     engines: {node: '>=18'}
+
+  leaflet@1.9.4:
+    resolution: {integrity: sha512-nxS1ynzJOmOlHp+iL3FyWqK89GtNL8U8rvlMOsQdTTssxZwCXh8N2NB3GDQOL+YR3XnWyZAxwQixURb+FA74PA==}
 
   lie@3.3.0:
     resolution: {integrity: sha512-UaiMJzeWRlEujzAuw5LokY1L5ecNQYZKfmyZ9L7wDHb/p5etKaxXhohBcrw0EYby+G/NA52vRSN4N39dxHAIwQ==}
@@ -8003,7 +8024,13 @@ snapshots:
 
   '@types/filewriter@0.0.33': {}
 
+  '@types/geojson@7946.0.16': {}
+
   '@types/har-format@1.2.16': {}
+
+  '@types/leaflet@1.9.22':
+    dependencies:
+      '@types/geojson': 7946.0.16
 
   '@types/minimatch@3.0.5': {}
 
@@ -9574,6 +9601,8 @@ snapshots:
   latest-version@9.0.0:
     dependencies:
       package-json: 10.0.1
+
+  leaflet@1.9.4: {}
 
   lie@3.3.0:
     dependencies:

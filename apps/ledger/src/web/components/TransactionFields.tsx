@@ -29,6 +29,7 @@ import type { CategoryWithGenres } from "@/ledger/masters";
 import type { TransactionMode } from "@/ledger/transactions";
 import { categoryLabels, categoryValueOf } from "@/web/categoryValue";
 import { CategoryOptions } from "@/web/components/CategoryOptions";
+import { PlaceMapDialog } from "@/web/components/PlaceMapDialog";
 import { formatAmount } from "@/web/format";
 import { placeOptions, type PlaceOption } from "@/web/placeOptions";
 import { emptyItem, moveItem, type ItemDraft } from "@/web/transactionDraft";
@@ -115,6 +116,7 @@ export const AccountSelect = ({
 
 /**
  * 店舗（取引先）の入力欄。過去の店舗から選ぶか、一覧にない名前を打ち込んで追加する。
+ * 地図から近くの店舗を選んで、その名前を入れることもできる。
  */
 export const PlaceInput = ({
   id,
@@ -160,6 +162,7 @@ export const PlaceInput = ({
             render={<Button variant="ghost" size="icon-sm" aria-label="店舗を消す" />}
           />
         )}
+        <PlaceMapDialog onSelect={onChange} />
       </div>
       <ComboboxContent>
         <ComboboxInput placeholder="検索・追加" showTrigger={false} />
